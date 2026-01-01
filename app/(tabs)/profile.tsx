@@ -54,13 +54,15 @@ export default function ProfileScreen() {
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
+      const profileLink = `https://onyx.app/profile/${profile.id}`;
       const message = profile.bio 
-        ? `Check out ${profile.displayName} on Onyx!\n\n${profile.bio}\n\nJoin me on Onyx to connect at the best venues.`
-        : `Check out ${profile.displayName} on Onyx! Join me to connect at the best venues.`;
+        ? `Check out ${profile.displayName} on Onyx!\n\n${profile.bio}\n\n${profileLink}`
+        : `Check out ${profile.displayName} on Onyx!\n\n${profileLink}`;
       
       await Share.share({
         message,
         title: `${profile.displayName} on Onyx`,
+        url: profileLink,
       });
     } catch (error) {
       console.error('Error sharing profile:', error);
