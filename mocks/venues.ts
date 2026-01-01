@@ -1,0 +1,68 @@
+import { Venue } from '@/types';
+
+export const mockVenues: Venue[] = [
+  {
+    id: 'venue-1',
+    name: 'The Onyx Room',
+    location: {
+      latitude: 40.7589,
+      longitude: -73.9851,
+      address: '234 W 42nd St, New York, NY',
+    },
+    isOpen: true,
+    currentVibeLevel: 87,
+    coverCharge: 20,
+    genres: ['House', 'Techno'],
+    imageUrl: 'https://images.unsplash.com/photo-1571266028243-d220c6b2fea5?w=800',
+    hasPublicLobby: true,
+    vipThreshold: 150,
+  },
+  {
+    id: 'venue-2',
+    name: 'Velvet Underground',
+    location: {
+      latitude: 40.7282,
+      longitude: -73.9942,
+      address: '118 E 2nd St, New York, NY',
+    },
+    isOpen: true,
+    currentVibeLevel: 92,
+    coverCharge: 25,
+    genres: ['Hip-Hop', 'R&B'],
+    imageUrl: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=800',
+    hasPublicLobby: true,
+    vipThreshold: 200,
+  },
+  {
+    id: 'venue-3',
+    name: 'Neon Pulse',
+    location: {
+      latitude: 40.7614,
+      longitude: -73.9776,
+      address: '789 8th Ave, New York, NY',
+    },
+    isOpen: false,
+    currentVibeLevel: 0,
+    coverCharge: 30,
+    genres: ['EDM', 'Trance'],
+    imageUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800',
+    hasPublicLobby: true,
+    vipThreshold: 175,
+  },
+  {
+    id: 'venue-4',
+    name: 'The Marquee Lounge',
+    location: {
+      latitude: 40.7489,
+      longitude: -73.9680,
+      address: '456 Lexington Ave, New York, NY',
+    },
+    isOpen: true,
+    currentVibeLevel: 78,
+    coverCharge: 15,
+    genres: ['Jazz', 'Soul'],
+    imageUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800',
+    hasPublicLobby: true,
+    vipThreshold: 100,
+  },
+];

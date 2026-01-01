@@ -1,0 +1,619 @@
+import React, { useState, useRef, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  Dimensions,
+  FlatList,
+  ViewToken,
+  TouchableOpacity,
+  Text,
+  Animated as RNAnimated,
+  Alert,
+  ScrollView,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Heart, MessageCircle, Share2, Music, UserPlus, MapPin } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { mockVenues } from '@/mocks/venues';
+import { mockPerformers } from '@/mocks/performers';
+import { VibeVideo, FeedFilter } from '@/types';
+import * as Haptics from 'expo-haptics';
+import { useAppState } from '@/contexts/AppStateContext';
+import { useFeed } from '@/contexts/FeedContext';
+import { router } from 'expo-router';
+
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+
+export default function FeedScreen() {
+  const { videos, selectedFilter, setFilter, isEmpty, suggestedPerformers } = useFeed();
+  const { followPerformer, isFollowing } = useAppState();
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
+
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+        setCurrentIndex(viewableItems[0].index);
+      }
+    },
+    []
+  );
+
+  const viewabilityConfig = {
+    itemVisiblePercentThreshold: 50,
+  };
+
+  const handleLike = useCallback((videoId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setLikedVideos(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(videoId)) {
+        newSet.delete(videoId);
+      } else {
+        newSet.add(videoId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const renderVideo = ({ item, index }: { item: VibeVideo; index: number }) => {
+    const venue = mockVenues.find(v => v.id === item.venueId);
+    const performer = item.performerId
+      ? mockPerformers.find(p => p.id === item.performerId)
+      : null;
+    const isLiked = likedVideos.has(item.id);
+
+    return (
+      <VideoCard
+        video={item}
+        venue={venue}
+        performer={performer}
+        isActive={index === currentIndex}
+        isLiked={isLiked}
+        onLike={handleLike}
+      />
+    );
+  };
+
+  const handleFilterPress = useCallback((filter: FeedFilter) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFilter(filter);
+    setCurrentIndex(0);
+  }, [setFilter]);
+
+  if (isEmpty) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.filterContainer}>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              selectedFilter === 'NEARBY' && styles.filterButtonActive,
+            ]}
+            onPress={() => handleFilterPress('NEARBY')}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                selectedFilter === 'NEARBY' && styles.filterTextActive,
+              ]}
+            >
+              Nearby
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              selectedFilter === 'FOLLOWING' && styles.filterButtonActive,
+            ]}
+            onPress={() => handleFilterPress('FOLLOWING')}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                selectedFilter === 'FOLLOWING' && styles.filterTextActive,
+              ]}
+            >
+              Following
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <EmptyState
+          filter={selectedFilter}
+          suggestedPerformers={suggestedPerformers}
+          onFollowPerformer={followPerformer}
+          isFollowing={isFollowing}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            selectedFilter === 'NEARBY' && styles.filterButtonActive,
+          ]}
+          onPress={() => handleFilterPress('NEARBY')}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              selectedFilter === 'NEARBY' && styles.filterTextActive,
+            ]}
+          >
+            Nearby
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            selectedFilter === 'FOLLOWING' && styles.filterButtonActive,
+          ]}
+          onPress={() => handleFilterPress('FOLLOWING')}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              selectedFilter === 'FOLLOWING' && styles.filterTextActive,
+            ]}
+          >
+            Following
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={videos}
+        renderItem={renderVideo}
+        keyExtractor={item => item.id}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+        snapToInterval={SCREEN_HEIGHT}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        removeClippedSubviews
+        maxToRenderPerBatch={2}
+        windowSize={3}
+      />
+    </View>
+  );
+}
+
+interface VideoCardProps {
+  video: VibeVideo;
+  venue?: typeof mockVenues[0];
+  performer: typeof mockPerformers[0] | null | undefined;
+  isActive: boolean;
+  isLiked: boolean;
+  onLike: (videoId: string) => void;
+}
+
+function VideoCard({ video, venue, performer, isActive, isLiked, onLike }: VideoCardProps) {
+  const likeScale = useRef(new RNAnimated.Value(1)).current;
+  const { profile, updateProfile } = useAppState();
+
+  const handleLikePress = useCallback(() => {
+    onLike(video.id);
+    RNAnimated.sequence([
+      RNAnimated.timing(likeScale, {
+        toValue: 1.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(likeScale, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [video.id, onLike, likeScale]);
+
+  const handleJoinLobby = useCallback(() => {
+    if (!venue) return;
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    const alreadyJoined = profile.badges.some(badge => badge.venueId === venue.id);
+    
+    if (alreadyJoined) {
+      router.push('/(tabs)/servers');
+    } else {
+      const newBadge = {
+        id: `badge-${Date.now()}`,
+        venueId: venue.id,
+        venueName: venue.name,
+        badgeType: 'GUEST' as const,
+        unlockedAt: new Date().toISOString(),
+      };
+      
+      updateProfile({
+        badges: [...profile.badges, newBadge],
+      });
+      
+      Alert.alert(
+        'Joined!',
+        `You've joined ${venue.name}'s public lobby. Check the Servers tab to chat.`,
+        [
+          { text: 'OK', onPress: () => router.push('/(tabs)/servers') },
+        ]
+      );
+    }
+  }, [venue, profile.badges, updateProfile]);
+
+  return (
+    <View style={styles.videoContainer}>
+      <Image
+        source={{ uri: video.thumbnailUrl }}
+        style={styles.thumbnail}
+        contentFit="cover"
+      />
+
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)']}
+        style={styles.gradient}
+      />
+
+      <View style={styles.sideActions}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleLikePress}>
+          <RNAnimated.View style={{ transform: [{ scale: likeScale }] }}>
+            <Heart
+              size={32}
+              color={isLiked ? '#ff006e' : '#fff'}
+              fill={isLiked ? '#ff006e' : 'transparent'}
+            />
+          </RNAnimated.View>
+          <Text style={styles.actionText}>{(video.likes + (isLiked ? 1 : 0)).toLocaleString()}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton}>
+          <MessageCircle size={32} color="#fff" />
+          <Text style={styles.actionText}>Chat</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton}>
+          <Share2 size={32} color="#fff" />
+          <Text style={styles.actionText}>Share</Text>
+        </TouchableOpacity>
+
+        <View style={styles.musicIcon}>
+          <Music size={24} color="#00ffcc" />
+        </View>
+      </View>
+
+      <View style={styles.bottomInfo}>
+        {performer && (
+          <View style={styles.performerInfo}>
+            <Image
+              source={{ uri: performer.imageUrl }}
+              style={styles.performerAvatar}
+            />
+            <Text style={styles.performerName}>{performer.stageName}</Text>
+          </View>
+        )}
+
+        <Text style={styles.title}>{video.title}</Text>
+
+        {venue && (
+          <View style={styles.venueTag}>
+            <View style={[styles.venueIndicator, venue.isOpen && styles.venueIndicatorLive]} />
+            <Text style={styles.venueText}>{venue.name}</Text>
+            {venue.isOpen && <Text style={styles.liveText}>LIVE</Text>}
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.joinButton} onPress={handleJoinLobby}>
+          <Text style={styles.joinButtonText}>
+            {venue && profile.badges.some(b => b.venueId === venue.id) ? 'Go to Server' : 'Join Lobby'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+interface EmptyStateProps {
+  filter: FeedFilter;
+  suggestedPerformers: typeof mockPerformers;
+  onFollowPerformer: (id: string) => void;
+  isFollowing: (id: string) => boolean;
+}
+
+function EmptyState({ filter, suggestedPerformers, onFollowPerformer, isFollowing }: EmptyStateProps) {
+  if (filter === 'NEARBY') {
+    return (
+      <View style={styles.emptyContainer}>
+        <MapPin size={64} color="#666" />
+        <Text style={styles.emptyTitle}>No nearby content</Text>
+        <Text style={styles.emptyText}>
+          There are no videos from venues in your area right now.
+        </Text>
+        <Text style={styles.emptySubtext}>Check back later for fresh content!</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.emptyScrollContainer} contentContainerStyle={styles.emptyContainer}>
+      <UserPlus size={64} color="#666" />
+      <Text style={styles.emptyTitle}>No content from people you follow</Text>
+      <Text style={styles.emptyText}>
+        Follow performers to see their latest videos here.
+      </Text>
+      
+      {suggestedPerformers.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          <Text style={styles.suggestionsTitle}>Trending Local Performers</Text>
+          {suggestedPerformers.map((performer) => (
+            <View key={performer.id} style={styles.suggestionCard}>
+              <Image
+                source={{ uri: performer.imageUrl }}
+                style={styles.suggestionAvatar}
+              />
+              <View style={styles.suggestionInfo}>
+                <Text style={styles.suggestionName}>{performer.stageName}</Text>
+                <Text style={styles.suggestionGenres}>{performer.genres.join(', ')}</Text>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.followButton,
+                  isFollowing(performer.id) && styles.followButtonActive,
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onFollowPerformer(performer.id);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.followButtonText,
+                    isFollowing(performer.id) && styles.followButtonTextActive,
+                  ]}
+                >
+                  {isFollowing(performer.id) ? 'Following' : 'Follow'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0a0f',
+  },
+  filterContainer: {
+    position: 'absolute' as const,
+    top: 60,
+    left: 0,
+    right: 0,
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    gap: 12,
+    zIndex: 10,
+    paddingHorizontal: 20,
+  },
+  filterButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterButtonActive: {
+    backgroundColor: '#00ffcc',
+    borderColor: '#00ffcc',
+  },
+  filterText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  filterTextActive: {
+    color: '#0a0a0f',
+    fontWeight: '700' as const,
+  },
+  emptyScrollContainer: {
+    flex: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 32,
+    paddingTop: 140,
+  },
+  emptyTitle: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '700' as const,
+    marginTop: 24,
+    textAlign: 'center' as const,
+  },
+  emptyText: {
+    color: '#999',
+    fontSize: 16,
+    marginTop: 12,
+    textAlign: 'center' as const,
+    lineHeight: 22,
+  },
+  emptySubtext: {
+    color: '#666',
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center' as const,
+  },
+  suggestionsContainer: {
+    marginTop: 40,
+    width: '100%',
+  },
+  suggestionsTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700' as const,
+    marginBottom: 16,
+  },
+  suggestionCard: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  suggestionAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  suggestionInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  suggestionName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  suggestionGenres: {
+    color: '#999',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  followButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: '#00ffcc',
+  },
+  followButtonActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: '#00ffcc',
+  },
+  followButtonText: {
+    color: '#0a0a0f',
+    fontSize: 14,
+    fontWeight: '700' as const,
+  },
+  followButtonTextActive: {
+    color: '#00ffcc',
+  },
+  videoContainer: {
+    height: SCREEN_HEIGHT,
+    width: SCREEN_WIDTH,
+    position: 'relative' as const,
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  gradient: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
+  },
+  sideActions: {
+    position: 'absolute' as const,
+    right: 12,
+    bottom: 120,
+    gap: 24,
+    alignItems: 'center' as const,
+  },
+  actionButton: {
+    alignItems: 'center' as const,
+    gap: 4,
+  },
+  actionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600' as const,
+  },
+  musicIcon: {
+    marginTop: 12,
+    padding: 8,
+    backgroundColor: 'rgba(0, 255, 204, 0.2)',
+    borderRadius: 20,
+  },
+  bottomInfo: {
+    position: 'absolute' as const,
+    bottom: 100,
+    left: 16,
+    right: 80,
+  },
+  performerInfo: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+    marginBottom: 12,
+  },
+  performerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#00ffcc',
+  },
+  performerName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700' as const,
+  },
+  title: {
+    color: '#fff',
+    fontSize: 15,
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  venueTag: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    marginBottom: 16,
+  },
+  venueIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#666',
+  },
+  venueIndicatorLive: {
+    backgroundColor: '#00ff88',
+  },
+  venueText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600' as const,
+  },
+  liveText: {
+    color: '#00ff88',
+    fontSize: 11,
+    fontWeight: '700' as const,
+    backgroundColor: 'rgba(0, 255, 136, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  joinButton: {
+    backgroundColor: '#00ffcc',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    alignSelf: 'flex-start' as const,
+  },
+  joinButtonText: {
+    color: '#0a0a0f',
+    fontSize: 14,
+    fontWeight: '700' as const,
+  },
+});

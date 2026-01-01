@@ -1,0 +1,64 @@
+import { ToastLocation, ToastIntegration, ToastSpendRule } from '@/types';
+
+export const mockToastLocations: ToastLocation[] = [
+  {
+    id: 'loc-1',
+    name: 'The Onyx Room - Main Bar',
+    address: '1234 Broadway St, Los Angeles, CA',
+    restaurantGuid: 'toast-guid-1',
+  },
+  {
+    id: 'loc-2',
+    name: 'The Onyx Room - Rooftop',
+    address: '1234 Broadway St, Los Angeles, CA',
+    restaurantGuid: 'toast-guid-2',
+  },
+  {
+    id: 'loc-3',
+    name: 'Velvet Underground - Main Floor',
+    address: '567 Sunset Blvd, Los Angeles, CA',
+    restaurantGuid: 'toast-guid-3',
+  },
+];
+
+export const mockToastIntegration: ToastIntegration = {
+  id: 'toast-int-1',
+  venueId: 'venue-1',
+  status: 'DISCONNECTED',
+  selectedLocations: [],
+  webhooksEnabled: false,
+};
+
+export const mockToastSpendRules: ToastSpendRule[] = [
+  {
+    id: 'toast-rule-1',
+    venueId: 'venue-1',
+    threshold: 50,
+    tierUnlocked: 'REGULAR',
+    serverAccessLevel: 'PUBLIC_LOBBY',
+    isLiveOnly: false,
+    isActive: true,
+  },
+  {
+    id: 'toast-rule-2',
+    venueId: 'venue-1',
+    threshold: 200,
+    tierUnlocked: 'PLATINUM',
+    serverAccessLevel: 'INNER_CIRCLE',
+    isLiveOnly: true,
+    liveTimeWindow: {
+      startTime: '22:00',
+      endTime: '02:00',
+    },
+    isActive: true,
+  },
+  {
+    id: 'toast-rule-3',
+    venueId: 'venue-1',
+    threshold: 500,
+    tierUnlocked: 'WHALE',
+    serverAccessLevel: 'INNER_CIRCLE',
+    isLiveOnly: false,
+    isActive: true,
+  },
+];
