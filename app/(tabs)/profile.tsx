@@ -54,7 +54,7 @@ export default function ProfileScreen() {
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      const profileLink = `https://onyx.app/profile/${profile.id}`;
+      const profileLink = `https://Onyx.app/profile/${profile.id}`;
       const message = profile.bio 
         ? `Check out ${profile.displayName} on Onyx!\n\n${profile.bio}\n\n${profileLink}`
         : `Check out ${profile.displayName} on Onyx!\n\n${profileLink}`;
