@@ -3,7 +3,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Follow, FriendLocation, LocationSettings, FriendProfile } from '@/types';
-import { mockFollows, mockFriendLocations, mockFriendProfiles } from '@/mocks/friends';
+import { mockFollows, mockFriendLocations, mockFriendProfiles, mockSuggestedPeople } from '@/mocks/friends';
 
 const STORAGE_KEYS = {
   FOLLOWS: 'vibelink_follows',
@@ -272,6 +272,10 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     return mockFriendProfiles.find(p => p.id === userId);
   }, []);
 
+  const suggestedPeople = useMemo(() => {
+    return mockSuggestedPeople.filter(person => !isFollowing(person.id));
+  }, [isFollowing]);
+
   const pendingRequests = useMemo(() => {
     return follows
       .filter(f => f.followingId === 'user-me' && f.status === 'PENDING')
@@ -299,6 +303,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     getLargestFriendCluster,
     searchFriends,
     getFriendProfile,
+    suggestedPeople,
     isLoading: followsQuery.isLoading || locationSettingsQuery.isLoading,
   };
 });

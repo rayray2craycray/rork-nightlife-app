@@ -25,7 +25,7 @@ type SocialTab = 'FOLLOWERS' | 'FOLLOWING';
 
 export default function ProfileScreen() {
   const { profile, toggleIncognito, updateProfileDetails } = useAppState();
-  const { following, followers, getFriendProfile, isFollowing, followUser, unfollowUser } = useSocial();
+  const { following, followers, getFriendProfile, isFollowing, followUser, unfollowUser, suggestedPeople } = useSocial();
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [showSocialList, setShowSocialList] = useState(false);
   const [socialTab, setSocialTab] = useState<SocialTab>('FOLLOWING');
@@ -477,6 +477,62 @@ export default function ProfileScreen() {
             <Settings size={20} color="#fff" />
             <Text style={styles.actionButtonText}>Account Settings</Text>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>People You May Know</Text>
+          <Text style={styles.sectionSubtitle}>Based on your contacts and connections</Text>
+          {suggestedPeople.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Users size={48} color="#666" />
+              <Text style={styles.emptyStateTitle}>No suggestions</Text>
+              <Text style={styles.emptyStateText}>
+                We&apos;ll show people you may know here
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.suggestedList}>
+              {suggestedPeople.map((person) => (
+                <View key={person.id} style={styles.userCard}>
+                  <LinearGradient
+                    colors={['#1a1a2e', '#1a1a1a']}
+                    style={styles.userCardGradient}
+                  >
+                    <View style={styles.userCardLeft}>
+                      <Image
+                        source={{ uri: person.avatarUrl }}
+                        style={styles.userAvatar}
+                      />
+                      <View style={styles.userInfo}>
+                        <Text style={styles.userName}>{person.displayName}</Text>
+                        {person.bio && <Text style={styles.userBio}>{person.bio}</Text>}
+                        {person.mutualFriends > 0 && (
+                          <Text style={styles.mutualText}>
+                            {person.mutualFriends} mutual {person.mutualFriends === 1 ? 'friend' : 'friends'}
+                          </Text>
+                        )}
+                        {person.currentVenueName && (
+                          <View style={styles.venueTag}>
+                            <View style={styles.onlineIndicator} />
+                            <Text style={styles.venueTagText}>{person.currentVenueName}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.followButton}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        followUser(person.id);
+                      }}
+                    >
+                      <UserPlus size={18} color="#000000" />
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </LinearGradient>
 
@@ -1000,5 +1056,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
     borderColor: '#333',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#999',
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  suggestedList: {
+    gap: 12,
+  },
+  mutualText: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 2,
   },
 });
