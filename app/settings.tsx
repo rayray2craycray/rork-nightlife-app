@@ -31,6 +31,7 @@ import {
   Eye,
   EyeOff,
   UserX,
+  ArrowLeft,
 } from 'lucide-react-native';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useSocial } from '@/contexts/SocialContext';
@@ -168,6 +169,17 @@ export default function SettingsScreen() {
           headerStyle: { backgroundColor: '#0a0a0f' },
           headerTintColor: '#fff',
           headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/(tabs)/profile');
+              }}
+              style={{ marginLeft: 16 }}
+            >
+              <ArrowLeft size={24} color="#fff" />
+            </TouchableOpacity>
+          ),
         }}
       />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
