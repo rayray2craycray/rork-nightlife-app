@@ -10,10 +10,11 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { Award, Eye, EyeOff, Settings, CreditCard, Users, BarChart3, Edit, X, CheckCircle2, Shield, UserPlus, UserMinus } from 'lucide-react-native';
+import { Award, Eye, EyeOff, Settings, CreditCard, Users, BarChart3, Edit, X, CheckCircle2, Shield, UserPlus, UserMinus, Share2 } from 'lucide-react-native';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useSocial } from '@/contexts/SocialContext';
 import { router } from 'expo-router';
@@ -50,12 +51,34 @@ export default function ProfileScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
+  const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const message = profile.bio 
+        ? `Check out ${profile.displayName} on Onyx!\n\n${profile.bio}\n\nJoin me on Onyx to connect at the best venues.`
+        : `Check out ${profile.displayName} on Onyx! Join me to connect at the best venues.`;
+      
+      await Share.share({
+        message,
+        title: `${profile.displayName} on Onyx`,
+      });
+    } catch (error) {
+      console.error('Error sharing profile:', error);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
         colors={['#0a0a0f', '#15151f']}
         style={styles.gradient}
       >
+        <TouchableOpacity 
+          style={styles.shareButton}
+          onPress={handleShare}
+        >
+          <Share2 size={24} color="#ff0080" />
+        </TouchableOpacity>
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
             <LinearGradient
@@ -536,6 +559,18 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
     paddingBottom: 40,
+  },
+  shareButton: {
+    position: 'absolute' as const,
+    top: 60,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(26, 26, 46, 0.8)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    zIndex: 10,
   },
   header: {
     paddingTop: 60,
