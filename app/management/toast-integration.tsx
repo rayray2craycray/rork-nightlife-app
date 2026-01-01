@@ -20,6 +20,7 @@ import {
   AlertCircle,
 } from 'lucide-react-native';
 import { useToast } from '@/contexts/ToastContext';
+import { useGlow } from '@/contexts/GlowContext';
 import { ToastSpendRule } from '@/types';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,6 +38,7 @@ export default function ToastIntegrationScreen() {
     selectLocations,
     updateSpendRule,
   } = useToast();
+  const { triggerGlow } = useGlow();
 
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>(
     integration.selectedLocations
@@ -44,7 +46,11 @@ export default function ToastIntegrationScreen() {
 
   const handleConnect = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    connectToast.mutate();
+    connectToast.mutate(undefined, {
+      onSuccess: () => {
+        triggerGlow({ color: 'gold', intensity: 0.7, duration: 1200 });
+      },
+    });
   };
 
   const handleDisconnect = () => {

@@ -8,20 +8,26 @@ import { PerformerProvider } from "@/contexts/PerformerContext";
 import { SocialProvider } from "@/contexts/SocialContext";
 import { FeedProvider } from "@/contexts/FeedContext";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { GlowProvider, useGlow } from "@/contexts/GlowContext";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const { GlowOverlay } = useGlow();
+  
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="welcome" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ headerShown: false }} />
-      <Stack.Screen name="management" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerBackTitle: "Back" }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="management" options={{ headerShown: false }} />
+      </Stack>
+      <GlowOverlay />
+    </>
   );
 }
 
@@ -34,17 +40,19 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AppStateProvider>
-          <ToastProvider>
-            <SocialProvider>
-              <FeedProvider>
-                <DiscoveryProvider>
-                  <PerformerProvider>
-                    <RootLayoutNav />
-                  </PerformerProvider>
-                </DiscoveryProvider>
-              </FeedProvider>
-            </SocialProvider>
-          </ToastProvider>
+          <GlowProvider>
+            <ToastProvider>
+              <SocialProvider>
+                <FeedProvider>
+                  <DiscoveryProvider>
+                    <PerformerProvider>
+                      <RootLayoutNav />
+                    </PerformerProvider>
+                  </DiscoveryProvider>
+                </FeedProvider>
+              </SocialProvider>
+            </ToastProvider>
+          </GlowProvider>
         </AppStateProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>

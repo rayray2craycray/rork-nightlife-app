@@ -18,6 +18,7 @@ import { mockVenues } from '@/mocks/venues';
 import { Venue, FriendLocation } from '@/types';
 import { useDiscovery, useAppState } from '@/contexts/AppStateContext';
 import { useSocial } from '@/contexts/SocialContext';
+import { useGlow } from '@/contexts/GlowContext';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
@@ -361,6 +362,7 @@ interface VenueBottomSheetProps {
 
 function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
   const { profile, updateProfile, canRejoinVenue } = useAppState();
+  const { triggerGlow } = useGlow();
 
   const handleGetDirections = () => {
     const { latitude, longitude } = venue.location;
@@ -435,6 +437,7 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
                 badges: [...profile.badges, newBadge],
               });
               
+              triggerGlow({ color: 'purple', intensity: 0.6, duration: 1000 });
               router.push('/(tabs)/servers');
             }
           },
@@ -461,6 +464,8 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
         badges: [...profile.badges, newBadge],
         transactionHistory: [...profile.transactionHistory, newTransaction],
       });
+      
+      triggerGlow({ color: 'purple', intensity: 0.6, duration: 1000 });
       
       Alert.alert(
         'Joined!',
