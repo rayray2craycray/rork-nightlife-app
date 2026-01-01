@@ -8,6 +8,7 @@ import { mockServers } from '@/mocks/servers';
 const STORAGE_KEYS = {
   PROFILE: 'vibelink_profile',
   VIBE_COOLDOWNS: 'vibelink_vibe_cooldowns',
+  CREDENTIALS: 'vibelink_credentials',
 };
 
 const defaultProfile: UserProfile = {
@@ -229,6 +230,30 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     return vibeData;
   }, [venueVibeData]);
 
+  const createAccount = useMutation({
+    mutationFn: async ({ username, password }: { username: string; password: string }) => {
+      const credentials = {
+        username,
+        password,
+        createdAt: new Date().toISOString(),
+      };
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.CREDENTIALS, JSON.stringify(credentials));
+      
+      const updated = {
+        ...profile,
+        displayName: username,
+        isAuthenticated: true,
+      };
+      
+      await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(updated));
+      return updated;
+    },
+    onSuccess: (data) => {
+      setProfile(data);
+    },
+  });
+
   return {
     profile,
     isLoading: profileQuery.isLoading,
@@ -245,6 +270,7 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     getVibeCooldownRemaining,
     submitVibeCheck,
     getVenueVibe,
+    createAccount,
   };
 });
 

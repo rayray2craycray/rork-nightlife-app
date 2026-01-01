@@ -64,7 +64,7 @@ export default function WelcomeScreen() {
     if (!selectedRole) return;
     
     setUserRole(selectedRole);
-    router.replace('/feed');
+    router.push('/create-account');
   };
 
   return (
