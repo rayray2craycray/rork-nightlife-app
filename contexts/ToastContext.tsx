@@ -13,6 +13,7 @@ import {
   mockToastLocations,
   mockToastSpendRules,
 } from '@/mocks/toast';
+import { TOAST_POS } from '@/constants/app';
 
 const STORAGE_KEYS = {
   TOAST_INTEGRATION: 'vibelink_toast_integration',
@@ -86,25 +87,39 @@ export const [ToastProvider, useToast] = createContextHook(() => {
       };
       setIntegration(updatedIntegration);
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // TODO: Implement real Toast POS OAuth flow
+      // 1. Open WebBrowser to Toast OAuth endpoint with client_id from env
+      // 2. Handle redirect callback with authorization code
+      // 3. Exchange code for access_token and refresh_token
+      // 4. Store tokens securely (consider using Expo SecureStore)
+      // Reference: https://doc.toasttab.com/doc/devguide/apiAuthentication.html
 
-      const connectedIntegration: ToastIntegration = {
-        ...updatedIntegration,
-        status: 'CONNECTED',
-        accessToken: 'mock-access-token-' + Date.now(),
-        refreshToken: 'mock-refresh-token-' + Date.now(),
-        connectedAt: new Date().toISOString(),
-        lastSyncAt: new Date().toISOString(),
-        webhooksEnabled: true,
-      };
+      // DEVELOPMENT ONLY: Simulating OAuth flow with mock data
+      // This should be removed when implementing real OAuth
+      if (process.env.NODE_ENV === 'development') {
+        await new Promise(resolve => setTimeout(resolve, TOAST_POS.MOCK_CONNECTION_DELAY_MS));
 
-      await AsyncStorage.setItem(
-        STORAGE_KEYS.TOAST_INTEGRATION,
-        JSON.stringify(connectedIntegration)
-      );
+        const connectedIntegration: ToastIntegration = {
+          ...updatedIntegration,
+          status: 'CONNECTED',
+          accessToken: undefined, // In dev mode, no real token needed
+          refreshToken: undefined, // In dev mode, no real token needed
+          connectedAt: new Date().toISOString(),
+          lastSyncAt: new Date().toISOString(),
+          webhooksEnabled: true,
+        };
 
-      setAvailableLocations(mockToastLocations);
-      return connectedIntegration;
+        await AsyncStorage.setItem(
+          STORAGE_KEYS.TOAST_INTEGRATION,
+          JSON.stringify(connectedIntegration)
+        );
+
+        setAvailableLocations(mockToastLocations);
+        return connectedIntegration;
+      }
+
+      // Production OAuth flow would go here
+      throw new Error('Toast OAuth not implemented for production');
     },
     onSuccess: (data) => {
       setIntegration(data);

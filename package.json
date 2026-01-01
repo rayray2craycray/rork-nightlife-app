@@ -3,10 +3,13 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "bunx rork start -p vf5hh5dnuyyhuogt9qhfi --tunnel",
-    "start-web": "bunx rork start -p vf5hh5dnuyyhuogt9qhfi --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p vf5hh5dnuyyhuogt9qhfi --web --tunnel",
-    "lint": "expo lint"
+    "start": "bunx rork start -p $RORK_PROJECT_ID --tunnel",
+    "start-web": "bunx rork start -p $RORK_PROJECT_ID --web --tunnel",
+    "start-web-dev": "DEBUG=expo* bunx rork start -p $RORK_PROJECT_ID --web --tunnel",
+    "lint": "expo lint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

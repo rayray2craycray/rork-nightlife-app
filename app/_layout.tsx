@@ -9,6 +9,7 @@ import { SocialProvider } from "@/contexts/SocialContext";
 import { FeedProvider } from "@/contexts/FeedContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { GlowProvider, useGlow } from "@/contexts/GlowContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -37,25 +38,32 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, []);
 
+  const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
+    // TODO: Send error to tracking service (Sentry, Bugsnag, etc.)
+    console.error('Global error caught:', error, errorInfo);
+  };
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <AppStateProvider>
-          <GlowProvider>
-            <ToastProvider>
-              <SocialProvider>
-                <FeedProvider>
-                  <DiscoveryProvider>
-                    <PerformerProvider>
-                      <RootLayoutNav />
-                    </PerformerProvider>
-                  </DiscoveryProvider>
-                </FeedProvider>
-              </SocialProvider>
-            </ToastProvider>
-          </GlowProvider>
-        </AppStateProvider>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <ErrorBoundary onError={handleError}>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AppStateProvider>
+            <GlowProvider>
+              <ToastProvider>
+                <SocialProvider>
+                  <FeedProvider>
+                    <DiscoveryProvider>
+                      <PerformerProvider>
+                        <RootLayoutNav />
+                      </PerformerProvider>
+                    </DiscoveryProvider>
+                  </FeedProvider>
+                </SocialProvider>
+              </ToastProvider>
+            </GlowProvider>
+          </AppStateProvider>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { UserProfile, UserRole, VibeCheckVote, VenueVibeData, UserVibeCooldown, VibeEnergyLevel, WaitTimeRange } from '@/types';
 import { mockServers } from '@/mocks/servers';
+import { VIBE_CHECK } from '@/constants/app';
 
 const STORAGE_KEYS = {
   PROFILE: 'vibelink_profile',
@@ -148,18 +149,16 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     const cooldown = vibeCooldowns.find(c => c.venueId === venueId);
     if (!cooldown) return true;
 
-    const cooldownMs = 60 * 60 * 1000;
     const timeSinceVote = Date.now() - new Date(cooldown.lastVoteTimestamp).getTime();
-    return timeSinceVote >= cooldownMs;
+    return timeSinceVote >= VIBE_CHECK.VOTE_COOLDOWN_MS;
   }, [vibeCooldowns]);
 
   const getVibeCooldownRemaining = useCallback((venueId: string): number => {
     const cooldown = vibeCooldowns.find(c => c.venueId === venueId);
     if (!cooldown) return 0;
 
-    const cooldownMs = 60 * 60 * 1000;
     const timeSinceVote = Date.now() - new Date(cooldown.lastVoteTimestamp).getTime();
-    const remaining = cooldownMs - timeSinceVote;
+    const remaining = VIBE_CHECK.VOTE_COOLDOWN_MS - timeSinceVote;
     return Math.max(0, remaining);
   }, [vibeCooldowns]);
 
@@ -223,9 +222,8 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     const vibeData = venueVibeData.find(v => v.venueId === venueId);
     if (!vibeData) return null;
 
-    const decayMs = 4 * 60 * 60 * 1000;
     const timeSinceUpdate = Date.now() - new Date(vibeData.lastUpdated).getTime();
-    if (timeSinceUpdate >= decayMs) return null;
+    if (timeSinceUpdate >= VIBE_CHECK.DATA_DECAY_MS) return null;
 
     return vibeData;
   }, [venueVibeData]);
