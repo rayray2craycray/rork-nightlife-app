@@ -40,7 +40,7 @@ export default function TalentBookingScreen() {
       case 'PENDING':
         return '#ffa64d';
       case 'CONFIRMED':
-        return '#00ff88';
+        return '#a855f7';
       case 'COMPLETED':
         return '#00d4ff';
       case 'CANCELLED':
@@ -109,7 +109,7 @@ export default function TalentBookingScreen() {
 
                 <View style={styles.bookingDetails}>
                   <View style={styles.detailRow}>
-                    <Calendar size={16} color="#00ffcc" />
+                    <Calendar size={16} color="#ff0080" />
                     <Text style={styles.detailText}>
                       {new Date(booking.date).toLocaleDateString('en-US', {
                         weekday: 'short',
@@ -125,7 +125,7 @@ export default function TalentBookingScreen() {
                     </Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <DollarSign size={16} color="#00ff88" />
+                    <DollarSign size={16} color="#a855f7" />
                     <Text style={styles.detailText}>Fee: ${booking.fee.toLocaleString()}</Text>
                   </View>
                 </View>
@@ -134,7 +134,7 @@ export default function TalentBookingScreen() {
                   <View style={styles.revenueReport}>
                     <View style={styles.revenueRow}>
                       <View style={styles.revenueItem}>
-                        <TrendingUp size={18} color="#00ff88" />
+                        <TrendingUp size={18} color="#a855f7" />
                         <View>
                           <Text style={styles.revenueLabel}>Revenue Generated</Text>
                           <Text style={styles.revenueValue}>
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     color: '#666680',
   },
   tabTextActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   bookingsContainer: {
     paddingHorizontal: 20,
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   genreText: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   },
   roiText: {
     fontSize: 12,
-    color: '#00ff88',
+    color: '#a855f7',
     fontWeight: '600' as const,
     textAlign: 'center' as const,
   },
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     gap: 8,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     paddingVertical: 12,
     borderRadius: 10,
   },

@@ -59,7 +59,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
             <LinearGradient
-              colors={['#00ffcc', '#00ff88']}
+              colors={['#ff0080', '#a855f7']}
               style={styles.avatarGradient}
             >
               <View style={styles.avatar}>
@@ -71,13 +71,13 @@ export default function ProfileScreen() {
             <Text style={styles.displayName}>{profile.displayName}</Text>
             {profile.isVerified && (
               <View style={styles.verifiedBadge}>
-                <CheckCircle2 size={20} color="#00ffcc" />
+                <CheckCircle2 size={20} color="#ff0080" />
               </View>
             )}
           </View>
           {profile.isVerified && profile.verifiedCategory && (
             <View style={styles.categoryTag}>
-              <Shield size={12} color="#00ffcc" />
+              <Shield size={12} color="#ff0080" />
               <Text style={styles.categoryText}>{profile.verifiedCategory}</Text>
             </View>
           )}
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
             <Text style={styles.userStats}>Member since 2024</Text>
           )}
           <TouchableOpacity style={styles.editProfileButton} onPress={openEditModal}>
-            <Edit size={16} color="#00ffcc" />
+            <Edit size={16} color="#ff0080" />
             <Text style={styles.editProfileText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -99,7 +99,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.incognitoLeft}>
               {profile.isIncognito ? (
-                <EyeOff size={24} color="#00ffcc" />
+                <EyeOff size={24} color="#ff0080" />
               ) : (
                 <Eye size={24} color="#666" />
               )}
@@ -113,7 +113,7 @@ export default function ProfileScreen() {
             <Switch
               value={profile.isIncognito}
               onValueChange={handleIncognitoToggle}
-              trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+              trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
               thumbColor={profile.isIncognito ? '#0a0a0f' : '#666'}
             />
           </LinearGradient>
@@ -128,7 +128,7 @@ export default function ProfileScreen() {
               setShowSocialList(false);
             }}
           >
-            <Award size={24} color="#00ffcc" />
+            <Award size={24} color="#ff0080" />
             <Text style={styles.statNumber}>{profile.badges.length}</Text>
             <Text style={styles.statLabel}>Badges</Text>
           </TouchableOpacity>
@@ -145,7 +145,7 @@ export default function ProfileScreen() {
               }
             }}
           >
-            <Users size={24} color="#00ffcc" />
+            <Users size={24} color="#ff0080" />
             <Text style={styles.statNumber}>{followers.length}</Text>
             <Text style={styles.statLabel}>Followers</Text>
           </TouchableOpacity>
@@ -162,7 +162,7 @@ export default function ProfileScreen() {
               }
             }}
           >
-            <Users size={24} color="#00ffcc" />
+            <Users size={24} color="#ff0080" />
             <Text style={styles.statNumber}>{following.length}</Text>
             <Text style={styles.statLabel}>Following</Text>
           </TouchableOpacity>
@@ -428,7 +428,7 @@ export default function ProfileScreen() {
               }}
             >
               <LinearGradient
-                colors={['#00ffcc', '#00d4ff']}
+                colors={['#ff0080', '#00d4ff']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.managementGradient}
@@ -512,7 +512,7 @@ export default function ProfileScreen() {
                 onPress={handleSaveProfile}
               >
                 <LinearGradient
-                  colors={['#00ffcc', '#00d4ff']}
+                  colors={['#ff0080', '#00d4ff']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.saveButtonGradient}
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 36,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   displayName: {
     fontSize: 24,
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   bio: {
     fontSize: 14,
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
   editProfileText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   incognitoCard: {
     marginHorizontal: 20,
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
   },
   badgeTypeTag: {
     alignSelf: 'flex-start' as const,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   socialTabTextActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   socialTabIndicator: {
     position: 'absolute' as const,
@@ -884,7 +884,7 @@ const styles = StyleSheet.create({
     left: '20%',
     right: '20%',
     height: 2,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     borderRadius: 1,
   },
   socialList: {
@@ -944,18 +944,18 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
   },
   venueTagText: {
     fontSize: 11,
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '600' as const,
   },
   followButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },

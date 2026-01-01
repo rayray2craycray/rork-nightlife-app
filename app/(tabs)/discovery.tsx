@@ -130,7 +130,7 @@ export default function DiscoveryScreen() {
   if (isLoadingLocation || !userLocation) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00ffcc" />
+        <ActivityIndicator size="large" color="#ff0080" />
         <Text style={styles.loadingText}>Getting your location...</Text>
       </View>
     );
@@ -321,7 +321,7 @@ function FriendListDrawer({ friendLocations, onClose, onFriendPress }: FriendLis
           {venueGroups.map((group, idx) => (
             <View key={idx} style={styles.venueGroup}>
               <View style={styles.venueGroupHeader}>
-                <MapPin size={14} color="#00ffcc" />
+                <MapPin size={14} color="#ff0080" />
                 <Text style={styles.venueGroupName}>{group.venueName}</Text>
                 <Text style={styles.venueGroupCount}>{group.friends.length}</Text>
               </View>
@@ -507,18 +507,18 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
 
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
-              <MapPin size={16} color="#00ffcc" />
+              <MapPin size={16} color="#ff0080" />
               <Text style={styles.infoText}>{venue.location.address}</Text>
             </View>
           </View>
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <DollarSign size={18} color="#00ffcc" />
+              <DollarSign size={18} color="#ff0080" />
               <Text style={styles.statText}>${venue.coverCharge} cover</Text>
             </View>
             <View style={styles.statItem}>
-              <Users size={18} color="#00ffcc" />
+              <Users size={18} color="#ff0080" />
               <Text style={styles.statText}>342 members</Text>
             </View>
           </View>
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '600' as const,
   },
   markerContainer: {
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     borderColor: '#666',
   },
   markerLive: {
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
   },
   markerText: {
     fontSize: 20,
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#00ff88',
+    backgroundColor: '#a855f7',
   },
   bottomSheet: {
     position: 'absolute' as const,
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#666',
   },
   statusDotLive: {
-    backgroundColor: '#00ff88',
+    backgroundColor: '#a855f7',
   },
   statusText: {
     fontSize: 12,
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   statusTextLive: {
-    color: '#00ff88',
+    color: '#a855f7',
   },
   vibeBadge: {
     backgroundColor: 'rgba(0, 255, 204, 0.2)',
@@ -684,12 +684,12 @@ const styles = StyleSheet.create({
   vibeText: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   vibeLabel: {
     fontSize: 10,
     fontWeight: '600' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   infoRow: {
     gap: 8,
@@ -734,7 +734,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   joinButton: {
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     paddingVertical: 16,
     borderRadius: 24,
     alignItems: 'center' as const,
@@ -749,12 +749,12 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center' as const,
     borderWidth: 1,
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
   },
   directionsButtonText: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   loadingContainer: {
     flex: 1,
@@ -785,13 +785,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   controlButtonActive: {
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
   },
   recenterButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     shadowColor: '#000',
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
     position: 'absolute' as const,
     top: -4,
     right: -4,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     width: 20,
     height: 20,
     borderRadius: 10,
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
   },
   friendAvatarRingActive: {
-    backgroundColor: '#00ff88',
+    backgroundColor: '#a855f7',
   },
   friendAvatarRingVenue: {
     backgroundColor: '#a855f7',
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
   venueGroupName: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
     flex: 1,
   },
   venueGroupCount: {

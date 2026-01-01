@@ -175,7 +175,7 @@ export default function SettingsScreen() {
           <View style={styles.header}>
             <View style={styles.avatarContainer}>
               <LinearGradient
-                colors={['#00ffcc', '#00ff88']}
+                colors={['#ff0080', '#a855f7']}
                 style={styles.avatarGradient}
               >
                 <View style={styles.avatar}>
@@ -185,7 +185,7 @@ export default function SettingsScreen() {
             </View>
             <Text style={styles.displayName}>{profile.displayName}</Text>
             <View style={styles.cloutBadge}>
-              <Award size={16} color="#00ffcc" />
+              <Award size={16} color="#ff0080" />
               <Text style={styles.cloutText}>{totalPoints} Clout Points</Text>
             </View>
           </View>
@@ -270,7 +270,7 @@ export default function SettingsScreen() {
                 style={styles.progressGradient}
               >
                 <View style={styles.progressHeader}>
-                  <CreditCard size={20} color="#00ffcc" />
+                  <CreditCard size={20} color="#ff0080" />
                   <Text style={styles.progressTitle}>Complete Your Setup</Text>
                 </View>
                 <Text style={styles.progressSubtitle}>
@@ -279,7 +279,7 @@ export default function SettingsScreen() {
                 <View style={styles.progressBarContainer}>
                   <View style={styles.progressBar}>
                     <LinearGradient
-                      colors={['#00ffcc', '#00d4ff']}
+                      colors={['#ff0080', '#00d4ff']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={[styles.progressFill, { width: `${cardLinkProgress}%` }]}
@@ -301,7 +301,7 @@ export default function SettingsScreen() {
               >
                 <View style={styles.settingLeft}>
                   {locationSettings.ghostMode ? (
-                    <EyeOff size={22} color="#00ffcc" />
+                    <EyeOff size={22} color="#ff0080" />
                   ) : (
                     <Eye size={22} color="#666" />
                   )}
@@ -320,7 +320,7 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     toggleGhostMode();
                   }}
-                  trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+                  trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
                   thumbColor={locationSettings.ghostMode ? '#0a0a0f' : '#666'}
                 />
               </LinearGradient>
@@ -332,7 +332,7 @@ export default function SettingsScreen() {
                 style={styles.settingGradient}
               >
                 <View style={styles.settingLeft}>
-                  <MapPin size={22} color="#00ffcc" />
+                  <MapPin size={22} color="#ff0080" />
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Location Precision</Text>
                     <Text style={styles.settingSubtitle}>
@@ -415,7 +415,7 @@ export default function SettingsScreen() {
                 style={styles.settingGradient}
               >
                 <View style={styles.settingLeft}>
-                  <Users size={22} color={locationSettings.onlyShowToMutual ? '#00ffcc' : '#666'} />
+                  <Users size={22} color={locationSettings.onlyShowToMutual ? '#ff0080' : '#666'} />
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Mutual Friends Only</Text>
                     <Text style={styles.settingSubtitle}>
@@ -429,7 +429,7 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     updateLocationSettings({ onlyShowToMutual: !locationSettings.onlyShowToMutual });
                   }}
-                  trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+                  trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
                   thumbColor={locationSettings.onlyShowToMutual ? '#0a0a0f' : '#666'}
                 />
               </LinearGradient>
@@ -441,7 +441,7 @@ export default function SettingsScreen() {
                 style={styles.settingGradient}
               >
                 <View style={styles.settingLeft}>
-                  <Clock size={22} color={locationSettings.autoExpireEnabled ? '#00ffcc' : '#666'} />
+                  <Clock size={22} color={locationSettings.autoExpireEnabled ? '#ff0080' : '#666'} />
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Auto-Expire Location</Text>
                     <Text style={styles.settingSubtitle}>
@@ -455,7 +455,7 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     updateLocationSettings({ autoExpireEnabled: !locationSettings.autoExpireEnabled });
                   }}
-                  trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+                  trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
                   thumbColor={locationSettings.autoExpireEnabled ? '#0a0a0f' : '#666'}
                 />
               </LinearGradient>
@@ -472,7 +472,7 @@ export default function SettingsScreen() {
               >
                 <View style={styles.settingLeft}>
                   {profile.isIncognito ? (
-                    <EyeOff size={22} color="#00ffcc" />
+                    <EyeOff size={22} color="#ff0080" />
                   ) : (
                     <Eye size={22} color="#666" />
                   )}
@@ -491,7 +491,7 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     toggleIncognito();
                   }}
-                  trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+                  trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
                   thumbColor={profile.isIncognito ? '#0a0a0f' : '#666'}
                 />
               </LinearGradient>
@@ -503,7 +503,7 @@ export default function SettingsScreen() {
                 style={styles.settingGradient}
               >
                 <View style={styles.settingLeft}>
-                  <Award size={22} color={showBadges ? '#00ffcc' : '#666'} />
+                  <Award size={22} color={showBadges ? '#ff0080' : '#666'} />
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Show My Badges</Text>
                     <Text style={styles.settingSubtitle}>
@@ -517,7 +517,7 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setShowBadges(!showBadges);
                   }}
-                  trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+                  trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
                   thumbColor={showBadges ? '#0a0a0f' : '#666'}
                 />
               </LinearGradient>
@@ -565,7 +565,7 @@ export default function SettingsScreen() {
                   style={styles.cardGradient}
                 >
                   <View style={styles.cardLeft}>
-                    <CreditCard size={20} color="#00ffcc" />
+                    <CreditCard size={20} color="#ff0080" />
                     <View>
                       <Text style={styles.cardBrand}>
                         {card.brand} •••• {card.last4}
@@ -628,7 +628,7 @@ export default function SettingsScreen() {
                 style={styles.settingGradient}
               >
                 <View style={styles.settingLeft}>
-                  <MapPin size={22} color={proximityAlerts ? '#00ffcc' : '#666'} />
+                  <MapPin size={22} color={proximityAlerts ? '#ff0080' : '#666'} />
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Proximity Alerts</Text>
                     <Text style={styles.settingSubtitle}>
@@ -642,7 +642,7 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setProximityAlerts(!proximityAlerts);
                   }}
-                  trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+                  trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
                   thumbColor={proximityAlerts ? '#0a0a0f' : '#666'}
                 />
               </LinearGradient>
@@ -654,7 +654,7 @@ export default function SettingsScreen() {
                 style={styles.settingGradient}
               >
                 <View style={styles.settingLeft}>
-                  <Award size={22} color={levelUpPings ? '#00ffcc' : '#666'} />
+                  <Award size={22} color={levelUpPings ? '#ff0080' : '#666'} />
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Level Up Pings</Text>
                     <Text style={styles.settingSubtitle}>
@@ -668,7 +668,7 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setLevelUpPings(!levelUpPings);
                   }}
-                  trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+                  trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
                   thumbColor={levelUpPings ? '#0a0a0f' : '#666'}
                 />
               </LinearGradient>
@@ -680,7 +680,7 @@ export default function SettingsScreen() {
                 style={styles.settingGradient}
               >
                 <View style={styles.settingLeft}>
-                  <Users size={22} color={performerDrops ? '#00ffcc' : '#666'} />
+                  <Users size={22} color={performerDrops ? '#ff0080' : '#666'} />
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Performer Drops</Text>
                     <Text style={styles.settingSubtitle}>
@@ -694,7 +694,7 @@ export default function SettingsScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setPerformerDrops(!performerDrops);
                   }}
-                  trackColor={{ false: '#1a1a2e', true: '#00ffcc' }}
+                  trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
                   thumbColor={performerDrops ? '#0a0a0f' : '#666'}
                 />
               </LinearGradient>
@@ -815,7 +815,7 @@ export default function SettingsScreen() {
 
             <View style={styles.modalBody}>
               <View style={styles.infoBox}>
-                <Shield size={20} color="#00ffcc" />
+                <Shield size={20} color="#ff0080" />
                 <Text style={styles.infoText}>
                   Your card is tokenized via Stripe. We never store your full card
                   number.
@@ -838,19 +838,19 @@ export default function SettingsScreen() {
               <View style={styles.benefitsList}>
                 <Text style={styles.benefitsTitle}>Benefits of Linking:</Text>
                 <View style={styles.benefitItem}>
-                  <Award size={16} color="#00ffcc" />
+                  <Award size={16} color="#ff0080" />
                   <Text style={styles.benefitText}>
                     Automatic server unlocks when you hit spend thresholds
                   </Text>
                 </View>
                 <View style={styles.benefitItem}>
-                  <DollarSign size={16} color="#00ffcc" />
+                  <DollarSign size={16} color="#ff0080" />
                   <Text style={styles.benefitText}>
                     Real-time loyalty points and tier upgrades
                   </Text>
                 </View>
                 <View style={styles.benefitItem}>
-                  <Bell size={16} color="#00ffcc" />
+                  <Bell size={16} color="#ff0080" />
                   <Text style={styles.benefitText}>
                     Instant notifications when you level up
                   </Text>
@@ -859,7 +859,7 @@ export default function SettingsScreen() {
 
               <TouchableOpacity style={styles.addCardButton} onPress={handleAddCard}>
                 <LinearGradient
-                  colors={['#00ffcc', '#00d4ff']}
+                  colors={['#ff0080', '#00d4ff']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.addCardGradient}
@@ -902,7 +902,7 @@ export default function SettingsScreen() {
                   >
                     <View style={styles.transactionLeft}>
                       <View style={styles.transactionIcon}>
-                        <DollarSign size={20} color="#00ffcc" />
+                        <DollarSign size={20} color="#ff0080" />
                       </View>
                       <View>
                         <Text style={styles.transactionVenue}>
@@ -923,7 +923,7 @@ export default function SettingsScreen() {
                         ${transaction.amount.toFixed(2)}
                       </Text>
                       <View style={styles.pointsBadge}>
-                        <Award size={12} color="#00ffcc" />
+                        <Award size={12} color="#ff0080" />
                         <Text style={styles.pointsText}>
                           +{transaction.pointsEarned}
                         </Text>
@@ -972,7 +972,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 28,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   displayName: {
     fontSize: 20,
@@ -992,7 +992,7 @@ const styles = StyleSheet.create({
   cloutText: {
     fontSize: 13,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   progressCard: {
     marginHorizontal: 20,
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   section: {
     paddingHorizontal: 20,
@@ -1117,7 +1117,7 @@ const styles = StyleSheet.create({
   },
   cardDefault: {
     fontSize: 11,
-    color: '#00ffcc',
+    color: '#ff0080',
     marginTop: 2,
   },
   logoutText: {
@@ -1171,7 +1171,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: '#00ffcc',
+    color: '#ff0080',
     lineHeight: 18,
   },
   inputGroup: {
@@ -1284,7 +1284,7 @@ const styles = StyleSheet.create({
   pointsText: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   userTypeCard: {
     backgroundColor: '#1a1a2e',
@@ -1314,8 +1314,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   userTypeButtonActive: {
-    backgroundColor: '#00ffcc',
-    borderColor: '#00ffcc',
+    backgroundColor: '#ff0080',
+    borderColor: '#ff0080',
   },
   userTypeButtonText: {
     fontSize: 12,
@@ -1343,7 +1343,7 @@ const styles = StyleSheet.create({
   },
   precisionButtonActive: {
     backgroundColor: 'rgba(0, 255, 204, 0.1)',
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
   },
   precisionButtonText: {
     fontSize: 13,
@@ -1351,6 +1351,6 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   precisionButtonTextActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
   },
 });

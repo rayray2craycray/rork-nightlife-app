@@ -68,7 +68,7 @@ export default function ToastIntegrationScreen() {
   };
 
   const getStatusColor = () => {
-    if (isConnected) return '#00ff88';
+    if (isConnected) return '#a855f7';
     if (hasError) return '#ff6b6b';
     if (isConnecting) return '#ffa64d';
     return '#666680';
@@ -82,7 +82,7 @@ export default function ToastIntegrationScreen() {
   };
 
   const getStatusIcon = () => {
-    if (isConnected) return <CheckCircle2 size={20} color="#00ff88" />;
+    if (isConnected) return <CheckCircle2 size={20} color="#a855f7" />;
     if (hasError) return <XCircle size={20} color="#ff6b6b" />;
     if (isConnecting) return <ActivityIndicator size={20} color="#ffa64d" />;
     return <WifiOff size={20} color="#666680" />;
@@ -158,7 +158,7 @@ export default function ToastIntegrationScreen() {
           <>
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <MapPin size={20} color="#00ffcc" />
+                <MapPin size={20} color="#ff0080" />
                 <Text style={styles.sectionTitle}>Select Locations</Text>
               </View>
               <Text style={styles.sectionDescription}>
@@ -189,7 +189,7 @@ export default function ToastIntegrationScreen() {
                       ]}
                     >
                       {selectedLocationIds.includes(location.id) && (
-                        <CheckCircle2 size={20} color="#00ffcc" />
+                        <CheckCircle2 size={20} color="#ff0080" />
                       )}
                     </View>
                   </TouchableOpacity>
@@ -199,7 +199,7 @@ export default function ToastIntegrationScreen() {
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <DollarSign size={20} color="#00ffcc" />
+                <DollarSign size={20} color="#ff0080" />
                 <Text style={styles.sectionTitle}>Spend Thresholds</Text>
               </View>
               <Text style={styles.sectionDescription}>
@@ -223,8 +223,8 @@ export default function ToastIntegrationScreen() {
                       <Switch
                         value={rule.isActive}
                         onValueChange={() => toggleRule(rule)}
-                        trackColor={{ false: '#2a2a3e', true: '#00ffcc50' }}
-                        thumbColor={rule.isActive ? '#00ffcc' : '#666680'}
+                        trackColor={{ false: '#2a2a3e', true: '#ff008050' }}
+                        thumbColor={rule.isActive ? '#ff0080' : '#666680'}
                       />
                     </View>
 
@@ -262,7 +262,7 @@ export default function ToastIntegrationScreen() {
                 style={styles.infoCard}
               >
                 <View style={styles.infoHeader}>
-                  <AlertCircle size={20} color="#00ffcc" />
+                  <AlertCircle size={20} color="#ff0080" />
                   <Text style={styles.infoTitle}>How It Works</Text>
                 </View>
                 <Text style={styles.infoText}>
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     borderColor: '#1f1f2e',
   },
   locationCardSelected: {
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
     backgroundColor: 'rgba(0, 255, 204, 0.05)',
   },
   locationInfo: {
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
   },
   checkboxChecked: {
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
     backgroundColor: 'rgba(0, 255, 204, 0.1)',
   },
   rulesList: {
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   ruleThreshold: {
     fontSize: 24,
     fontWeight: '800' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   ruleBadge: {
     backgroundColor: 'rgba(0, 255, 204, 0.15)',
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   ruleBadgeText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   ruleDetails: {
     gap: 8,

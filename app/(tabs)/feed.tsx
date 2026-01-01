@@ -280,7 +280,7 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike }: Video
         </TouchableOpacity>
 
         <View style={styles.musicIcon}>
-          <Music size={24} color="#00ffcc" />
+          <Music size={24} color="#ff0080" />
         </View>
       </View>
 
@@ -409,8 +409,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   filterButtonActive: {
-    backgroundColor: '#00ffcc',
-    borderColor: '#00ffcc',
+    backgroundColor: '#ff0080',
+    borderColor: '#ff0080',
   },
   filterText: {
     color: '#fff',
@@ -492,12 +492,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
   },
   followButtonActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
   },
   followButtonText: {
     color: '#0a0a0f',
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
   },
   followButtonTextActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   videoContainer: {
     height: SCREEN_HEIGHT,
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
   },
   performerName: {
     color: '#fff',
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#666',
   },
   venueIndicatorLive: {
-    backgroundColor: '#00ff88',
+    backgroundColor: '#a855f7',
   },
   venueText: {
     color: '#fff',
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   liveText: {
-    color: '#00ff88',
+    color: '#a855f7',
     fontSize: 11,
     fontWeight: '700' as const,
     backgroundColor: 'rgba(0, 255, 136, 0.2)',
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   joinButton: {
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 24,

@@ -39,7 +39,7 @@ export default function ManagementLayout() {
         headerStyle: {
           backgroundColor: '#0a0a0f',
         },
-        headerTintColor: '#00ffcc',
+        headerTintColor: '#ff0080',
         headerTitleStyle: {
           fontWeight: '700' as const,
         },

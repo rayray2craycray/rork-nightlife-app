@@ -49,7 +49,7 @@ export default function ServerCommandScreen() {
       case 'PLATINUM':
         return '#00d4ff';
       case 'REGULAR':
-        return '#00ff88';
+        return '#a855f7';
       case 'GUEST':
         return '#999';
       default:
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   channelButtonActive: {
     backgroundColor: 'rgba(0, 255, 204, 0.15)',
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
   },
   channelButtonText: {
     fontSize: 14,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   channelButtonTextActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   messageBox: {
     gap: 12,
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     gap: 8,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     paddingVertical: 14,
     borderRadius: 12,
   },

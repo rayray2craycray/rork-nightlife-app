@@ -30,7 +30,7 @@ const ROLES = [
     subtitle: 'Discover the nightlife',
     description: 'Find events, join venue servers, and connect with the scene',
     icon: Users,
-    gradient: ['#00ffcc', '#00b4d8'],
+    gradient: ['#ff0080', '#a855f7'],
   },
   {
     id: 'TALENT' as UserRole,
@@ -77,7 +77,7 @@ export default function WelcomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
           <View style={styles.header}>
-            <Text style={styles.logo}>VibeLink</Text>
+            <Text style={styles.logo}>onyx</Text>
             <Text style={styles.tagline}>Where Nightlife Connects</Text>
           </View>
 
@@ -104,7 +104,7 @@ export default function WelcomeScreen() {
                   >
                     <View style={styles.roleIconContainer}>
                       <Icon 
-                        color={isSelected ? '#ffffff' : '#00ffcc'} 
+                        color={isSelected ? '#ffffff' : '#ff0080'} 
                         size={32} 
                         strokeWidth={2.5}
                       />
@@ -134,7 +134,7 @@ export default function WelcomeScreen() {
             style={styles.continueButtonWrapper}
           >
             <LinearGradient
-              colors={selectedRole ? ['#00ffcc', '#00b4d8'] as [string, string, ...string[]] : ['#333344', '#333344'] as [string, string, ...string[]]}
+              colors={selectedRole ? ['#ff0080', '#a855f7'] as [string, string, ...string[]] : ['#333344', '#333344'] as [string, string, ...string[]]}
               style={[
                 styles.continueButton,
                 !selectedRole && styles.continueButtonDisabled,
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 48,
     fontWeight: '800' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
     letterSpacing: -1,
     textShadowColor: 'rgba(0, 255, 204, 0.3)',
     textShadowOffset: { width: 0, height: 0 },

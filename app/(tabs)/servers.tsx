@@ -116,7 +116,7 @@ function ServerList({ onSelectServer }: ServerListProps) {
           )}
 
           <TouchableOpacity style={styles.joinNewCard}>
-            <MessageCircle size={32} color="#00ffcc" />
+            <MessageCircle size={32} color="#ff0080" />
             <Text style={styles.joinNewText}>Join a new server</Text>
             <Text style={styles.joinNewSubtext}>Visit a venue and scan the QR code</Text>
           </TouchableOpacity>
@@ -146,7 +146,7 @@ function ChannelList({ server, onSelectChannel, onBack, onOpenSettings }: Channe
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={onOpenSettings} style={styles.settingsButton}>
-              <Settings size={24} color="#00ffcc" />
+              <Settings size={24} color="#ff0080" />
             </TouchableOpacity>
           </View>
           <Text style={styles.headerTitle}>{server.venueName}</Text>
@@ -200,7 +200,7 @@ function ChannelItem({ channel, onPress }: ChannelItemProps) {
       {channel.isLocked ? (
         <Lock size={18} color="#666" />
       ) : (
-        <Hash size={18} color="#00ffcc" />
+        <Hash size={18} color="#ff0080" />
       )}
       <Text style={[styles.channelName, channel.isLocked && styles.channelNameLocked]}>
         {channel.name}
@@ -288,7 +288,7 @@ interface MessageBubbleProps {
 
 function MessageBubble({ message }: MessageBubbleProps) {
   const badgeColors: Record<string, string> = {
-    PLATINUM: '#00ffcc',
+    PLATINUM: '#ff0080',
     WHALE: '#ff006e',
     PERFORMER: '#ffcc00',
     REGULAR: '#6680ff',
@@ -384,7 +384,7 @@ function ServerSettingsModal({ visible, server, onClose, onLeave }: ServerSettin
             <View style={styles.settingsSection}>
               <Text style={styles.settingsSectionTitle}>Server Info</Text>
               <View style={styles.settingsItem}>
-                <Users size={20} color="#00ffcc" />
+                <Users size={20} color="#ff0080" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.settingsItemText}>{server.venueName}</Text>
                   <Text style={styles.settingsItemSubtext}>{server.memberCount} members</Text>
@@ -392,7 +392,7 @@ function ServerSettingsModal({ visible, server, onClose, onLeave }: ServerSettin
               </View>
               {userBadge && (
                 <View style={styles.settingsItem}>
-                  <Bell size={20} color="#00ffcc" />
+                  <Bell size={20} color="#ff0080" />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.settingsItemText}>Your Status</Text>
                     <Text style={styles.settingsItemSubtext}>{userBadge.badgeType}</Text>
@@ -592,7 +592,7 @@ function VibeCheckOverlay({ venueId, venueName, visible, onToggle }: VibeCheckOv
       case 'Chill': return '#6680ff';
       case 'Social': return '#b366ff';
       case 'Wild': return '#ff006e';
-      default: return '#00ffcc';
+      default: return '#ff0080';
     }
   };
 
@@ -600,7 +600,7 @@ function VibeCheckOverlay({ venueId, venueName, visible, onToggle }: VibeCheckOv
     return (
       <TouchableOpacity style={styles.vibeCheckContainer} onPress={onToggle}>
         <View style={styles.vibeCheckCollapsed}>
-          <Zap size={20} color="#00ffcc" />
+          <Zap size={20} color="#ff0080" />
           <Text style={styles.vibeCheckCollapsedText}>Vibe Check</Text>
         </View>
       </TouchableOpacity>
@@ -611,7 +611,7 @@ function VibeCheckOverlay({ venueId, venueName, visible, onToggle }: VibeCheckOv
     <View style={styles.vibeCheckContainer}>
       <TouchableOpacity style={styles.vibeCheckHeader} onPress={onToggle}>
         <Text style={styles.vibeCheckTitle}>Vibe Check</Text>
-        <X size={20} color="#00ffcc" />
+        <X size={20} color="#ff0080" />
       </TouchableOpacity>
 
       <ScrollView style={styles.vibeCheckScroll} contentContainerStyle={styles.vibeCheckContent} showsVerticalScrollIndicator={false}>
@@ -644,7 +644,7 @@ function VibeCheckOverlay({ venueId, venueName, visible, onToggle }: VibeCheckOv
           <View style={styles.vibeSlider}>
             <View style={styles.sliderTrack}>
               <LinearGradient
-                colors={['#6680ff', '#00ffcc']}
+                colors={['#6680ff', '#ff0080']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[styles.sliderFill, { width: `${(music / 5) * 100}%` }]}
@@ -803,12 +803,12 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '600' as const,
   },
   backButton: {
     fontSize: 16,
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '600' as const,
     marginBottom: 12,
   },
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   unreadBadge: {
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
   joinNewText: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
     marginTop: 12,
   },
   joinNewSubtext: {
@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
   },
   messageBubbleOwn: {
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     alignSelf: 'flex-end' as const,
   },
   messageHeader: {
@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
@@ -1065,7 +1065,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     fontSize: 16,
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '600' as const,
   },
   settingsSection: {
@@ -1174,7 +1174,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center' as const,
   },
   confirmModalButtonCancel: {
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
   },
   confirmModalButtonLeave: {
     backgroundColor: '#444',
@@ -1232,7 +1232,7 @@ const styles = StyleSheet.create({
   },
   revokedAppealButtonText: {
     fontSize: 13,
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '600' as const,
     textDecorationLine: 'underline' as const,
   },
@@ -1276,7 +1276,7 @@ const styles = StyleSheet.create({
   vibeCheckCollapsedText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   vibeCheckScroll: {
     maxHeight: 400,
@@ -1316,7 +1316,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   sliderLabelActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '700' as const,
   },
   energyButtons: {
@@ -1334,7 +1334,7 @@ const styles = StyleSheet.create({
   },
   energyButtonActive: {
     backgroundColor: 'rgba(0, 255, 204, 0.15)',
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
   },
   energyButtonText: {
     fontSize: 13,
@@ -1342,7 +1342,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   energyButtonTextActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '700' as const,
   },
   waitTimeButtons: {
@@ -1360,7 +1360,7 @@ const styles = StyleSheet.create({
   },
   waitTimeButtonActive: {
     backgroundColor: 'rgba(0, 255, 204, 0.15)',
-    borderColor: '#00ffcc',
+    borderColor: '#ff0080',
   },
   waitTimeButtonText: {
     fontSize: 12,
@@ -1368,11 +1368,11 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   waitTimeButtonTextActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '700' as const,
   },
   vibeSubmitButton: {
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center' as const,
@@ -1422,7 +1422,7 @@ const styles = StyleSheet.create({
   },
   vibeCheckCurrentValue: {
     fontSize: 13,
-    color: '#00ffcc',
+    color: '#ff0080',
     fontWeight: '600' as const,
   },
 });

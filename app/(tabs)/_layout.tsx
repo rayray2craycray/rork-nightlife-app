@@ -5,7 +5,7 @@ import React from "react";
 const COLORS = {
   background: '#0a0a0f',
   tabBar: '#15151f',
-  active: '#00ffcc',
+  active: '#ff0080',
   inactive: '#666680',
 };
 

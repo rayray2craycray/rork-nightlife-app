@@ -28,7 +28,7 @@ export default function RulesEngineScreen() {
   const getRuleColor = (type: VenueRule['type']) => {
     switch (type) {
       case 'SPENDING_TIER':
-        return '#00ff88';
+        return '#a855f7';
       case 'FREQUENCY_TIER':
         return '#00d4ff';
       case 'SPECIFIC_PURCHASE':
@@ -36,7 +36,7 @@ export default function RulesEngineScreen() {
       case 'PERFORMER_LOYALTY':
         return '#ffa64d';
       default:
-        return '#00ffcc';
+        return '#ff0080';
     }
   };
 
@@ -79,8 +79,8 @@ export default function RulesEngineScreen() {
                   <Switch
                     value={rule.isActive}
                     onValueChange={() => toggleRule(rule.id)}
-                    trackColor={{ false: '#2a2a3e', true: '#00ffcc50' }}
-                    thumbColor={rule.isActive ? '#00ffcc' : '#666680'}
+                    trackColor={{ false: '#2a2a3e', true: '#ff008050' }}
+                    thumbColor={rule.isActive ? '#ff0080' : '#666680'}
                   />
                 </View>
               </View>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     marginHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 12,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   ruleSectionLabel: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
     textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
   },
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   notifyText: {
     fontSize: 12,

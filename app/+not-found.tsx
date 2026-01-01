@@ -7,7 +7,7 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: 'Not Found' }} />
       <View style={styles.container}>
-        <Home size={64} color="#00ffcc" />
+        <Home size={64} color="#ff0080" />
         <Text style={styles.title}>Page not found</Text>
         <Text style={styles.subtitle}>This screen doesn&apos;t exist in VibeLink</Text>
         <Link href="/" style={styles.link}>
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   link: {
     paddingVertical: 16,
     paddingHorizontal: 32,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     borderRadius: 24,
   },
   linkText: {

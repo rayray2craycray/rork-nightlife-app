@@ -49,7 +49,7 @@ export default function ManagementDashboard() {
             </View>
             {isToastConnected && (
               <View style={styles.toastBadge}>
-                <Wifi size={14} color="#00ff88" />
+                <Wifi size={14} color="#a855f7" />
                 <Text style={styles.toastBadgeText}>Toast Connected</Text>
               </View>
             )}
@@ -80,7 +80,7 @@ export default function ManagementDashboard() {
 
         <View style={styles.metricsGrid}>
           <MetricCard
-            icon={<DollarSign size={24} color="#00ff88" />}
+            icon={<DollarSign size={24} color="#a855f7" />}
             label="Total Revenue"
             value={`$${(analytics.totalRevenue / 1000).toFixed(1)}K`}
             change="+12.5%"
@@ -117,7 +117,7 @@ export default function ManagementDashboard() {
             style={styles.highlightCard}
           >
             <View style={styles.highlightHeader}>
-              <AlertCircle size={20} color="#00ffcc" />
+              <AlertCircle size={20} color="#ff0080" />
               <Text style={styles.highlightTitle}>New VIP Upgrades</Text>
             </View>
             <Text style={styles.highlightValue}>{analytics.vipUpgrades}</Text>
@@ -147,13 +147,13 @@ export default function ManagementDashboard() {
 
         <View style={styles.toolsGrid}>
           <ToolCard
-            icon={<Wifi size={28} color="#00ff88" />}
+            icon={<Wifi size={28} color="#a855f7" />}
             title="Toast POS"
             description="Connect & configure"
             onPress={() => router.push('/management/toast-integration')}
           />
           <ToolCard
-            icon={<Settings size={28} color="#00ffcc" />}
+            icon={<Settings size={28} color="#ff0080" />}
             title="Rules Engine"
             description="Configure automated rewards"
             onPress={() => router.push('/management/rules-engine')}
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#666',
   },
   statusDotLive: {
-    backgroundColor: '#00ff88',
+    backgroundColor: '#a855f7',
   },
   statusText: {
     fontSize: 14,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   toastBadgeText: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#00ff88',
+    color: '#a855f7',
   },
   periodSelector: {
     flexDirection: 'row' as const,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     color: '#666680',
   },
   periodTextActive: {
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   metricsGrid: {
     flexDirection: 'row' as const,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     color: '#ff6b6b',
   },
   metricChangePositive: {
-    color: '#00ff88',
+    color: '#a855f7',
   },
   highlightSection: {
     flexDirection: 'row' as const,
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   spenderRankText: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   spenderInfo: {
     flex: 1,
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   spenderAmount: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   bottomPadding: {
     height: 40,

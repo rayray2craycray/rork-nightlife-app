@@ -14,7 +14,7 @@ import Slider from '@react-native-community/slider';
 const COLORS = {
   background: '#0a0a0f',
   card: '#15151f',
-  accent: '#00ffcc',
+  accent: '#ff0080',
   purple: '#9d4edd',
   text: '#ffffff',
   textSecondary: '#999999',
@@ -413,7 +413,7 @@ export default function StudioScreen() {
 
   const renderSticker = (sticker: StickerType) => {
     const stickerConfig = {
-      'get-tickets': { text: 'Get Tickets', icon: '🎫', gradient: ['#00ffcc', '#00ccaa'] },
+      'get-tickets': { text: 'Get Tickets', icon: '🎫', gradient: ['#ff0080', '#a855f7'] },
       'join-lobby': { text: 'Join Lobby', icon: '🎉', gradient: ['#9d4edd', '#7b2cbf'] },
       'live-tonight': { text: 'Live Tonight', icon: '🔥', gradient: ['#ff006e', '#d90059'] },
       'swipe-up': { text: 'Swipe Up', icon: '⬆️', gradient: ['#fbbf24', '#f59e0b'] },

@@ -53,7 +53,7 @@ export default function AnalyticsScreen() {
           <View style={styles.metricsGrid}>
             <View style={styles.metricCard}>
               <View style={styles.metricIcon}>
-                <DollarSign size={20} color="#00ff88" />
+                <DollarSign size={20} color="#a855f7" />
               </View>
               <Text style={styles.metricLabel}>Total Revenue</Text>
               <Text style={styles.metricValue}>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: 24,
-    backgroundColor: '#00ffcc',
+    backgroundColor: '#ff0080',
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
     alignItems: 'center' as const,
@@ -320,14 +320,14 @@ const styles = StyleSheet.create({
   },
   roiLabel: {
     fontSize: 10,
-    color: '#00ff88',
+    color: '#a855f7',
     marginBottom: 2,
     fontWeight: '600' as const,
   },
   roiValue: {
     fontSize: 16,
     fontWeight: '800' as const,
-    color: '#00ff88',
+    color: '#a855f7',
   },
   promoterStats: {
     flexDirection: 'row' as const,
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   payoutValue: {
     fontSize: 18,
     fontWeight: '800' as const,
-    color: '#00ffcc',
+    color: '#ff0080',
   },
   bottomPadding: {
     height: 40,
