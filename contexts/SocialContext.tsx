@@ -2,8 +2,13 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Follow, FriendLocation, LocationSettings, FriendProfile } from '@/types';
+import { Follow, FriendLocation, LocationSettings, FriendProfile, SuggestedPerson } from '@/types';
 import { mockFollows, mockFriendLocations, mockFriendProfiles, mockSuggestedPeople } from '@/mocks/friends';
+import {
+  getPersonalizedSuggestions,
+  getSuggestionSourceLabel,
+  getSuggestionSourceColor,
+} from '@/services/suggestions.service';
 
 const STORAGE_KEYS = {
   FOLLOWS: 'vibelink_follows',
@@ -272,9 +277,28 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     return mockFriendProfiles.find(p => p.id === userId);
   }, []);
 
+  // Query for personalized friend suggestions based on contacts, Instagram, and mutual friends
+  const suggestionsQuery = useQuery({
+    queryKey: ['friend-suggestions', following],
+    queryFn: async () => {
+      // Convert mockSuggestedPeople (FriendProfile[]) to be used as mutual friend suggestions
+      const mutualFriendSuggestions = mockSuggestedPeople;
+
+      // Get personalized suggestions from contacts, Instagram, and mutuals
+      const personalized = await getPersonalizedSuggestions(
+        following,
+        mutualFriendSuggestions
+      );
+
+      return personalized;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: following.length >= 0, // Always enabled
+  });
+
   const suggestedPeople = useMemo(() => {
-    return mockSuggestedPeople.filter(person => !isFollowing(person.id));
-  }, [isFollowing]);
+    return suggestionsQuery.data || [];
+  }, [suggestionsQuery.data]);
 
   const pendingRequests = useMemo(() => {
     return follows
@@ -304,6 +328,10 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     searchFriends,
     getFriendProfile,
     suggestedPeople,
+    getSuggestionSourceLabel,
+    getSuggestionSourceColor,
     isLoading: followsQuery.isLoading || locationSettingsQuery.isLoading,
+    isSuggestionsLoading: suggestionsQuery.isLoading,
+    refreshSuggestions: suggestionsQuery.refetch,
   };
 });

@@ -290,6 +290,18 @@ export interface FriendProfile {
   mutualFriends: number;
 }
 
+export type SuggestionSource =
+  | { type: 'CONTACT'; phoneNumber: string }
+  | { type: 'INSTAGRAM'; instagramUsername: string }
+  | { type: 'MUTUAL_FRIENDS'; count: number }
+  | { type: 'VENUE'; venueId: string; venueName: string }
+  | { type: 'ALGORITHM' };
+
+export interface SuggestedPerson extends FriendProfile {
+  source: SuggestionSource;
+  priority: number; // Higher = show first (contacts = 100, Instagram = 80, mutuals = 60, etc.)
+}
+
 export type FeedFilter = 'NEARBY' | 'FOLLOWING';
 
 export interface FeedSettings {

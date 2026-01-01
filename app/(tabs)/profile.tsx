@@ -25,7 +25,17 @@ type SocialTab = 'FOLLOWERS' | 'FOLLOWING';
 
 export default function ProfileScreen() {
   const { profile, toggleIncognito, updateProfileDetails } = useAppState();
-  const { following, followers, getFriendProfile, isFollowing, followUser, unfollowUser, suggestedPeople } = useSocial();
+  const {
+    following,
+    followers,
+    getFriendProfile,
+    isFollowing,
+    followUser,
+    unfollowUser,
+    suggestedPeople,
+    getSuggestionSourceLabel,
+    getSuggestionSourceColor,
+  } = useSocial();
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [showSocialList, setShowSocialList] = useState(false);
   const [socialTab, setSocialTab] = useState<SocialTab>('FOLLOWING');
@@ -505,8 +515,29 @@ export default function ProfileScreen() {
                       />
                       <View style={styles.userInfo}>
                         <Text style={styles.userName}>{person.displayName}</Text>
+                        <View
+                          style={[
+                            styles.sourceBadge,
+                            { backgroundColor: getSuggestionSourceColor(person) + '20' },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.sourceBadgeDot,
+                              { backgroundColor: getSuggestionSourceColor(person) },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              styles.sourceBadgeText,
+                              { color: getSuggestionSourceColor(person) },
+                            ]}
+                          >
+                            {getSuggestionSourceLabel(person)}
+                          </Text>
+                        </View>
                         {person.bio && <Text style={styles.userBio}>{person.bio}</Text>}
-                        {person.mutualFriends > 0 && (
+                        {person.mutualFriends > 0 && person.source.type !== 'MUTUAL_FRIENDS' && (
                           <Text style={styles.mutualText}>
                             {person.mutualFriends} mutual {person.mutualFriends === 1 ? 'friend' : 'friends'}
                           </Text>
@@ -1022,6 +1053,26 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#fff',
     marginBottom: 2,
+  },
+  sourceBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    alignSelf: 'flex-start' as const,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  sourceBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  sourceBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
   },
   userBio: {
     fontSize: 12,
