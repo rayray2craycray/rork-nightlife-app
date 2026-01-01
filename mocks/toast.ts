@@ -3,13 +3,13 @@ import { ToastLocation, ToastIntegration, ToastSpendRule } from '@/types';
 export const mockToastLocations: ToastLocation[] = [
   {
     id: 'loc-1',
-    name: 'The Onyx Room - Main Bar',
+    name: 'The Nox Room - Main Bar',
     address: '1234 Broadway St, Los Angeles, CA',
     restaurantGuid: 'toast-guid-1',
   },
   {
     id: 'loc-2',
-    name: 'The Onyx Room - Rooftop',
+    name: 'The Nox Room - Rooftop',
     address: '1234 Broadway St, Los Angeles, CA',
     restaurantGuid: 'toast-guid-2',
   },

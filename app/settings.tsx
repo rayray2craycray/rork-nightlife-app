@@ -64,7 +64,7 @@ export default function SettingsScreen() {
     {
       id: '1',
       venueId: 'v1',
-      venueName: 'The Onyx Room',
+      venueName: 'The Nox Room',
       amount: 85.50,
       pointsEarned: 86,
       date: '2024-12-30T23:45:00Z',

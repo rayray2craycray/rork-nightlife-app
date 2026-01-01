@@ -3,7 +3,7 @@ import { VenueServer, Message } from '@/types';
 export const mockServers: VenueServer[] = [
   {
     venueId: 'venue-1',
-    venueName: 'The Onyx Room',
+    venueName: 'The Nox Room',
     memberCount: 342,
     lastActivity: new Date(Date.now() - 600000).toISOString(),
     channels: [

@@ -3,7 +3,7 @@ import { Venue } from '@/types';
 export const mockVenues: Venue[] = [
   {
     id: 'venue-1',
-    name: 'The Onyx Room',
+    name: 'The Nox Room',
     location: {
       latitude: 40.7589,
       longitude: -73.9851,

@@ -77,7 +77,7 @@ export default function WelcomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
           <View style={styles.header}>
-            <Text style={styles.logo}>Onyx</Text>
+            <Text style={styles.logo}>Nox</Text>
             <Text style={styles.tagline}>Where Nightlife Connects</Text>
           </View>
 
