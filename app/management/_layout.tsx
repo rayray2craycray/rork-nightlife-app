@@ -37,7 +37,7 @@ export default function ManagementLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#000000',
+          backgroundColor: '#0a0a0f',
         },
         headerTintColor: '#ff0080',
         headerTitleStyle: {
@@ -51,6 +51,7 @@ export default function ManagementLayout() {
         options={{
           title: 'Management Dashboard',
           headerShown: true,
+          headerBackVisible: false,
         }}
       />
       <Stack.Screen
