@@ -7,21 +7,34 @@ import { SuggestedPerson, FriendProfile } from '@/types';
 import { getContactSuggestions, ContactMatch } from './contacts.service';
 import { getInstagramSuggestions, InstagramFollowing } from './instagram.service';
 
+const ENABLE_CONTACT_SYNC = process.env.ENABLE_CONTACT_SYNC === 'true';
+const ENABLE_INSTAGRAM_SYNC = process.env.ENABLE_INSTAGRAM_SYNC === 'true';
+
 export interface SuggestionConfig {
   includeContacts: boolean;
   includeInstagram: boolean;
   includeMutualFriends: boolean;
   includeVenueBased: boolean;
   maxSuggestions: number;
+  useCache: boolean; // Enable caching of suggestions
+  cacheDuration: number; // Cache duration in milliseconds
 }
 
 const DEFAULT_CONFIG: SuggestionConfig = {
-  includeContacts: true,
-  includeInstagram: true,
+  includeContacts: ENABLE_CONTACT_SYNC,
+  includeInstagram: ENABLE_INSTAGRAM_SYNC,
   includeMutualFriends: true,
   includeVenueBased: true,
   maxSuggestions: 20,
+  useCache: true,
+  cacheDuration: 5 * 60 * 1000, // 5 minutes
 };
+
+// In-memory cache for suggestions (could be moved to AsyncStorage for persistence)
+let suggestionsCache: {
+  data: SuggestedPerson[];
+  timestamp: number;
+} | null = null;
 
 // Priority weights for different suggestion sources
 const PRIORITY_WEIGHTS = {
@@ -119,6 +132,26 @@ function sortByPriority(suggestions: SuggestedPerson[]): SuggestedPerson[] {
 }
 
 /**
+ * Clear the suggestions cache
+ */
+export function clearSuggestionsCache(): void {
+  suggestionsCache = null;
+  console.log('Suggestions cache cleared');
+}
+
+/**
+ * Check if cached suggestions are still valid
+ */
+function isCacheValid(cacheDuration: number): boolean {
+  if (!suggestionsCache) return false;
+
+  const now = Date.now();
+  const age = now - suggestionsCache.timestamp;
+
+  return age < cacheDuration;
+}
+
+/**
  * Get personalized friend suggestions
  * Combines data from contacts, Instagram, mutual friends, and venue-based suggestions
  */
@@ -128,6 +161,13 @@ export async function getPersonalizedSuggestions(
   config: Partial<SuggestionConfig> = {}
 ): Promise<SuggestedPerson[]> {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
+
+  // Check cache if enabled
+  if (finalConfig.useCache && isCacheValid(finalConfig.cacheDuration)) {
+    console.log('Using cached suggestions');
+    return suggestionsCache!.data;
+  }
+
   const allSuggestions: SuggestedPerson[] = [];
 
   try {
@@ -180,9 +220,27 @@ export async function getPersonalizedSuggestions(
     uniqueSuggestions = sortByPriority(uniqueSuggestions);
 
     // 8. Limit to max suggestions
-    return uniqueSuggestions.slice(0, finalConfig.maxSuggestions);
+    const finalSuggestions = uniqueSuggestions.slice(0, finalConfig.maxSuggestions);
+
+    // 9. Cache the results if enabled
+    if (finalConfig.useCache) {
+      suggestionsCache = {
+        data: finalSuggestions,
+        timestamp: Date.now(),
+      };
+      console.log(`Cached ${finalSuggestions.length} suggestions`);
+    }
+
+    return finalSuggestions;
   } catch (error) {
     console.error('Error generating personalized suggestions:', error);
+
+    // Return cached data if available, even if expired
+    if (suggestionsCache) {
+      console.log('Error occurred, using stale cache');
+      return suggestionsCache.data;
+    }
+
     return [];
   }
 }

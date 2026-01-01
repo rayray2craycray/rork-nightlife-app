@@ -206,3 +206,65 @@ export const api = {
   put: <T>(endpoint: string, data?: unknown, config?: RequestConfig) => apiClient.put<T>(endpoint, data, config),
   delete: <T>(endpoint: string, config?: RequestConfig) => apiClient.delete<T>(endpoint, config),
 };
+
+// ============================================================================
+// SOCIAL SYNC API METHODS
+// ============================================================================
+
+export interface ContactSyncRequest {
+  phoneNumbers: string[]; // Hashed phone numbers
+  userId: string;
+}
+
+export interface ContactSyncResponse {
+  matches: Array<{
+    hashedPhone: string;
+    userId: string;
+    displayName: string;
+    avatarUrl: string;
+  }>;
+  totalMatches: number;
+}
+
+export interface InstagramSyncRequest {
+  accessToken: string;
+  userId: string;
+}
+
+export interface InstagramSyncResponse {
+  matches: Array<{
+    instagramId: string;
+    instagramUsername: string;
+    userId: string;
+    displayName: string;
+    avatarUrl: string;
+  }>;
+  totalMatches: number;
+}
+
+/**
+ * Sync phone contacts with backend to find matches
+ * Backend will hash the phone numbers and compare with user database
+ */
+export async function syncContacts(request: ContactSyncRequest): Promise<ContactSyncResponse> {
+  return apiClient.post<ContactSyncResponse>('/social/sync/contacts', request);
+}
+
+/**
+ * Sync Instagram following with backend to find matches
+ * Backend will fetch following list from Instagram API and match with users
+ */
+export async function syncInstagram(request: InstagramSyncRequest): Promise<InstagramSyncResponse> {
+  return apiClient.post<InstagramSyncResponse>('/social/sync/instagram', request);
+}
+
+/**
+ * Exchange Instagram authorization code for access token
+ */
+export async function exchangeInstagramCode(code: string): Promise<{
+  accessToken: string;
+  userId: string;
+  username: string;
+}> {
+  return apiClient.post('/auth/instagram/token', { code });
+}

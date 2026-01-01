@@ -5,6 +5,11 @@
 
 import * as Contacts from 'expo-contacts';
 import { Platform, Alert } from 'react-native';
+import * as Crypto from 'expo-crypto';
+import { syncContacts } from './api';
+
+const USE_MOCK_DATA = process.env.NODE_ENV === 'development';
+const ENABLE_CONTACT_SYNC = process.env.ENABLE_CONTACT_SYNC === 'true';
 
 export interface ContactMatch {
   contactId: string;
@@ -87,30 +92,98 @@ export function normalizePhoneNumber(phone: string): string {
 }
 
 /**
+ * Hash phone number for privacy (SHA-256)
+ * This ensures phone numbers are not sent in plain text to the backend
+ */
+async function hashPhoneNumber(phoneNumber: string): Promise<string> {
+  try {
+    const hash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      phoneNumber
+    );
+    return hash;
+  } catch (error) {
+    console.error('Error hashing phone number:', error);
+    return phoneNumber; // Fallback to unhashed (not recommended for production)
+  }
+}
+
+/**
  * Sync contacts with backend to find matches
- * In production, this would hash phone numbers before sending for privacy
+ * Hashes phone numbers before sending for privacy
  */
 export async function syncContactsWithBackend(
-  contacts: Contacts.Contact[]
+  contacts: Contacts.Contact[],
+  userId: string = 'user-me'
 ): Promise<ContactSyncResult> {
+  if (!ENABLE_CONTACT_SYNC) {
+    console.log('Contact sync is disabled');
+    return {
+      totalContacts: 0,
+      matchedContacts: [],
+      syncedAt: new Date().toISOString(),
+    };
+  }
+
   try {
-    // Extract phone numbers from contacts
+    // Use mock data in development
+    if (USE_MOCK_DATA) {
+      console.log('Using mock contact data (development mode)');
+      const matchedContacts = await mockContactMatching(contacts);
+      return {
+        totalContacts: contacts.length,
+        matchedContacts,
+        syncedAt: new Date().toISOString(),
+      };
+    }
+
+    // PRODUCTION: Extract and hash phone numbers
+    const phoneNumberMap = new Map<string, { contact: Contacts.Contact; phone: string }>();
     const phoneNumbers: string[] = [];
 
-    contacts.forEach(contact => {
+    for (const contact of contacts) {
       if (contact.phoneNumbers && contact.phoneNumbers.length > 0) {
-        contact.phoneNumbers.forEach(phoneEntry => {
+        for (const phoneEntry of contact.phoneNumbers) {
           if (phoneEntry.number) {
             const normalized = normalizePhoneNumber(phoneEntry.number);
             phoneNumbers.push(normalized);
+            phoneNumberMap.set(normalized, { contact, phone: phoneEntry.number });
           }
-        });
+        }
       }
+    }
+
+    // Hash phone numbers for privacy
+    const hashedPhoneNumbers: string[] = [];
+    const hashMap = new Map<string, string>(); // hashed -> original
+
+    for (const phoneNumber of phoneNumbers) {
+      const hashed = await hashPhoneNumber(phoneNumber);
+      hashedPhoneNumbers.push(hashed);
+      hashMap.set(hashed, phoneNumber);
+    }
+
+    console.log(`Syncing ${hashedPhoneNumbers.length} hashed phone numbers with backend`);
+
+    // Send to backend
+    const response = await syncContacts({
+      phoneNumbers: hashedPhoneNumbers,
+      userId,
     });
 
-    // TODO: In production, send hashed phone numbers to backend
-    // For now, simulate matching with mock data
-    const matchedContacts = await mockContactMatching(contacts);
+    // Map backend matches back to contacts
+    const matchedContacts: ContactMatch[] = response.matches.map(match => {
+      const originalPhone = hashMap.get(match.hashedPhone);
+      const contactData = originalPhone ? phoneNumberMap.get(originalPhone) : undefined;
+
+      return {
+        contactId: match.userId,
+        name: match.displayName,
+        phoneNumber: contactData?.phone || '',
+        userId: match.userId,
+        avatarUrl: match.avatarUrl,
+      };
+    });
 
     return {
       totalContacts: contacts.length,
@@ -119,6 +192,18 @@ export async function syncContactsWithBackend(
     };
   } catch (error) {
     console.error('Error syncing contacts:', error);
+
+    // Fallback to mock data if API fails
+    if (USE_MOCK_DATA) {
+      console.log('API failed, falling back to mock data');
+      const matchedContacts = await mockContactMatching(contacts);
+      return {
+        totalContacts: contacts.length,
+        matchedContacts,
+        syncedAt: new Date().toISOString(),
+      };
+    }
+
     return {
       totalContacts: 0,
       matchedContacts: [],

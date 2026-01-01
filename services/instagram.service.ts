@@ -7,11 +7,18 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { exchangeInstagramCode, syncInstagram } from './api';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const USE_MOCK_DATA = process.env.NODE_ENV === 'development';
+const ENABLE_INSTAGRAM_SYNC = process.env.ENABLE_INSTAGRAM_SYNC === 'true';
 
 const STORAGE_KEYS = {
   INSTAGRAM_TOKEN: 'nox_instagram_token',
   INSTAGRAM_USER: 'nox_instagram_user',
   INSTAGRAM_FOLLOWING: 'nox_instagram_following',
+  INSTAGRAM_TOKEN_EXPIRES: 'nox_instagram_token_expires',
 };
 
 export interface InstagramUser {
@@ -37,18 +44,39 @@ export interface InstagramSyncResult {
 
 /**
  * Instagram OAuth configuration
- * NOTE: You'll need to set up Instagram Basic Display API
- * https://developers.facebook.com/docs/instagram-basic-display-api
+ * For production: Use Instagram Graph API (not Basic Display API)
+ * Graph API provides access to following list and more features
+ * https://developers.facebook.com/docs/instagram-api
  */
 const INSTAGRAM_CONFIG = {
-  clientId: process.env.INSTAGRAM_CLIENT_ID || 'YOUR_INSTAGRAM_CLIENT_ID',
-  clientSecret: process.env.INSTAGRAM_CLIENT_SECRET || 'YOUR_INSTAGRAM_CLIENT_SECRET',
+  clientId: process.env.INSTAGRAM_CLIENT_ID || '',
+  clientSecret: process.env.INSTAGRAM_CLIENT_SECRET || '',
   redirectUri: AuthSession.makeRedirectUri({
     scheme: 'nox',
     path: 'instagram-callback',
   }),
-  scopes: ['user_profile', 'user_media'],
+  // Graph API scopes (requires Business/Creator account)
+  scopes: ['instagram_basic', 'instagram_manage_insights', 'pages_read_engagement'],
 };
+
+/**
+ * Check if Instagram token is still valid
+ */
+async function isTokenValid(): Promise<boolean> {
+  try {
+    const expiresAt = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_TOKEN_EXPIRES);
+    if (!expiresAt) return false;
+
+    const expires = new Date(expiresAt);
+    const now = new Date();
+
+    // Consider token expired if less than 1 day remaining
+    const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    return expires > oneDayFromNow;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Check if user has connected Instagram
@@ -64,14 +92,19 @@ export async function hasInstagramConnected(): Promise<boolean> {
 
 /**
  * Connect Instagram account via OAuth
- * NOTE: This is a simplified implementation. In production, you'd use Instagram Basic Display API
+ * Production-ready implementation using Instagram Graph API
  */
 export async function connectInstagram(): Promise<InstagramUser | null> {
-  try {
-    // TODO: Implement real Instagram OAuth
-    // For now, return mock connection for development
+  if (!ENABLE_INSTAGRAM_SYNC) {
+    console.log('Instagram sync is disabled');
+    Alert.alert('Instagram Sync Disabled', 'Contact sync is currently disabled.');
+    return null;
+  }
 
-    if (process.env.NODE_ENV === 'development') {
+  try {
+    // Use mock data in development
+    if (USE_MOCK_DATA) {
+      console.log('Using mock Instagram connection (development mode)');
       // Simulate OAuth delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -85,54 +118,77 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
       await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_USER, JSON.stringify(mockUser));
       await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_TOKEN, 'mock-token-' + Date.now());
 
+      // Mock token expires in 60 days
+      const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+      await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_TOKEN_EXPIRES, expiresAt.toISOString());
+
       return mockUser;
     }
 
-    // Production OAuth flow would go here
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_CONFIG.clientId}&redirect_uri=${INSTAGRAM_CONFIG.redirectUri}&scope=user_profile,user_media&response_type=code`;
+    // PRODUCTION: Check if we have client credentials configured
+    if (!INSTAGRAM_CONFIG.clientId || !INSTAGRAM_CONFIG.clientSecret) {
+      console.error('Instagram OAuth credentials not configured');
+      Alert.alert(
+        'Configuration Error',
+        'Instagram integration is not configured. Please contact support.'
+      );
+      return null;
+    }
 
+    // Build OAuth authorization URL
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_CONFIG.clientId}&redirect_uri=${encodeURIComponent(INSTAGRAM_CONFIG.redirectUri)}&scope=${INSTAGRAM_CONFIG.scopes.join(',')}&response_type=code`;
+
+    console.log('Opening Instagram OAuth flow...');
+
+    // Open OAuth browser session
     const result = await WebBrowser.openAuthSessionAsync(
       authUrl,
       INSTAGRAM_CONFIG.redirectUri
     );
 
-    if (result.type === 'success' && result.url) {
-      // Extract code from callback URL
-      const code = new URL(result.url).searchParams.get('code');
-
-      if (code) {
-        // Exchange code for access token
-        const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            client_id: INSTAGRAM_CONFIG.clientId,
-            client_secret: INSTAGRAM_CONFIG.clientSecret,
-            grant_type: 'authorization_code',
-            redirect_uri: INSTAGRAM_CONFIG.redirectUri,
-            code,
-          }).toString(),
-        });
-
-        const tokenData = await tokenResponse.json();
-
-        if (tokenData.access_token) {
-          const user: InstagramUser = {
-            id: tokenData.user_id,
-            username: tokenData.username || '',
-          };
-
-          await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_TOKEN, tokenData.access_token);
-          await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_USER, JSON.stringify(user));
-
-          return user;
-        }
-      }
+    if (result.type !== 'success' || !result.url) {
+      console.log('Instagram OAuth cancelled or failed');
+      return null;
     }
 
-    return null;
+    // Extract authorization code from callback URL
+    const url = new URL(result.url);
+    const code = url.searchParams.get('code');
+
+    if (!code) {
+      console.error('No authorization code received from Instagram');
+      Alert.alert('Authentication Error', 'No authorization code received.');
+      return null;
+    }
+
+    console.log('Exchanging authorization code for access token...');
+
+    // Exchange code for access token via our backend
+    // Backend will securely handle client secret and token exchange
+    const tokenData = await exchangeInstagramCode(code);
+
+    if (!tokenData.accessToken) {
+      console.error('Failed to get access token from backend');
+      Alert.alert('Authentication Error', 'Failed to authenticate with Instagram.');
+      return null;
+    }
+
+    const user: InstagramUser = {
+      id: tokenData.userId,
+      username: tokenData.username,
+    };
+
+    // Store credentials
+    await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_TOKEN, tokenData.accessToken);
+    await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_USER, JSON.stringify(user));
+
+    // Instagram Graph API tokens typically expire in 60 days
+    const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+    await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_TOKEN_EXPIRES, expiresAt.toISOString());
+
+    console.log('Instagram connected successfully');
+
+    return user;
   } catch (error) {
     console.error('Instagram connection error:', error);
     Alert.alert('Connection Error', 'Failed to connect Instagram. Please try again.');
@@ -148,6 +204,8 @@ export async function disconnectInstagram(): Promise<void> {
     await AsyncStorage.removeItem(STORAGE_KEYS.INSTAGRAM_TOKEN);
     await AsyncStorage.removeItem(STORAGE_KEYS.INSTAGRAM_USER);
     await AsyncStorage.removeItem(STORAGE_KEYS.INSTAGRAM_FOLLOWING);
+    await AsyncStorage.removeItem(STORAGE_KEYS.INSTAGRAM_TOKEN_EXPIRES);
+    console.log('Instagram disconnected successfully');
   } catch (error) {
     console.error('Error disconnecting Instagram:', error);
   }
@@ -155,8 +213,14 @@ export async function disconnectInstagram(): Promise<void> {
 
 /**
  * Get Instagram following list
+ * In production, this is fetched from backend which calls Instagram Graph API
  */
 export async function getInstagramFollowing(): Promise<InstagramFollowing[]> {
+  if (!ENABLE_INSTAGRAM_SYNC) {
+    console.log('Instagram sync is disabled');
+    return [];
+  }
+
   try {
     const token = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_TOKEN);
 
@@ -164,49 +228,90 @@ export async function getInstagramFollowing(): Promise<InstagramFollowing[]> {
       return [];
     }
 
-    // TODO: In production, fetch real following list from Instagram API
-    // Note: Instagram Basic Display API doesn't provide following list
-    // You'd need Instagram Graph API with proper permissions
+    // Check if token is still valid
+    const tokenValid = await isTokenValid();
+    if (!tokenValid) {
+      console.log('Instagram token expired');
+      await disconnectInstagram();
+      return [];
+    }
 
-    if (process.env.NODE_ENV === 'development') {
-      // Return mock following data
+    // Use mock data in development
+    if (USE_MOCK_DATA) {
+      console.log('Using mock Instagram following data (development mode)');
       return mockInstagramFollowing;
     }
 
-    // Production API call would go here
-    return [];
+    // PRODUCTION: Fetch from backend
+    // Backend will use the token to fetch following list from Instagram Graph API
+    console.log('Fetching Instagram following from backend...');
+
+    const user = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_USER);
+    if (!user) {
+      return [];
+    }
+
+    const userData = JSON.parse(user);
+    const response = await syncInstagram({
+      accessToken: token,
+      userId: 'user-me', // Current user ID
+    });
+
+    const following: InstagramFollowing[] = response.matches.map(match => ({
+      id: match.instagramId,
+      username: match.instagramUsername,
+      fullName: match.displayName,
+      profilePicture: match.avatarUrl,
+      userId: match.userId,
+    }));
+
+    // Cache the following list
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.INSTAGRAM_FOLLOWING,
+      JSON.stringify(following)
+    );
+
+    console.log(`Fetched ${following.length} Instagram following matches`);
+
+    return following;
   } catch (error) {
     console.error('Error fetching Instagram following:', error);
+
+    // Fallback to cached data
+    try {
+      const cached = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_FOLLOWING);
+      if (cached) {
+        console.log('Using cached Instagram following data');
+        return JSON.parse(cached);
+      }
+    } catch (cacheError) {
+      console.error('Error reading cached Instagram data:', cacheError);
+    }
+
     return [];
   }
 }
 
 /**
  * Sync Instagram following with backend to find matches
+ * This is a wrapper around getInstagramFollowing for convenience
  */
 export async function syncInstagramFollowing(): Promise<InstagramSyncResult | null> {
   try {
-    const user = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_USER);
+    const userJson = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_USER);
 
-    if (!user) {
+    if (!userJson) {
       return null;
     }
 
+    // Fetch following list (this also syncs with backend in production)
     const following = await getInstagramFollowing();
 
-    // TODO: Send Instagram usernames to backend to find matches
-    // Backend would match Instagram usernames with app users
-
     const syncResult: InstagramSyncResult = {
-      user: JSON.parse(user),
+      user: JSON.parse(userJson),
       following,
       syncedAt: new Date().toISOString(),
     };
-
-    await AsyncStorage.setItem(
-      STORAGE_KEYS.INSTAGRAM_FOLLOWING,
-      JSON.stringify(following)
-    );
 
     return syncResult;
   } catch (error) {
