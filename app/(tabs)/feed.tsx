@@ -387,7 +387,7 @@ function EmptyState({ filter, suggestedPerformers, onFollowPerformer, isFollowin
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   filterContainer: {
     position: 'absolute' as const,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   filterTextActive: {
-    color: '#0a0a0f',
+    color: '#000000',
     fontWeight: '700' as const,
   },
   emptyScrollContainer: {
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     borderColor: '#ff0080',
   },
   followButtonText: {
-    color: '#0a0a0f',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '700' as const,
   },
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start' as const,
   },
   joinButtonText: {
-    color: '#0a0a0f',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '700' as const,
   },

@@ -70,7 +70,7 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0a0a0f', '#1a0a2e', '#0a0a0f']}
+        colors={['#000000', '#1a0a2e', '#000000']}
         style={StyleSheet.absoluteFill}
       />
 
@@ -157,7 +157,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   safeArea: {
     flex: 1,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   continueButtonTextDisabled: {
     color: '#666680',

@@ -12,8 +12,8 @@ import { Video as ExpoVideo, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import Slider from '@react-native-community/slider';
 
 const COLORS = {
-  background: '#0a0a0f',
-  card: '#15151f',
+  background: '#000000',
+  card: '#1a1a1a',
   accent: '#ff0080',
   purple: '#9d4edd',
   text: '#ffffff',

@@ -37,7 +37,7 @@ export default function ManagementLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#0a0a0f',
+          backgroundColor: '#000000',
         },
         headerTintColor: '#ff0080',
         headerTitleStyle: {

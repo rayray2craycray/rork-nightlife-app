@@ -226,7 +226,7 @@ export default function DiscoveryScreen() {
             toggleGhostMode();
           }}
         >
-          <Ghost size={22} color={locationSettings.ghostMode ? '#0a0a0f' : '#fff'} />
+          <Ghost size={22} color={locationSettings.ghostMode ? '#000000' : '#fff'} />
         </TouchableOpacity>
         
         {friendLocations.length > 0 && (
@@ -236,7 +236,7 @@ export default function DiscoveryScreen() {
         )}
         
         <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
-          <Navigation size={24} color="#0a0a0f" />
+          <Navigation size={24} color="#000000" />
         </TouchableOpacity>
       </View>
 
@@ -308,7 +308,7 @@ function FriendListDrawer({ friendLocations, onClose, onFriendPress }: FriendLis
   return (
     <View style={styles.friendDrawer}>
       <LinearGradient
-        colors={['#15151f', '#1a1a2e']}
+        colors={['#1a1a1a', '#1a1a2e']}
         style={styles.friendDrawerGradient}
       >
         <View style={styles.friendDrawerHeader}>
@@ -479,7 +479,7 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
   return (
     <View style={styles.bottomSheet}>
       <LinearGradient
-        colors={['#15151f', '#1a1a2e']}
+        colors={['#1a1a1a', '#1a1a2e']}
         style={styles.sheetGradient}
       >
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -554,7 +554,7 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   map: {
     flex: 1,
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#15151f',
+    backgroundColor: '#1a1a1a',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: 2,
@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
   joinButtonText: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   directionsButton: {
     paddingVertical: 16,
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     gap: 16,
@@ -816,12 +816,12 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: 2,
-    borderColor: '#0a0a0f',
+    borderColor: '#000000',
   },
   friendCountText: {
     fontSize: 10,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   friendAvatarContainer: {
     alignItems: 'center' as const,
@@ -846,7 +846,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     borderWidth: 2,
-    borderColor: '#0a0a0f',
+    borderColor: '#000000',
   },
   friendDrawerToggle: {
     position: 'absolute' as const,

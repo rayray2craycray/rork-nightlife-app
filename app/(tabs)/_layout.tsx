@@ -3,8 +3,8 @@ import { Flame, MapPin, MessageCircle, User, Sparkles } from "lucide-react-nativ
 import React from "react";
 
 const COLORS = {
-  background: '#0a0a0f',
-  tabBar: '#15151f',
+  background: '#000000',
+  tabBar: '#1a1a1a',
   active: '#ff0080',
   inactive: '#666680',
 };

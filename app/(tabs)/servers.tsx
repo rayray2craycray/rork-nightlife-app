@@ -70,7 +70,7 @@ function ServerList({ onSelectServer }: ServerListProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0a0a0f', '#15151f']}
+        colors={['#000000', '#1a1a1a']}
         style={styles.gradient}
       >
         <View style={styles.header}>
@@ -93,7 +93,7 @@ function ServerList({ onSelectServer }: ServerListProps) {
               onPress={() => onSelectServer(server.venueId)}
             >
               <LinearGradient
-                colors={['#1a1a2e', '#15151f']}
+                colors={['#1a1a2e', '#1a1a1a']}
                 style={styles.serverCardGradient}
               >
                 <View style={styles.serverInfo}>
@@ -137,7 +137,7 @@ function ChannelList({ server, onSelectChannel, onBack, onOpenSettings }: Channe
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0a0a0f', '#15151f']}
+        colors={['#000000', '#1a1a1a']}
         style={styles.gradient}
       >
         <View style={styles.header}>
@@ -238,7 +238,7 @@ function ChatView({ server, channelId, onBack }: ChatViewProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0a0a0f', '#15151f']}
+        colors={['#000000', '#1a1a1a']}
         style={styles.gradient}
       >
         <View style={styles.chatHeader}>
@@ -274,7 +274,7 @@ function ChatView({ server, channelId, onBack }: ChatViewProps) {
             onChangeText={setMessage}
           />
           <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-            <Send size={20} color="#0a0a0f" />
+            <Send size={20} color="#000000" />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -785,7 +785,7 @@ export function AccessRevokedModal({ visible, venueName, onDismiss }: AccessRevo
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   gradient: {
     flex: 1,
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
   unreadText: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   joinNewCard: {
     backgroundColor: 'rgba(0, 255, 204, 0.1)',
@@ -977,7 +977,7 @@ const styles = StyleSheet.create({
   messageBadgeText: {
     fontSize: 9,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   messageContent: {
     fontSize: 14,
@@ -1045,7 +1045,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end' as const,
   },
   modalContent: {
-    backgroundColor: '#15151f',
+    backgroundColor: '#1a1a1a',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 24,
@@ -1122,7 +1122,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   confirmModalContent: {
-    backgroundColor: '#15151f',
+    backgroundColor: '#1a1a1a',
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -1185,7 +1185,7 @@ const styles = StyleSheet.create({
   confirmModalButtonTextCancel: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   confirmModalButtonTextLeave: {
     fontSize: 15,
@@ -1260,7 +1260,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between' as const,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#0a0a0f',
+    borderBottomColor: '#000000',
   },
   vibeCheckTitle: {
     fontSize: 16,
@@ -1299,7 +1299,7 @@ const styles = StyleSheet.create({
   },
   sliderTrack: {
     height: 8,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -1327,7 +1327,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     alignItems: 'center' as const,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -1353,7 +1353,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     alignItems: 'center' as const,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -1385,7 +1385,7 @@ const styles = StyleSheet.create({
   vibeSubmitButtonText: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   vibeCooldownText: {
     fontSize: 12,
@@ -1398,7 +1398,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   vibeCheckCurrentData: {
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     padding: 12,
     borderRadius: 10,
     marginBottom: 16,

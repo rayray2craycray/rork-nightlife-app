@@ -72,7 +72,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
-        colors={['#0a0a0f', '#15151f']}
+        colors={['#000000', '#1a1a1a']}
         style={styles.gradient}
       >
         <TouchableOpacity 
@@ -119,7 +119,7 @@ export default function ProfileScreen() {
 
         <View style={styles.incognitoCard}>
           <LinearGradient
-            colors={['#1a1a2e', '#15151f']}
+            colors={['#1a1a2e', '#1a1a1a']}
             style={styles.incognitoGradient}
           >
             <View style={styles.incognitoLeft}>
@@ -139,7 +139,7 @@ export default function ProfileScreen() {
               value={profile.isIncognito}
               onValueChange={handleIncognitoToggle}
               trackColor={{ false: '#1a1a2e', true: '#ff0080' }}
-              thumbColor={profile.isIncognito ? '#0a0a0f' : '#666'}
+              thumbColor={profile.isIncognito ? '#000000' : '#666'}
             />
           </LinearGradient>
         </View>
@@ -258,7 +258,7 @@ export default function ProfileScreen() {
               return (
                 <View key={userId} style={styles.userCard}>
                   <LinearGradient
-                    colors={['#1a1a2e', '#15151f']}
+                    colors={['#1a1a2e', '#1a1a1a']}
                     style={styles.userCardGradient}
                   >
                     <View style={styles.userCardLeft}>
@@ -294,7 +294,7 @@ export default function ProfileScreen() {
                       {isFollowing(userId) ? (
                         <UserMinus size={18} color="#fff" />
                       ) : (
-                        <UserPlus size={18} color="#0a0a0f" />
+                        <UserPlus size={18} color="#000000" />
                       )}
                     </TouchableOpacity>
                   </LinearGradient>
@@ -307,7 +307,7 @@ export default function ProfileScreen() {
               return (
                 <View key={userId} style={styles.userCard}>
                   <LinearGradient
-                    colors={['#1a1a2e', '#15151f']}
+                    colors={['#1a1a2e', '#1a1a1a']}
                     style={styles.userCardGradient}
                   >
                     <View style={styles.userCardLeft}>
@@ -372,7 +372,7 @@ export default function ProfileScreen() {
                   return (
                     <View key={badge.id} style={styles.badgeCard}>
                       <LinearGradient
-                        colors={['#1a1a2e', '#15151f']}
+                        colors={['#1a1a2e', '#1a1a1a']}
                         style={styles.badgeGradient}
                       >
                         {venue && (
@@ -416,7 +416,7 @@ export default function ProfileScreen() {
                 return (
                   <View key={badge.id} style={styles.badgeCard}>
                     <LinearGradient
-                      colors={['#1a1a2e', '#15151f']}
+                      colors={['#1a1a2e', '#1a1a1a']}
                       style={styles.badgeGradient}
                     >
                       {venue && (
@@ -458,7 +458,7 @@ export default function ProfileScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.managementGradient}
               >
-                <BarChart3 size={22} color="#0a0a0f" />
+                <BarChart3 size={22} color="#000000" />
                 <Text style={styles.managementButtonText}>Management Dashboard</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -556,7 +556,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   gradient: {
     flex: 1,
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
   badgeTypeText: {
     fontSize: 10,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   badgeDate: {
     fontSize: 12,
@@ -805,7 +805,7 @@ const styles = StyleSheet.create({
   managementButtonText: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   modalOverlay: {
     flex: 1,
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end' as const,
   },
   modalContent: {
-    backgroundColor: '#15151f',
+    backgroundColor: '#1a1a1a',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 40,
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
   socialHeaderContainer: {
     flexDirection: 'row' as const,
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   userInfo: {
     flex: 1,

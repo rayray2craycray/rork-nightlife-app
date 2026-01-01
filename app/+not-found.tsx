@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   title: {
     fontSize: 24,
@@ -48,6 +48,6 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#0a0a0f',
+    color: '#000000',
   },
 });
