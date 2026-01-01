@@ -201,8 +201,6 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
   }, [locationSettings.ghostMode, updateLocationSettings]);
 
   const visibleFriendLocations = useMemo(() => {
-    if (locationSettings.ghostMode) return [];
-
     return friendLocations.filter(loc => {
       const follow = acceptedFollows.find(
         f => f.followerId === 'user-me' && f.followingId === loc.userId && f.shareLocation
@@ -218,7 +216,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
 
       return loc.isActive;
     });
-  }, [friendLocations, locationSettings.ghostMode, locationSettings.onlyShowToMutual, acceptedFollows, mutualFollows]);
+  }, [friendLocations, locationSettings.onlyShowToMutual, acceptedFollows, mutualFollows]);
 
   const getFriendsByVenue = useCallback((venueId: string) => {
     return visibleFriendLocations.filter(loc => loc.venueId === venueId);
