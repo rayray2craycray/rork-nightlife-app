@@ -1,14 +1,57 @@
 /**
  * Authentication Routes
- * Endpoints for OAuth and token management
+ * Endpoints for email/password authentication, OAuth, and token management
  */
 
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const instagramService = require('../services/instagram.service');
+const {
+  signUp,
+  signIn,
+  refresh,
+  signOut,
+  getMe,
+  updateProfile,
+  forgotPassword,
+  resetPassword,
+} = require('../controllers/auth.controller');
+const { authMiddleware } = require('../middleware/auth.middleware');
 
 const router = express.Router();
+
+/**
+ * Email/Password Authentication Routes
+ */
+
+// POST /auth/signup - Register new user
+router.post('/signup', signUp);
+
+// POST /auth/signin - Authenticate user
+router.post('/signin', signIn);
+
+// POST /auth/refresh - Refresh access token
+router.post('/refresh', refresh);
+
+// POST /auth/signout - Sign out and revoke token
+router.post('/signout', signOut);
+
+// GET /auth/me - Get current user profile (protected)
+router.get('/me', authMiddleware, getMe);
+
+// PUT /auth/profile - Update user profile (protected)
+router.put('/profile', authMiddleware, updateProfile);
+
+// POST /auth/forgot-password - Initiate password reset
+router.post('/forgot-password', forgotPassword);
+
+// POST /auth/reset-password - Complete password reset
+router.post('/reset-password', resetPassword);
+
+/**
+ * Instagram OAuth Routes
+ */
 
 /**
  * POST /auth/instagram/token

@@ -1,17 +1,35 @@
 /**
  * User Model
- * Stores user information including hashed phone numbers and Instagram connections
+ * Stores user information including hashed phone numbers, Instagram connections, and email/password authentication
  */
 
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
+  // Email/Password Authentication
+  email: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow null for users who only use Instagram
+    lowercase: true,
+    trim: true,
+    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
+  },
+
+  password: {
+    type: String,
+    minlength: [8, 'Password must be at least 8 characters'],
+    select: false, // Don't return password by default
+  },
+
   // Basic user info
   displayName: {
     type: String,
     required: true,
     trim: true,
-    maxlength: 50,
+    minlength: [2, 'Display name must be at least 2 characters'],
+    maxlength: [50, 'Display name cannot exceed 50 characters'],
   },
 
   avatarUrl: {
@@ -19,9 +37,19 @@ const userSchema = new mongoose.Schema({
     default: null,
   },
 
+  profileImageUrl: {
+    type: String,
+    default: null,
+  },
+
   bio: {
     type: String,
     maxlength: 200,
+    default: null,
+  },
+
+  dateOfBirth: {
+    type: Date,
     default: null,
   },
 
@@ -93,6 +121,11 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
 
+  lastLoginAt: {
+    type: Date,
+    default: null,
+  },
+
   lastSyncedContacts: {
     type: Date,
     default: null,
@@ -105,15 +138,28 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
+userSchema.index({ email: 1 });
 userSchema.index({ phoneHash: 1 });
 userSchema.index({ instagramId: 1 });
 userSchema.index({ instagramUsername: 1 });
 userSchema.index({ displayName: 'text' });
 
-// Update timestamp on save
-userSchema.pre('save', function(next) {
+// Hash password before saving and update timestamp
+userSchema.pre('save', async function(next) {
   this.updatedAt = new Date();
-  next();
+
+  // Only hash password if it's been modified
+  if (!this.isModified('password')) {
+    return next();
+  }
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Instance methods
@@ -136,6 +182,15 @@ userSchema.methods.hasValidInstagramToken = function() {
   // Check if token expires in more than 1 day
   const oneDayFromNow = new Date(Date.now() + 24 * 60 * 60 * 1000);
   return this.instagramTokenExpires > oneDayFromNow;
+};
+
+// Method to compare password for authentication
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    return false;
+  }
 };
 
 // Static methods

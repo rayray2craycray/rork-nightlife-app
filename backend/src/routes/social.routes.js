@@ -1,14 +1,25 @@
 /**
  * Social Routes
- * Endpoints for contact and Instagram sync
+ * Endpoints for contact/Instagram sync, crews, and challenges
  */
 
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body, param, query, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Crew = require('../models/Crew');
+const Challenge = require('../models/Challenge');
 const instagramService = require('../services/instagram.service');
 
 const router = express.Router();
+
+// ===== VALIDATION MIDDLEWARE =====
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
 
 /**
  * POST /social/sync/contacts
@@ -154,5 +165,582 @@ router.post(
     }
   }
 );
+
+// ===== CREWS =====
+
+// Create crew
+router.post(
+  '/crews',
+  [
+    body('name').isString().isLength({ min: 1, max: 50 }),
+    body('ownerId').isMongoId(),
+    body('description').optional().isString().isLength({ max: 200 }),
+    body('isPrivate').optional().isBoolean(),
+    body('imageUrl').optional().isURL(),
+    body('settings.maxMembers').optional().isInt({ min: 2, max: 50 }),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const {
+        name,
+        ownerId,
+        description,
+        isPrivate = false,
+        imageUrl,
+        settings,
+        tags,
+      } = req.body;
+
+      const crew = await Crew.create({
+        name,
+        ownerId,
+        description,
+        isPrivate,
+        imageUrl,
+        memberIds: [ownerId],
+        settings: {
+          requireApproval: true,
+          maxMembers: settings?.maxMembers || 20,
+        },
+        tags,
+      });
+
+      await crew.populate('ownerId', 'displayName avatarUrl');
+      await crew.populate('memberIds', 'displayName avatarUrl');
+
+      res.status(201).json({
+        success: true,
+        data: crew,
+        message: 'Crew created successfully',
+      });
+    } catch (error) {
+      console.error('Create crew error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get crew by ID
+router.get(
+  '/crews/:id',
+  [param('id').isMongoId(), validate],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const crew = await Crew.findById(id)
+        .populate('ownerId', 'displayName avatarUrl')
+        .populate('memberIds', 'displayName avatarUrl');
+
+      if (!crew) {
+        return res.status(404).json({
+          success: false,
+          error: 'Crew not found',
+        });
+      }
+
+      res.json({
+        success: true,
+        data: crew,
+      });
+    } catch (error) {
+      console.error('Get crew error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get user's crews
+router.get(
+  '/crews/user/:userId',
+  [param('userId').isMongoId(), validate],
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      const crews = await Crew.getUserCrews(userId);
+
+      res.json({
+        success: true,
+        data: crews,
+        count: crews.length,
+      });
+    } catch (error) {
+      console.error('Get user crews error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Search crews
+router.get(
+  '/crews/search',
+  [
+    query('q').isString().notEmpty(),
+    query('limit').optional().isInt({ min: 1, max: 50 }),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { q, limit = 20 } = req.query;
+
+      const crews = await Crew.searchCrews(q, parseInt(limit));
+
+      res.json({
+        success: true,
+        data: crews,
+        count: crews.length,
+      });
+    } catch (error) {
+      console.error('Search crews error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get active crews
+router.get('/crews/discover/active', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const crews = await Crew.getActiveCrews(limit);
+
+    res.json({
+      success: true,
+      data: crews,
+      count: crews.length,
+    });
+  } catch (error) {
+    console.error('Get active crews error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add member to crew
+router.post(
+  '/crews/:id/members',
+  [
+    param('id').isMongoId(),
+    body('userId').isMongoId(),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId } = req.body;
+
+      const crew = await Crew.findById(id);
+      if (!crew) {
+        return res.status(404).json({
+          success: false,
+          error: 'Crew not found',
+        });
+      }
+
+      await crew.addMember(userId);
+      await crew.populate('memberIds', 'displayName avatarUrl');
+
+      res.json({
+        success: true,
+        data: crew,
+        message: 'Member added successfully',
+      });
+    } catch (error) {
+      console.error('Add member error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Remove member from crew
+router.delete(
+  '/crews/:id/members/:userId',
+  [
+    param('id').isMongoId(),
+    param('userId').isMongoId(),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { id, userId } = req.params;
+
+      const crew = await Crew.findById(id);
+      if (!crew) {
+        return res.status(404).json({
+          success: false,
+          error: 'Crew not found',
+        });
+      }
+
+      await crew.removeMember(userId);
+      await crew.populate('memberIds', 'displayName avatarUrl');
+
+      res.json({
+        success: true,
+        data: crew,
+        message: 'Member removed successfully',
+      });
+    } catch (error) {
+      console.error('Remove member error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Update crew stats
+router.post(
+  '/crews/:id/stats',
+  [
+    param('id').isMongoId(),
+    body('nightOut').optional().isBoolean(),
+    body('event').optional().isBoolean(),
+    body('venueId').optional().isString(),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      const crew = await Crew.findById(id);
+      if (!crew) {
+        return res.status(404).json({
+          success: false,
+          error: 'Crew not found',
+        });
+      }
+
+      await crew.updateStats(updates);
+
+      res.json({
+        success: true,
+        data: crew,
+        message: 'Stats updated successfully',
+      });
+    } catch (error) {
+      console.error('Update crew stats error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get crew stats
+router.get(
+  '/crews/:id/stats',
+  [param('id').isMongoId(), validate],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const stats = await Crew.getCrewStats(id);
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      console.error('Get crew stats error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// ===== CHALLENGES =====
+
+// Get active challenges
+router.get('/challenges/active', async (req, res) => {
+  try {
+    const { venueId } = req.query;
+
+    const challenges = await Challenge.getActiveChallenges(venueId);
+
+    res.json({
+      success: true,
+      data: challenges,
+      count: challenges.length,
+    });
+  } catch (error) {
+    console.error('Get active challenges error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Get challenge by ID
+router.get(
+  '/challenges/:id',
+  [param('id').isMongoId(), validate],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const challenge = await Challenge.findById(id);
+      if (!challenge) {
+        return res.status(404).json({
+          success: false,
+          error: 'Challenge not found',
+        });
+      }
+
+      res.json({
+        success: true,
+        data: challenge,
+      });
+    } catch (error) {
+      console.error('Get challenge error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get user's challenges
+router.get(
+  '/challenges/user/:userId',
+  [param('userId').isMongoId(), validate],
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      const challenges = await Challenge.getUserChallenges(userId);
+
+      res.json({
+        success: true,
+        data: challenges,
+        count: challenges.length,
+      });
+    } catch (error) {
+      console.error('Get user challenges error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Join challenge
+router.post(
+  '/challenges/:id/join',
+  [
+    param('id').isMongoId(),
+    body('userId').isMongoId(),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId } = req.body;
+
+      const challenge = await Challenge.findById(id);
+      if (!challenge) {
+        return res.status(404).json({
+          success: false,
+          error: 'Challenge not found',
+        });
+      }
+
+      await challenge.joinChallenge(userId);
+
+      res.json({
+        success: true,
+        data: challenge,
+        message: 'Successfully joined challenge',
+      });
+    } catch (error) {
+      console.error('Join challenge error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Update challenge progress
+router.post(
+  '/challenges/:id/progress',
+  [
+    param('id').isMongoId(),
+    body('userId').isMongoId(),
+    body('progressIncrement').optional().isInt({ min: 1 }),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId, progressIncrement = 1 } = req.body;
+
+      const challenge = await Challenge.findById(id);
+      if (!challenge) {
+        return res.status(404).json({
+          success: false,
+          error: 'Challenge not found',
+        });
+      }
+
+      await challenge.updateProgress(userId, progressIncrement);
+
+      res.json({
+        success: true,
+        data: challenge,
+        message: 'Progress updated successfully',
+      });
+    } catch (error) {
+      console.error('Update progress error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get user's challenge progress
+router.get(
+  '/challenges/:id/progress/:userId',
+  [
+    param('id').isMongoId(),
+    param('userId').isMongoId(),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { id, userId } = req.params;
+
+      const progress = await Challenge.getUserProgress(userId, id);
+
+      if (!progress) {
+        return res.status(404).json({
+          success: false,
+          error: 'User has not joined this challenge',
+        });
+      }
+
+      res.json({
+        success: true,
+        data: progress,
+      });
+    } catch (error) {
+      console.error('Get progress error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Claim challenge reward
+router.post(
+  '/challenges/:id/claim',
+  [
+    param('id').isMongoId(),
+    body('userId').isMongoId(),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId } = req.body;
+
+      const challenge = await Challenge.findById(id);
+      if (!challenge) {
+        return res.status(404).json({
+          success: false,
+          error: 'Challenge not found',
+        });
+      }
+
+      await challenge.claimReward(userId);
+
+      res.json({
+        success: true,
+        data: challenge,
+        message: 'Reward claimed successfully',
+      });
+    } catch (error) {
+      console.error('Claim reward error:', error);
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get venue challenge stats
+router.get(
+  '/challenges/stats/venue/:venueId',
+  [param('venueId').notEmpty(), validate],
+  async (req, res) => {
+    try {
+      const { venueId } = req.params;
+
+      const stats = await Challenge.getVenueStats(venueId);
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      console.error('Get venue challenge stats error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Deactivate expired challenges (maintenance endpoint)
+router.post('/challenges/maintenance/deactivate-expired', async (req, res) => {
+  try {
+    const count = await Challenge.deactivateExpired();
+
+    res.json({
+      success: true,
+      message: `Deactivated ${count} expired challenges`,
+      count,
+    });
+  } catch (error) {
+    console.error('Deactivate expired challenges error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
 
 module.exports = router;

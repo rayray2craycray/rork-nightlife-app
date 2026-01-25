@@ -32,8 +32,9 @@ const connectDB = async () => {
 
     return conn;
   } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
-    process.exit(1);
+    console.error('Error connecting to MongoDB:', error.message);
+    console.log('ℹ️  Continuing without MongoDB (using in-memory storage)');
+    return null;
   }
 };
 

@@ -1,23 +1,33 @@
-# Rork Nightlife Backend API
+# Rork Nightlife Backend API v2.0
 
-Production-ready Express.js backend for contact and Instagram sync features.
+Complete backend infrastructure with growth features for events, ticketing, social interactions, content, and retention.
 
 ## 🚀 Features
 
-- **Contact Sync**: Match users by hashed phone numbers (SHA-256)
-- **Instagram OAuth**: Secure token exchange with Instagram Graph API
-- **Instagram Sync**: Fetch and match Instagram following list
-- **Rate Limiting**: Prevent API abuse
-- **Security**: Helmet, CORS, input validation
-- **Monitoring**: Health checks and logging
-- **Database**: MongoDB with Mongoose ODM
+### Core Features
+- **Authentication & Users**: JWT-based auth, user management
+- **Venues & Vibe Checks**: Venue data and real-time vibe tracking
+- **Contact & Instagram Sync**: Social graph building
+
+### Growth Features (New!)
+- **Group Purchases**: Split ticket costs with friends
+- **Referrals**: Viral referral system with rewards
+- **Events & Ticketing**: Full event management with QR codes
+- **Guest Lists**: VIP and guest list management
+- **Crews**: User groups/squads for nightlife
+- **Challenges**: Gamified venue challenges
+- **Performers**: DJ/artist profiles with content feeds
+- **Highlight Videos**: 15-second ephemeral highlights
+- **Dynamic Pricing**: Smart pricing based on demand/time
+- **Price Alerts**: User notifications for price drops
+- **Streaks**: Engagement tracking with milestones
+- **Memories**: User timeline and memory creation
 
 ## 📋 Prerequisites
 
 - Node.js >= 18.0.0
-- MongoDB >= 5.0
+- MongoDB >= 6.0
 - npm or yarn
-- Instagram Developer Account (for OAuth)
 
 ## 🛠️ Installation
 
@@ -30,24 +40,20 @@ npm install
 
 ### 2. Configure Environment
 
+Copy and configure the environment file:
+
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your configuration:
+**Critical variables to update:**
 
-```env
-# Required
-PORT=3000
-MONGODB_URI=mongodb://localhost:27017/rork-nightlife
-INSTAGRAM_CLIENT_ID=your_instagram_client_id
-INSTAGRAM_CLIENT_SECRET=your_instagram_client_secret
+- `MONGODB_URI` - Your MongoDB connection string
+- `JWT_SECRET` - Generate with: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
+- `INSTAGRAM_CLIENT_ID` - Get from Facebook Developers
+- `INSTAGRAM_CLIENT_SECRET` - Get from Facebook Developers
 
-# Optional (defaults provided)
-NODE_ENV=development
-INSTAGRAM_REDIRECT_URI=nox://instagram-callback
-ALLOWED_ORIGINS=http://localhost:19006,exp://localhost:19000
-```
+See `.env` for full configuration options.
 
 ### 3. Start MongoDB
 
@@ -62,18 +68,7 @@ docker run -d -p 27017:27017 --name mongodb mongo:latest
 mongosh
 ```
 
-### 4. Seed Database (Optional)
-
-```bash
-npm run seed
-```
-
-This creates 10 sample users with:
-- Hashed phone numbers (+1415555100X)
-- Instagram usernames
-- Profile data
-
-### 5. Start Server
+### 4. Start Server
 
 ```bash
 # Development (with auto-reload)
@@ -83,133 +78,213 @@ npm run dev
 npm start
 ```
 
-Server will start at: http://localhost:3000
+Server will start at: **http://localhost:3000**
 
-## 📡 API Endpoints
+Visit http://localhost:3000 to see all available endpoints.
 
-### Health Check
+## 📁 Project Structure
 
+```
+backend/
+├── src/
+│   ├── config/              # Configuration files
+│   │   └── database.js
+│   ├── models/              # Mongoose models (13 models)
+│   │   ├── GroupPurchase.js
+│   │   ├── Referral.js
+│   │   ├── Event.js
+│   │   ├── Ticket.js
+│   │   ├── GuestList.js
+│   │   ├── Crew.js
+│   │   ├── Challenge.js
+│   │   ├── Performer.js
+│   │   ├── HighlightVideo.js
+│   │   ├── DynamicPricing.js
+│   │   ├── PriceAlert.js
+│   │   ├── Streak.js
+│   │   └── Memory.js
+│   ├── routes/              # API routes
+│   │   ├── auth.routes.js
+│   │   ├── users.routes.js
+│   │   ├── venues.routes.js
+│   │   ├── social.routes.js       # Contact/Instagram sync + Crews & Challenges
+│   │   ├── growth.routes.js       # Group purchases & referrals
+│   │   ├── events.routes.js       # Events, tickets, guest lists
+│   │   ├── content.routes.js      # Performers & highlights
+│   │   ├── pricing.routes.js      # Dynamic pricing & alerts
+│   │   └── retention.routes.js    # Streaks & memories
+│   └── server.js            # Express app
+├── .env                     # Environment variables
+└── package.json
+```
+
+## 🛣️ API Routes Overview
+
+| Route Base | Description |
+|------------|-------------|
+| `/api/v1/users` | User management |
+| `/api/v1/venues` | Venues & vibe checks |
+| `/api/auth` | Authentication |
+| `/api/social` | Contact/Instagram sync, crews, challenges |
+| `/api/growth` | Group purchases & referrals |
+| `/api/events` | Events, tickets, guest lists |
+| `/api/content` | Performers & highlight videos |
+| `/api/pricing` | Dynamic pricing & price alerts |
+| `/api/retention` | Streaks & memories |
+| `/health` | Health check |
+
+## 📡 Key API Endpoints
+
+### Phase 1: Group Purchases & Referrals (`/api/growth`)
+
+**Create Group Purchase**
 ```bash
-GET /health
-```
-
-Response:
-```json
+POST /api/growth/group-purchases
 {
-  "status": "healthy",
-  "timestamp": "2026-01-02T10:00:00.000Z",
-  "uptime": 123.45,
-  "environment": "development"
+  "initiatorId": "507f1f77bcf86cd799439011",
+  "venueId": "venue-123",
+  "ticketType": "ENTRY",
+  "totalAmount": 100.00,
+  "maxParticipants": 5,
+  "expiresAt": "2024-01-20T23:59:59Z"
 }
 ```
 
-### Contact Sync
-
+**Apply Referral Code**
 ```bash
-POST /api/social/sync/contacts
-Content-Type: application/json
-
+POST /api/growth/referrals/apply
 {
-  "phoneNumbers": ["hashed_phone_1", "hashed_phone_2"],
-  "userId": "user_id_here"
+  "referralCode": "ABC123",
+  "userId": "507f1f77bcf86cd799439011"
 }
 ```
 
-Response:
-```json
-{
-  "matches": [
-    {
-      "hashedPhone": "hashed_phone_1",
-      "userId": "670abc123def456...",
-      "displayName": "Sarah Chen",
-      "avatarUrl": "https://..."
-    }
-  ],
-  "totalMatches": 1
-}
-```
+### Phase 2: Events & Ticketing (`/api/events`)
 
-### Instagram Token Exchange
-
+**Purchase Ticket**
 ```bash
-POST /api/auth/instagram/token
-Content-Type: application/json
-
+POST /api/events/tickets/purchase
 {
-  "code": "instagram_auth_code"
+  "eventId": "507f1f77bcf86cd799439011",
+  "userId": "507f1f77bcf86cd799439012",
+  "tierId": "tier-123"
 }
 ```
 
-Response:
-```json
-{
-  "accessToken": "long_lived_token",
-  "userId": "instagram_user_id",
-  "username": "johndoe",
-  "expiresAt": "2026-03-02T10:00:00.000Z",
-  "appUserId": "670abc123def456..."
-}
-```
-
-### Instagram Sync
-
+**Validate QR Code**
 ```bash
-POST /api/social/sync/instagram
-Content-Type: application/json
-
+POST /api/events/tickets/validate
 {
-  "accessToken": "instagram_access_token",
-  "userId": "app_user_id"
+  "qrCode": "ABCD1234EFGH5678"
 }
 ```
 
-Response:
-```json
-{
-  "matches": [
-    {
-      "instagramId": "instagram_id",
-      "instagramUsername": "sarah_vibes",
-      "userId": "670abc123def456...",
-      "displayName": "Sarah Chen",
-      "avatarUrl": "https://..."
-    }
-  ],
-  "totalMatches": 1
-}
-```
-
-### Token Refresh
-
+**Add to Guest List**
 ```bash
-POST /api/auth/instagram/refresh
-Content-Type: application/json
-
+POST /api/events/guest-list
 {
-  "accessToken": "current_token",
-  "userId": "app_user_id"
+  "venueId": "venue-123",
+  "guestName": "John Doe",
+  "addedBy": "507f1f77bcf86cd799439011",
+  "plusOnes": 2,
+  "listType": "VIP"
 }
 ```
+
+### Phase 3: Crews & Challenges (`/api/social`)
+
+**Create Crew**
+```bash
+POST /api/social/crews
+{
+  "name": "Weekend Warriors",
+  "ownerId": "507f1f77bcf86cd799439011",
+  "description": "Best squad in town"
+}
+```
+
+**Join Challenge**
+```bash
+POST /api/social/challenges/:id/join
+{
+  "userId": "507f1f77bcf86cd799439011"
+}
+```
+
+### Phase 4: Content (`/api/content`)
+
+**Upload Highlight Video**
+```bash
+POST /api/content/highlights
+{
+  "videoUrl": "https://...",
+  "thumbnailUrl": "https://...",
+  "venueId": "venue-123",
+  "userId": "507f1f77bcf86cd799439011",
+  "duration": 15
+}
+```
+
+**Follow Performer**
+```bash
+POST /api/content/performers/:id/follow
+{
+  "userId": "507f1f77bcf86cd799439011"
+}
+```
+
+### Phase 5: Dynamic Pricing (`/api/pricing`)
+
+**Get Current Pricing**
+```bash
+GET /api/pricing/dynamic/:venueId
+```
+
+**Create Price Alert**
+```bash
+POST /api/pricing/alerts
+{
+  "userId": "507f1f77bcf86cd799439011",
+  "venueId": "venue-123",
+  "targetDiscount": 20
+}
+```
+
+### Phase 6: Retention (`/api/retention`)
+
+**Increment Streak**
+```bash
+POST /api/retention/streaks/:id/increment
+{
+  "activityType": "CHECK_IN"
+}
+```
+
+**Create Memory**
+```bash
+POST /api/retention/memories
+{
+  "userId": "507f1f77bcf86cd799439011",
+  "venueId": "venue-123",
+  "date": "2024-01-20T22:00:00Z",
+  "type": "CHECK_IN",
+  "content": {
+    "caption": "Great night!"
+  }
+}
+```
+
+## 🔒 Security
+
+- **Input Validation**: All endpoints use `express-validator`
+- **Rate Limiting**: 100 requests per 15 minutes per IP
+- **CORS**: Configured for allowed origins
+- **Helmet.js**: Security headers
+- **JWT Authentication**: Token-based auth
+- **MongoDB Injection Protection**: Via Mongoose
+- **Environment Variables**: Never commit secrets
 
 ## 🧪 Testing
-
-### Manual Testing with cURL
-
-```bash
-# Health check
-curl http://localhost:3000/health
-
-# Contact sync (using seed data)
-curl -X POST http://localhost:3000/api/social/sync/contacts \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phoneNumbers": ["3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"],
-    "userId": "test-user-123"
-  }'
-```
-
-### Automated Tests
 
 ```bash
 # Run all tests
@@ -218,20 +293,68 @@ npm test
 # Watch mode
 npm run test:watch
 
-# Coverage
+# Coverage report
 npm run test:coverage
 ```
 
-## 📦 Deployment
+## 📈 Database
 
-### Option 1: Railway
+### MongoDB Indexes
 
-1. Install Railway CLI:
+All models have optimized indexes:
+- Compound indexes for common queries
+- Text indexes for search
+- TTL indexes for auto-expiration
+
+### Models Summary
+
+- **13 Mongoose models**
+- **50+ API endpoints**
+- **Full CRUD operations**
+- **Complex queries with population**
+- **Business logic in model methods**
+
+## 🔄 Maintenance
+
+Scheduled tasks (set up cron jobs):
+
 ```bash
-npm install -g @railway/cli
+# Expire old group purchases
+POST /api/growth/maintenance/expire-purchases
+
+# Mark event no-shows
+POST /api/events/guest-list/mark-no-shows/:eventId
+
+# Deactivate expired challenges
+POST /api/social/challenges/maintenance/deactivate-expired
+
+# Expire old highlights (24 hours)
+POST /api/content/highlights/maintenance/expire-old
+
+# Deactivate expired pricing
+POST /api/pricing/maintenance/deactivate-expired-pricing
+
+# Break expired streaks
+POST /api/retention/maintenance/break-expired-streaks
 ```
 
-2. Login and deploy:
+## 🚢 Deployment
+
+### Pre-Deployment Checklist
+
+- [ ] Update all `.env` placeholder values
+- [ ] Set `NODE_ENV=production`
+- [ ] Generate secure `JWT_SECRET` (64+ characters)
+- [ ] Configure production MongoDB URI
+- [ ] Set up SSL/TLS certificate
+- [ ] Configure firewall rules
+- [ ] Set up monitoring (health checks)
+- [ ] Configure backup strategy
+- [ ] Test all endpoints
+
+### Deployment Options
+
+**Option 1: Railway**
 ```bash
 railway login
 railway init
@@ -239,145 +362,50 @@ railway add mongodb
 railway up
 ```
 
-3. Set environment variables in Railway dashboard
-
-### Option 2: Heroku
-
+**Option 2: Docker**
 ```bash
-# Install Heroku CLI
-brew tap heroku/brew && brew install heroku
-
-# Login
-heroku login
-
-# Create app
-heroku create rork-nightlife-api
-
-# Add MongoDB
-heroku addons:create mongodbatlas:M0
-
-# Set env vars
-heroku config:set INSTAGRAM_CLIENT_ID=your_id
-heroku config:set INSTAGRAM_CLIENT_SECRET=your_secret
-
-# Deploy
-git push heroku main
-```
-
-### Option 3: Docker
-
-```bash
-# Build image
 docker build -t rork-backend .
-
-# Run container
-docker run -d \
-  -p 3000:3000 \
-  -e MONGODB_URI=mongodb://host.docker.internal:27017/rork \
-  -e INSTAGRAM_CLIENT_ID=your_id \
-  -e INSTAGRAM_CLIENT_SECRET=your_secret \
-  --name rork-backend \
-  rork-backend
+docker run -d -p 3000:3000 --env-file .env rork-backend
 ```
 
-### Option 4: VPS (DigitalOcean, AWS EC2)
-
+**Option 3: VPS (DigitalOcean, AWS)**
 ```bash
-# SSH into server
-ssh user@your-server-ip
-
-# Install Node.js
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install MongoDB
-# Follow: https://www.mongodb.com/docs/manual/administration/install-on-linux/
-
-# Clone repo
-git clone https://github.com/yourusername/rork-nightlife-app.git
-cd rork-nightlife-app/backend
-
-# Install dependencies
-npm install --production
-
-# Setup PM2 for process management
-sudo npm install -g pm2
+# Use PM2 for process management
+npm install -g pm2
 pm2 start src/server.js --name rork-api
 pm2 startup
 pm2 save
-
-# Setup Nginx reverse proxy
-sudo apt install nginx
-# Configure Nginx (see NGINX_CONFIG.md)
 ```
-
-## 🔒 Security
-
-### Environment Variables
-
-**Never commit these to git:**
-- `INSTAGRAM_CLIENT_SECRET`
-- `JWT_SECRET`
-- `MONGODB_URI` (if contains password)
-
-### Rate Limiting
-
-Default: 100 requests per 15 minutes per IP
-
-Adjust in `.env`:
-```env
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-```
-
-### CORS
-
-Configure allowed origins in `.env`:
-```env
-ALLOWED_ORIGINS=https://yourapp.com,https://api.yourapp.com
-```
-
-### Input Validation
-
-All endpoints use `express-validator` for input validation.
-
-### Phone Number Hashing
-
-Phone numbers are hashed client-side with SHA-256. Backend only stores hashes.
 
 ## 📊 Monitoring
 
 ### Health Endpoint
 
-Monitor uptime:
 ```bash
 curl http://localhost:3000/health
 ```
 
+Returns:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-18T12:00:00.000Z",
+  "uptime": 123.45,
+  "environment": "production"
+}
+```
+
 ### Logging
 
-Development: Pretty console logs
-Production: JSON logs (easily parseable)
+- **Development**: Pretty console logs
+- **Production**: JSON logs (parseable)
 
-### Error Tracking
+### Recommended Monitoring
 
-Add Sentry:
-```bash
-npm install @sentry/node
-```
-
-```javascript
-// src/server.js
-const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  environment: process.env.NODE_ENV,
-});
-
-// Add before error handler
-app.use(Sentry.Handlers.errorHandler());
-```
+- Uptime monitoring (UptimeRobot, Pingdom)
+- Error tracking (Sentry)
+- Performance monitoring (New Relic, DataDog)
+- Log aggregation (Loggly, Papertrail)
 
 ## 🔧 Troubleshooting
 
@@ -387,80 +415,52 @@ app.use(Sentry.Handlers.errorHandler());
 Error: connect ECONNREFUSED 127.0.0.1:27017
 ```
 
-**Solution**: Start MongoDB:
+**Solution**: Start MongoDB
 ```bash
 brew services start mongodb-community
 ```
 
-### Instagram API Errors
+### JWT Secret Not Set
 
 ```
-Failed to exchange Instagram authorization code
+Error: JWT_SECRET is required
 ```
 
-**Solutions**:
-1. Verify `INSTAGRAM_CLIENT_ID` and `INSTAGRAM_CLIENT_SECRET` in `.env`
-2. Check redirect URI matches Instagram app settings
-3. Ensure using valid authorization code (codes expire quickly)
-
-### CORS Errors
-
-```
-Not allowed by CORS
+**Solution**: Generate and set in `.env`
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-**Solution**: Add origin to `ALLOWED_ORIGINS` in `.env`:
-```env
-ALLOWED_ORIGINS=http://localhost:19006,exp://localhost:19000
-```
-
-### Rate Limit Errors
+### Rate Limit Exceeded
 
 ```
 Too many requests from this IP
 ```
 
-**Solution**: Increase limits or wait for reset:
+**Solution**: Adjust in `.env`
 ```env
 RATE_LIMIT_MAX_REQUESTS=200
 ```
 
-## 📚 API Documentation
+## 📚 Additional Documentation
 
-Full API documentation: [API_DOCS.md](./API_DOCS.md)
+- Full API documentation at root endpoint: `GET http://localhost:3000/`
+- Model schemas: See `src/models/` directory
+- Route definitions: See `src/routes/` directory
 
-Postman Collection: [postman_collection.json](./postman_collection.json)
+## 🤝 Support
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+For issues or questions:
+- Check existing GitHub Issues
+- Review API documentation at root endpoint
+- Contact development team
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
-
-## 💬 Support
-
-- Issues: [GitHub Issues](https://github.com/yourusername/rork-nightlife-app/issues)
-- Email: support@rork.app
-- Discord: [Join our community](https://discord.gg/rork)
-
-## 🎯 Next Steps
-
-1. ✅ Install dependencies
-2. ✅ Configure `.env`
-3. ✅ Start MongoDB
-4. ✅ Seed database (optional)
-5. ✅ Start server
-6. ⏳ Deploy to production
-7. ⏳ Setup monitoring
-8. ⏳ Configure Instagram app
-9. ⏳ Test with mobile app
+Proprietary - Rork Nightlife
 
 ---
 
-**Built with ❤️ by the Rork team**
+**🎉 Backend v2.0 - Complete growth features implemented!**
+
+Built with Express.js, MongoDB, and ❤️
