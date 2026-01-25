@@ -10,7 +10,7 @@ services:
     plan: free # Change to: starter ($7/mo), standard ($25/mo) for production
     branch: main
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm install --legacy-peer-deps
     startCommand: npm start
     healthCheckPath: /health
 
