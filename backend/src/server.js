@@ -11,12 +11,46 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'APP_URL'];
+const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingEnvVars.forEach((envVar) => console.error(`   - ${envVar}`));
+  console.error('\nPlease set these variables in your .env file before starting the server.');
+  process.exit(1);
+}
+
+// Warn about optional but recommended variables
+const recommendedEnvVars = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
+const missingRecommended = recommendedEnvVars.filter(
+  (envVar) => !process.env[envVar]
+);
+
+if (missingRecommended.length > 0) {
+  console.warn(
+    '⚠️  Missing recommended environment variables (emails will be logged to console):'
+  );
+  missingRecommended.forEach((envVar) => console.warn(`   - ${envVar}`));
+}
+
 // Database
 const connectDB = require('./config/database');
 
 // Routes
 const socialRoutes = require('./routes/social.routes');
 const authRoutes = require('./routes/auth.routes');
+const usersRoutes = require('./routes/users.routes');
+const venuesRoutes = require('./routes/venues.routes');
+const growthRoutes = require('./routes/growth.routes');
+const eventsRoutes = require('./routes/events.routes');
+const contentRoutes = require('./routes/content.routes');
+const pricingRoutes = require('./routes/pricing.routes');
+const retentionRoutes = require('./routes/retention.routes');
+const uploadRoutes = require('./routes/upload.routes');
+const businessRoutes = require('./routes/business.routes');
+const venueManagementRoutes = require('./routes/venue.routes');
 
 // Initialize Express app
 const app = express();
@@ -46,9 +80,14 @@ app.use(cors(corsOptions));
 // Compression
 app.use(compression());
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing with size limits
+// Upload routes can accept larger payloads
+app.use('/api/upload', express.json({ limit: '50mb' }));
+app.use('/api/upload', express.urlencoded({ extended: true, limit: '50mb' }));
+
+// All other routes limited to 1MB
+app.use('/api', express.json({ limit: '1mb' }));
+app.use('/api', express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Logging
 if (process.env.NODE_ENV === 'development') {
@@ -70,35 +109,88 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
+app.get('/health', async (req, res) => {
+  const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV,
-  });
+    checks: {
+      database: 'unknown',
+      email: 'unknown',
+    },
+  };
+
+  // Check MongoDB connection
+  try {
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.db.admin().ping();
+      health.checks.database = 'connected';
+    } else {
+      health.checks.database = 'disconnected';
+      health.status = 'degraded';
+    }
+  } catch (error) {
+    health.checks.database = 'error';
+    health.status = 'unhealthy';
+  }
+
+  // Check SMTP configuration
+  if (
+    process.env.SMTP_HOST &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS
+  ) {
+    health.checks.email = 'configured';
+  } else {
+    health.checks.email = 'dev-mode';
+  }
+
+  const statusCode = health.status === 'healthy' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // API routes
+app.use('/api/v1', usersRoutes);
+app.use('/api/v1', venuesRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/auth', authRoutes);
+
+// Business profile and venue management routes
+app.use('/api/business', businessRoutes);
+app.use('/api/venues', venueManagementRoutes);
+
+// Growth feature routes
+app.use('/api/growth', growthRoutes);
+app.use('/api/events', eventsRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/pricing', pricingRoutes);
+app.use('/api/retention', retentionRoutes);
+
+// Upload routes (Cloudinary)
+app.use('/api/upload', uploadRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
     name: 'Rork Nightlife API',
-    version: '1.0.0',
-    description: 'Backend API for contact and Instagram sync',
+    version: '2.0.0',
+    description: 'Backend API with complete growth features: events, ticketing, social, content, and retention',
     endpoints: {
       health: '/health',
-      social: {
-        syncContacts: 'POST /api/social/sync/contacts',
-        syncInstagram: 'POST /api/social/sync/instagram',
-      },
-      auth: {
-        instagramToken: 'POST /api/auth/instagram/token',
-        refreshToken: 'POST /api/auth/instagram/refresh',
-      },
+      users: '/api/v1/users',
+      venues: '/api/v1/venues',
+      social: '/api/social',
+      auth: '/api/auth',
+      business: '/api/business',
+      venueManagement: '/api/venues',
+      growth: '/api/growth',
+      events: '/api/events',
+      content: '/api/content',
+      pricing: '/api/pricing',
+      retention: '/api/retention',
+      upload: '/api/upload',
     },
   });
 });
@@ -151,23 +243,33 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
   console.log(`
-╔══════════════════════════════════════════════════════════╗
-║                                                          ║
-║   🚀 Rork Nightlife API Server                          ║
-║                                                          ║
-║   Environment: ${process.env.NODE_ENV?.padEnd(10)}                     ║
-║   Port:        ${PORT.toString().padEnd(10)}                     ║
-║   Database:    MongoDB                                   ║
-║                                                          ║
-║   Endpoints:                                             ║
-║   - POST /api/social/sync/contacts                      ║
-║   - POST /api/social/sync/instagram                     ║
-║   - POST /api/auth/instagram/token                      ║
-║   - POST /api/auth/instagram/refresh                    ║
-║                                                          ║
-║   Health:      http://localhost:${PORT}/health              ║
-║                                                          ║
-╚══════════════════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║   🚀 Rork Nightlife API Server v2.0                       ║
+║                                                            ║
+║   Environment: ${process.env.NODE_ENV?.padEnd(10)}                       ║
+║   Port:        ${PORT.toString().padEnd(10)}                       ║
+║   Database:    MongoDB Connected                          ║
+║                                                            ║
+║   ✅ Core Features:                                       ║
+║   - Authentication & Users    /api/v1/users               ║
+║   - Venues & Vibe Checks      /api/v1/venues              ║
+║   - Social & Sync             /api/social                 ║
+║   - File Uploads              /api/upload                 ║
+║                                                            ║
+║   🎉 Growth Features:                                     ║
+║   - Group Purchases           /api/growth                 ║
+║   - Referrals & Sharing       /api/growth                 ║
+║   - Events & Ticketing        /api/events                 ║
+║   - Crews & Challenges        /api/social                 ║
+║   - Performers & Content      /api/content                ║
+║   - Dynamic Pricing           /api/pricing                ║
+║   - Streaks & Memories        /api/retention              ║
+║                                                            ║
+║   Health Check: http://localhost:${PORT}/health               ║
+║   Full API:     http://localhost:${PORT}/                     ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
   `);
 });
 

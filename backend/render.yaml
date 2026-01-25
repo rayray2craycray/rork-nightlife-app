@@ -1,0 +1,97 @@
+# Render.com Blueprint Configuration
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # Main API Server
+  - type: web
+    name: rork-api
+    runtime: node
+    region: oregon # Change to: oregon, frankfurt, singapore, etc.
+    plan: free # Change to: starter ($7/mo), standard ($25/mo) for production
+    branch: main
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+
+    # Auto-deploy on push to main branch
+    autoDeploy: true
+
+    # Environment variables
+    # Note: Sensitive values should be set in Render dashboard
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 10000
+
+      - key: LOG_LEVEL
+        value: info
+
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+
+      # Database - Add in Render dashboard (contains password)
+      - key: MONGODB_URI
+        sync: false
+
+      # Security - Add in Render dashboard
+      - key: JWT_SECRET
+        sync: false
+
+      - key: API_KEY
+        sync: false
+
+      # Email - Add in Render dashboard
+      - key: SMTP_HOST
+        value: smtp.sendgrid.net
+
+      - key: SMTP_PORT
+        value: 587
+
+      - key: SMTP_USER
+        value: apikey
+
+      - key: SMTP_PASS
+        sync: false
+
+      - key: SMTP_FROM
+        value: noreply@rork.app
+
+      # CORS - Update with your domain
+      - key: ALLOWED_ORIGINS
+        value: https://app.rork.com,https://www.rork.com
+
+      # Application URLs - Will be updated after deployment
+      - key: APP_URL
+        value: https://rork-api.onrender.com
+
+      - key: FRONTEND_URL
+        value: https://app.rork.com
+
+      # Cloudinary
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dgmqkptkg
+
+      - key: CLOUDINARY_API_KEY
+        value: 178962785582582
+
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      - key: CLOUDINARY_UPLOAD_PRESET
+        value: rork-mobile
+
+      # Instagram
+      - key: INSTAGRAM_CLIENT_ID
+        sync: false
+
+      - key: INSTAGRAM_CLIENT_SECRET
+        sync: false
+
+      - key: INSTAGRAM_REDIRECT_URI
+        value: https://app.rork.com/instagram-callback

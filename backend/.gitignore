@@ -44,3 +44,6 @@ build/
 # Misc
 .cache/
 *.tgz
+logs/
+PRODUCTION_SECRETS.txt
+test-mongodb-connection.js
