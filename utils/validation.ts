@@ -187,6 +187,78 @@ export function formatValidationErrors(error: z.ZodError): string[] {
   });
 }
 
+// ============================================================================
+// BUSINESS REGISTRATION SCHEMAS
+// ============================================================================
+
+export const venueNameSchema = z
+  .string()
+  .min(2, 'Venue name must be at least 2 characters')
+  .max(100, 'Venue name must be 100 characters or less')
+  .trim();
+
+export const businessEmailSchema = z
+  .string()
+  .email('Please enter a valid email address')
+  .toLowerCase()
+  .refine((email) => {
+    // Check for common typos
+    const domain = email.split('@')[1];
+    const typos: Record<string, boolean> = {
+      'gmial.com': true,
+      'gmai.com': true,
+      'yahooo.com': true,
+      'hotmial.com': true,
+    };
+    return !typos[domain];
+  }, 'Please check your email domain for typos');
+
+export const phoneSchema = z
+  .string()
+  .regex(/^\+?[\d\s\-()]+$/, 'Please enter a valid phone number')
+  .refine((phone) => {
+    const digitCount = phone.replace(/\D/g, '').length;
+    return digitCount >= 10 && digitCount <= 15;
+  }, 'Phone number must be between 10 and 15 digits')
+  .optional()
+  .or(z.literal(''));
+
+export const websiteSchema = z
+  .string()
+  .url('Website must be a valid URL')
+  .regex(/^https?:\/\//, 'Website must include http:// or https://')
+  .optional()
+  .or(z.literal(''));
+
+export const zipCodeSchema = z
+  .string()
+  .regex(/^\d{5}(-\d{4})?$/, 'Enter a valid ZIP code (e.g., 12345 or 12345-6789)');
+
+export const businessRegistrationStep1Schema = z.object({
+  venueName: venueNameSchema,
+  businessEmail: businessEmailSchema,
+  businessType: z.enum(['BAR', 'NIGHTCLUB', 'LOUNGE', 'RESTAURANT', 'OTHER'], {
+    errorMap: () => ({ message: 'Please select a business type' }),
+  }),
+});
+
+export const businessRegistrationStep2Schema = z.object({
+  location: z.object({
+    address: z.string().min(1, 'Address is required').trim(),
+    city: z.string().min(1, 'City is required').trim(),
+    state: z.string().min(2, 'State is required').max(2, 'Use 2-letter state code').toUpperCase(),
+    zipCode: zipCodeSchema,
+    country: z.string().default('USA'),
+  }),
+  phone: phoneSchema,
+  website: websiteSchema,
+  description: z.string().max(500, 'Description must be 500 characters or less').optional(),
+});
+
+export const businessRegistrationFullSchema = businessRegistrationStep1Schema.merge(
+  businessRegistrationStep2Schema
+);
+
 // Type exports for TypeScript
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -197,3 +269,6 @@ export type TransactionInput = z.infer<typeof transactionSchema>;
 export type FriendLocationInput = z.infer<typeof friendLocationSchema>;
 export type PromoVideoInput = z.infer<typeof promoVideoSchema>;
 export type GigInput = z.infer<typeof gigSchema>;
+export type BusinessRegistrationStep1Input = z.infer<typeof businessRegistrationStep1Schema>;
+export type BusinessRegistrationStep2Input = z.infer<typeof businessRegistrationStep2Schema>;
+export type BusinessRegistrationFullInput = z.infer<typeof businessRegistrationFullSchema>;
