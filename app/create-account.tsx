@@ -61,7 +61,6 @@ export default function CreateAccountScreen() {
       { username, password },
       {
         onSuccess: () => {
-          console.log('Account created successfully');
           router.replace('/feed');
         },
         onError: (error: any) => {

@@ -21,6 +21,15 @@ export default function TalentBookingScreen() {
   const upcomingBookings = bookings.filter(b => b.status !== 'COMPLETED' && b.status !== 'CANCELLED');
   const pastBookings = bookings.filter(b => b.status === 'COMPLETED' || b.status === 'CANCELLED');
 
+  // Calculate total revenue from completed bookings
+  const completedBookings = pastBookings.filter(b => b.status === 'COMPLETED' && b.actualRevenue);
+  const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.actualRevenue || 0), 0);
+  const totalFees = completedBookings.reduce((sum, b) => sum + b.fee, 0);
+  const totalAttendance = completedBookings.reduce((sum, b) => sum + (b.attendanceGenerated || 0), 0);
+  const averageROI = completedBookings.length > 0
+    ? completedBookings.reduce((sum, b) => sum + ((b.actualRevenue! / b.fee - 1) * 100), 0) / completedBookings.length
+    : 0;
+
   const confirmBooking = (bookingId: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setBookings(prev =>
@@ -80,6 +89,49 @@ export default function TalentBookingScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {selectedTab === 'past' && completedBookings.length > 0 && (
+          <View style={styles.revenueSummary}>
+            <Text style={styles.summaryTitle}>Revenue Summary</Text>
+            <View style={styles.summaryGrid}>
+              <View style={styles.summaryItem}>
+                <DollarSign size={20} color="#00d4ff" />
+                <View>
+                  <Text style={styles.summaryLabel}>Total Revenue</Text>
+                  <Text style={styles.summaryValue}>${totalRevenue.toLocaleString()}</Text>
+                </View>
+              </View>
+              <View style={styles.summaryItem}>
+                <TrendingUp size={20} color="#a855f7" />
+                <View>
+                  <Text style={styles.summaryLabel}>Avg ROI</Text>
+                  <Text style={styles.summaryValue}>{averageROI.toFixed(0)}%</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.summaryGrid}>
+              <View style={styles.summaryItem}>
+                <Users size={20} color="#ff0080" />
+                <View>
+                  <Text style={styles.summaryLabel}>Total Attendance</Text>
+                  <Text style={styles.summaryValue}>{totalAttendance.toLocaleString()}</Text>
+                </View>
+              </View>
+              <View style={styles.summaryItem}>
+                <Calendar size={20} color="#ffa64d" />
+                <View>
+                  <Text style={styles.summaryLabel}>Events</Text>
+                  <Text style={styles.summaryValue}>{completedBookings.length}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.summaryFooter}>
+              <Text style={styles.summaryFooterText}>
+                Net Profit: ${(totalRevenue - totalFees).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        )}
 
         <View style={styles.bookingsContainer}>
           {(selectedTab === 'upcoming' ? upcomingBookings : pastBookings).map(booking => {
@@ -236,6 +288,58 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: '#ff0080',
+  },
+  revenueSummary: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    backgroundColor: '#15151f',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#1f1f2e',
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#fff',
+    marginBottom: 16,
+  },
+  summaryGrid: {
+    flexDirection: 'row' as const,
+    gap: 12,
+    marginBottom: 12,
+  },
+  summaryItem: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    backgroundColor: '#1f1f2e',
+    padding: 12,
+    borderRadius: 12,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    color: '#999',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  summaryFooter: {
+    backgroundColor: 'rgba(0, 255, 204, 0.1)',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center' as const,
+    marginTop: 4,
+  },
+  summaryFooterText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#00d4ff',
   },
   bookingsContainer: {
     paddingHorizontal: 20,

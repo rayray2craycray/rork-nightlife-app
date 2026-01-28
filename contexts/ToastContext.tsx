@@ -14,6 +14,7 @@ import {
   mockToastSpendRules,
 } from '@/mocks/toast';
 import { TOAST_POS } from '@/constants/app';
+import { getSecureItem, setSecureItem, deleteSecureItem, SECURE_KEYS } from '@/utils/secureStorage';
 
 const STORAGE_KEYS = {
   TOAST_INTEGRATION: 'vibelink_toast_integration',
@@ -80,7 +81,6 @@ export const [ToastProvider, useToast] = createContextHook(() => {
 
   const connectToast = useMutation({
     mutationFn: async () => {
-      console.log('[Toast] Initiating OAuth connection');
       const updatedIntegration: ToastIntegration = {
         ...integration,
         status: 'CONNECTING',
@@ -91,7 +91,10 @@ export const [ToastProvider, useToast] = createContextHook(() => {
       // 1. Open WebBrowser to Toast OAuth endpoint with client_id from env
       // 2. Handle redirect callback with authorization code
       // 3. Exchange code for access_token and refresh_token
-      // 4. Store tokens securely (consider using Expo SecureStore)
+      // 4. Store tokens securely using SecureStore:
+      //    await setSecureItem(SECURE_KEYS.TOAST_ACCESS_TOKEN, accessToken);
+      //    await setSecureItem(SECURE_KEYS.TOAST_REFRESH_TOKEN, refreshToken);
+      // 5. Store integration metadata (without tokens) in AsyncStorage
       // Reference: https://doc.toasttab.com/doc/devguide/apiAuthentication.html
 
       // DEVELOPMENT ONLY: Simulating OAuth flow with mock data
@@ -123,9 +126,9 @@ export const [ToastProvider, useToast] = createContextHook(() => {
     },
     onSuccess: (data) => {
       setIntegration(data);
-      console.log('[Toast] Connection successful');
     },
     onError: (error) => {
+      // TODO: Send to error tracking service (Sentry/Bugsnag)
       console.error('[Toast] Connection failed:', error);
       setIntegration(prev => ({ ...prev, status: 'ERROR' }));
     },
@@ -133,7 +136,10 @@ export const [ToastProvider, useToast] = createContextHook(() => {
 
   const disconnectToast = useMutation({
     mutationFn: async () => {
-      console.log('[Toast] Disconnecting integration');
+      // TODO: When real OAuth is implemented, delete secure tokens:
+      // await deleteSecureItem(SECURE_KEYS.TOAST_ACCESS_TOKEN);
+      // await deleteSecureItem(SECURE_KEYS.TOAST_REFRESH_TOKEN);
+
       const disconnectedIntegration: ToastIntegration = {
         ...integration,
         status: 'DISCONNECTED',
@@ -155,13 +161,11 @@ export const [ToastProvider, useToast] = createContextHook(() => {
     },
     onSuccess: (data) => {
       setIntegration(data);
-      console.log('[Toast] Disconnected successfully');
     },
   });
 
   const selectLocations = useMutation({
     mutationFn: async (locationIds: string[]) => {
-      console.log('[Toast] Selecting locations:', locationIds);
       const updatedIntegration: ToastIntegration = {
         ...integration,
         selectedLocations: locationIds,
@@ -176,13 +180,12 @@ export const [ToastProvider, useToast] = createContextHook(() => {
     },
     onSuccess: (data) => {
       setIntegration(data);
-      console.log('[Toast] Locations updated');
     },
   });
 
   const createSpendRule = useMutation({
     mutationFn: async (rule: Omit<ToastSpendRule, 'id'>) => {
-      console.log('[Toast] Creating spend rule:', rule);
+      // TODO: Replace with backend API call to /api/toast/rules/create
       const newRule: ToastSpendRule = {
         ...rule,
         id: 'toast-rule-' + Date.now(),
@@ -198,13 +201,12 @@ export const [ToastProvider, useToast] = createContextHook(() => {
     },
     onSuccess: (data) => {
       setSpendRules(data);
-      console.log('[Toast] Spend rule created');
     },
   });
 
   const updateSpendRule = useMutation({
     mutationFn: async (rule: ToastSpendRule) => {
-      console.log('[Toast] Updating spend rule:', rule.id);
+      // TODO: Replace with backend API call to /api/toast/rules/update
       const updatedRules = spendRules.map(r => (r.id === rule.id ? rule : r));
 
       await AsyncStorage.setItem(
@@ -216,13 +218,12 @@ export const [ToastProvider, useToast] = createContextHook(() => {
     },
     onSuccess: (data) => {
       setSpendRules(data);
-      console.log('[Toast] Spend rule updated');
     },
   });
 
   const deleteSpendRule = useMutation({
     mutationFn: async (ruleId: string) => {
-      console.log('[Toast] Deleting spend rule:', ruleId);
+      // TODO: Replace with backend API call to /api/toast/rules/delete
       const updatedRules = spendRules.filter(r => r.id !== ruleId);
 
       await AsyncStorage.setItem(
@@ -234,16 +235,12 @@ export const [ToastProvider, useToast] = createContextHook(() => {
     },
     onSuccess: (data) => {
       setSpendRules(data);
-      console.log('[Toast] Spend rule deleted');
     },
   });
 
   const processTransaction = useCallback(
     async (transaction: ToastTransactionData) => {
-      console.log('[Toast] Processing transaction:', transaction.id);
-      console.log('[Toast] Amount:', transaction.amount);
-      console.log('[Toast] Card Token:', transaction.cardToken);
-
+      // TODO: Replace with backend API call to /api/toast/transactions/process
       const updatedTransactions = [...transactions, transaction];
       await AsyncStorage.setItem(
         STORAGE_KEYS.TOAST_TRANSACTIONS,
@@ -257,9 +254,6 @@ export const [ToastProvider, useToast] = createContextHook(() => {
 
       if (matchingRules.length > 0) {
         const highestRule = matchingRules.sort((a, b) => b.threshold - a.threshold)[0];
-        console.log('[Toast] Transaction triggers rule:', highestRule.id);
-        console.log('[Toast] User unlocked:', highestRule.tierUnlocked);
-        console.log('[Toast] Server access:', highestRule.serverAccessLevel);
 
         return {
           success: true,
@@ -268,7 +262,6 @@ export const [ToastProvider, useToast] = createContextHook(() => {
         };
       }
 
-      console.log('[Toast] No rules triggered for this transaction');
       return { success: true, ruleTriggered: null };
     },
     [transactions, spendRules]

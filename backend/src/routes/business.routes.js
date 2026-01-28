@@ -38,7 +38,7 @@ const resendLimiter = rateLimit({
 /**
  * POST /api/business/register
  * Register a new business profile
- * Requires authentication + rate limiting
+ * Requires authentication (user must create account first) + rate limiting
  */
 router.post(
   '/register',

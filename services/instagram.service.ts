@@ -8,14 +8,14 @@ import * as AuthSession from 'expo-auth-session';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { exchangeInstagramCode, syncInstagram } from './api';
+import { getSecureItem, setSecureItem, deleteSecureItem, SECURE_KEYS } from '@/utils/secureStorage';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const USE_MOCK_DATA = process.env.NODE_ENV === 'development';
-const ENABLE_INSTAGRAM_SYNC = process.env.ENABLE_INSTAGRAM_SYNC === 'true';
+const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' || process.env.NODE_ENV === 'development';
+const ENABLE_INSTAGRAM_SYNC = process.env.EXPO_PUBLIC_ENABLE_INSTAGRAM_SYNC === 'true';
 
 const STORAGE_KEYS = {
-  INSTAGRAM_TOKEN: 'nox_instagram_token',
   INSTAGRAM_USER: 'nox_instagram_user',
   INSTAGRAM_FOLLOWING: 'nox_instagram_following',
   INSTAGRAM_TOKEN_EXPIRES: 'nox_instagram_token_expires',
@@ -49,12 +49,13 @@ export interface InstagramSyncResult {
  * https://developers.facebook.com/docs/instagram-api
  */
 const INSTAGRAM_CONFIG = {
-  clientId: process.env.INSTAGRAM_CLIENT_ID || '',
-  clientSecret: process.env.INSTAGRAM_CLIENT_SECRET || '',
-  redirectUri: AuthSession.makeRedirectUri({
+  clientId: process.env.EXPO_PUBLIC_INSTAGRAM_CLIENT_ID || '',
+  clientSecret: '', // Never used in client - backend handles this
+  redirectUri: process.env.EXPO_PUBLIC_INSTAGRAM_REDIRECT_URI || AuthSession.makeRedirectUri({
     scheme: 'nox',
     path: 'instagram-callback',
   }),
+  apiUrl: process.env.EXPO_PUBLIC_INSTAGRAM_API_URL || 'https://graph.instagram.com',
   // Graph API scopes (requires Business/Creator account)
   scopes: ['instagram_basic', 'instagram_manage_insights', 'pages_read_engagement'],
 };
@@ -83,7 +84,7 @@ async function isTokenValid(): Promise<boolean> {
  */
 export async function hasInstagramConnected(): Promise<boolean> {
   try {
-    const token = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_TOKEN);
+    const token = await getSecureItem(SECURE_KEYS.INSTAGRAM_TOKEN);
     return !!token;
   } catch {
     return false;
@@ -96,7 +97,6 @@ export async function hasInstagramConnected(): Promise<boolean> {
  */
 export async function connectInstagram(): Promise<InstagramUser | null> {
   if (!ENABLE_INSTAGRAM_SYNC) {
-    console.log('Instagram sync is disabled');
     Alert.alert('Instagram Sync Disabled', 'Contact sync is currently disabled.');
     return null;
   }
@@ -104,7 +104,6 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
   try {
     // Use mock data in development
     if (USE_MOCK_DATA) {
-      console.log('Using mock Instagram connection (development mode)');
       // Simulate OAuth delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -116,7 +115,7 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
       };
 
       await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_USER, JSON.stringify(mockUser));
-      await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_TOKEN, 'mock-token-' + Date.now());
+      await setSecureItem(SECURE_KEYS.INSTAGRAM_TOKEN, 'mock-token-' + Date.now());
 
       // Mock token expires in 60 days
       const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
@@ -125,9 +124,10 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
       return mockUser;
     }
 
-    // PRODUCTION: Check if we have client credentials configured
-    if (!INSTAGRAM_CONFIG.clientId || !INSTAGRAM_CONFIG.clientSecret) {
-      console.error('Instagram OAuth credentials not configured');
+    // PRODUCTION: Check if we have client ID configured
+    if (!INSTAGRAM_CONFIG.clientId) {
+      // TODO: Send to error tracking service (Sentry/Bugsnag)
+      console.error('Instagram OAuth client ID not configured');
       Alert.alert(
         'Configuration Error',
         'Instagram integration is not configured. Please contact support.'
@@ -138,8 +138,6 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
     // Build OAuth authorization URL
     const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_CONFIG.clientId}&redirect_uri=${encodeURIComponent(INSTAGRAM_CONFIG.redirectUri)}&scope=${INSTAGRAM_CONFIG.scopes.join(',')}&response_type=code`;
 
-    console.log('Opening Instagram OAuth flow...');
-
     // Open OAuth browser session
     const result = await WebBrowser.openAuthSessionAsync(
       authUrl,
@@ -147,7 +145,6 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
     );
 
     if (result.type !== 'success' || !result.url) {
-      console.log('Instagram OAuth cancelled or failed');
       return null;
     }
 
@@ -156,18 +153,18 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
     const code = url.searchParams.get('code');
 
     if (!code) {
+      // TODO: Send to error tracking service (Sentry/Bugsnag)
       console.error('No authorization code received from Instagram');
       Alert.alert('Authentication Error', 'No authorization code received.');
       return null;
     }
-
-    console.log('Exchanging authorization code for access token...');
 
     // Exchange code for access token via our backend
     // Backend will securely handle client secret and token exchange
     const tokenData = await exchangeInstagramCode(code);
 
     if (!tokenData.accessToken) {
+      // TODO: Send to error tracking service (Sentry/Bugsnag)
       console.error('Failed to get access token from backend');
       Alert.alert('Authentication Error', 'Failed to authenticate with Instagram.');
       return null;
@@ -178,18 +175,17 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
       username: tokenData.username,
     };
 
-    // Store credentials
-    await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_TOKEN, tokenData.accessToken);
+    // Store token securely
+    await setSecureItem(SECURE_KEYS.INSTAGRAM_TOKEN, tokenData.accessToken);
     await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_USER, JSON.stringify(user));
 
     // Instagram Graph API tokens typically expire in 60 days
     const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
     await AsyncStorage.setItem(STORAGE_KEYS.INSTAGRAM_TOKEN_EXPIRES, expiresAt.toISOString());
 
-    console.log('Instagram connected successfully');
-
     return user;
   } catch (error) {
+    // TODO: Send to error tracking service (Sentry/Bugsnag)
     console.error('Instagram connection error:', error);
     Alert.alert('Connection Error', 'Failed to connect Instagram. Please try again.');
     return null;
@@ -201,12 +197,12 @@ export async function connectInstagram(): Promise<InstagramUser | null> {
  */
 export async function disconnectInstagram(): Promise<void> {
   try {
-    await AsyncStorage.removeItem(STORAGE_KEYS.INSTAGRAM_TOKEN);
+    await deleteSecureItem(SECURE_KEYS.INSTAGRAM_TOKEN);
     await AsyncStorage.removeItem(STORAGE_KEYS.INSTAGRAM_USER);
     await AsyncStorage.removeItem(STORAGE_KEYS.INSTAGRAM_FOLLOWING);
     await AsyncStorage.removeItem(STORAGE_KEYS.INSTAGRAM_TOKEN_EXPIRES);
-    console.log('Instagram disconnected successfully');
   } catch (error) {
+    // TODO: Send to error tracking service (Sentry/Bugsnag)
     console.error('Error disconnecting Instagram:', error);
   }
 }
@@ -217,12 +213,11 @@ export async function disconnectInstagram(): Promise<void> {
  */
 export async function getInstagramFollowing(): Promise<InstagramFollowing[]> {
   if (!ENABLE_INSTAGRAM_SYNC) {
-    console.log('Instagram sync is disabled');
     return [];
   }
 
   try {
-    const token = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_TOKEN);
+    const token = await getSecureItem(SECURE_KEYS.INSTAGRAM_TOKEN);
 
     if (!token) {
       return [];
@@ -231,21 +226,17 @@ export async function getInstagramFollowing(): Promise<InstagramFollowing[]> {
     // Check if token is still valid
     const tokenValid = await isTokenValid();
     if (!tokenValid) {
-      console.log('Instagram token expired');
       await disconnectInstagram();
       return [];
     }
 
     // Use mock data in development
     if (USE_MOCK_DATA) {
-      console.log('Using mock Instagram following data (development mode)');
       return mockInstagramFollowing;
     }
 
     // PRODUCTION: Fetch from backend
     // Backend will use the token to fetch following list from Instagram Graph API
-    console.log('Fetching Instagram following from backend...');
-
     const user = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_USER);
     if (!user) {
       return [];
@@ -254,7 +245,7 @@ export async function getInstagramFollowing(): Promise<InstagramFollowing[]> {
     const userData = JSON.parse(user);
     const response = await syncInstagram({
       accessToken: token,
-      userId: 'user-me', // Current user ID
+      userId: 'user-me', // TODO: Replace with actual current user ID
     });
 
     const following: InstagramFollowing[] = response.matches.map(match => ({
@@ -271,20 +262,19 @@ export async function getInstagramFollowing(): Promise<InstagramFollowing[]> {
       JSON.stringify(following)
     );
 
-    console.log(`Fetched ${following.length} Instagram following matches`);
-
     return following;
   } catch (error) {
+    // TODO: Send to error tracking service (Sentry/Bugsnag)
     console.error('Error fetching Instagram following:', error);
 
     // Fallback to cached data
     try {
       const cached = await AsyncStorage.getItem(STORAGE_KEYS.INSTAGRAM_FOLLOWING);
       if (cached) {
-        console.log('Using cached Instagram following data');
         return JSON.parse(cached);
       }
     } catch (cacheError) {
+      // TODO: Send to error tracking service (Sentry/Bugsnag)
       console.error('Error reading cached Instagram data:', cacheError);
     }
 
@@ -315,6 +305,7 @@ export async function syncInstagramFollowing(): Promise<InstagramSyncResult | nu
 
     return syncResult;
   } catch (error) {
+    // TODO: Send to error tracking service (Sentry/Bugsnag)
     console.error('Error syncing Instagram following:', error);
     return null;
   }
@@ -334,6 +325,7 @@ export async function getInstagramSuggestions(): Promise<InstagramFollowing[]> {
     const syncResult = await syncInstagramFollowing();
     return syncResult?.following.filter(f => f.userId) || [];
   } catch (error) {
+    // TODO: Send to error tracking service (Sentry/Bugsnag)
     console.error('Error getting Instagram suggestions:', error);
     return [];
   }

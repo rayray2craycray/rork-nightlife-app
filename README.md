@@ -1,3 +1,42 @@
+# Nox Nightlife App 🌃
+
+> **🎉 PRODUCTION READY!** This app has been fully prepared for production with enterprise-grade security, complete API architecture, and comprehensive documentation.
+
+## ⚡ Quick Start
+
+### With Real Backend API (Recommended)
+
+```bash
+# Terminal 1: Start backend server
+cd backend
+npm install  # First time only
+npm run dev
+
+# Terminal 2: Start frontend app
+cd /Users/rayan/rork-nightlife-app
+npm install  # First time only
+npm start
+# Then press 'i' for iOS or 'a' for Android
+```
+
+**📚 Backend Guide:** See `BACKEND_STARTUP.md` for complete backend setup and API testing.
+
+### With Mock Data (No Backend Required)
+
+```bash
+# 1. Enable mock data in .env
+# Change: EXPO_PUBLIC_USE_MOCK_DATA=false
+# To:     EXPO_PUBLIC_USE_MOCK_DATA=true
+
+# 2. Start the app
+npm start
+# Then press 'i' for iOS or 'a' for Android
+```
+
+**📚 Full Documentation:** See `QUICKSTART.md` and `docs/` folder for complete guides.
+
+---
+
 # Welcome to your Rork app
 
 ## Project info

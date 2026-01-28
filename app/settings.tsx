@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -38,13 +39,6 @@ import { useSocial } from '@/contexts/SocialContext';
 import { router, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-interface LinkedCard {
-  id: string;
-  last4: string;
-  brand: string;
-  isDefault: boolean;
-}
-
 interface Transaction {
   id: string;
   venueId: string;
@@ -56,11 +50,8 @@ interface Transaction {
 }
 
 export default function SettingsScreen() {
-  const { profile, toggleIncognito, setUserRole } = useAppState();
+  const { profile, toggleIncognito, setUserRole, linkedCards, removeLinkedCard } = useAppState();
   const { locationSettings, updateLocationSettings, toggleGhostMode } = useSocial();
-  const [linkedCards, setLinkedCards] = useState<LinkedCard[]>([
-    { id: '1', last4: '4242', brand: 'Visa', isDefault: true },
-  ]);
   const [transactions] = useState<Transaction[]>([
     {
       id: '1',
@@ -98,6 +89,7 @@ export default function SettingsScreen() {
         id: Date.now().toString(),
         last4: cardNumber.slice(-4),
         brand: 'Visa',
+        cardholderName: profile.displayName,
         isDefault: linkedCards.length === 0,
       };
       setLinkedCards([...linkedCards, newCard]);
@@ -117,7 +109,7 @@ export default function SettingsScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: () => {
-            setLinkedCards(linkedCards.filter(card => card.id !== cardId));
+            removeLinkedCard(cardId);
           },
         },
       ]
@@ -133,8 +125,10 @@ export default function SettingsScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            console.log('Account deletion initiated');
+          onPress: async () => {
+            // TODO: Call backend API to delete account
+            // await apiClient.delete('/users/me');
+            router.replace('/welcome');
           },
         },
       ]
@@ -539,6 +533,11 @@ export default function SettingsScreen() {
               style={styles.settingButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  'Blocked Users',
+                  'You have no blocked users. Users you block will appear here.',
+                  [{ text: 'OK' }]
+                );
               }}
             >
               <UserX size={22} color="#fff" />
@@ -582,6 +581,7 @@ export default function SettingsScreen() {
                       <Text style={styles.cardBrand}>
                         {card.brand} •••• {card.last4}
                       </Text>
+                      <Text style={styles.cardHolder}>{card.cardholderName}</Text>
                       {card.isDefault && (
                         <Text style={styles.cardDefault}>Default</Text>
                       )}
@@ -618,6 +618,11 @@ export default function SettingsScreen() {
               style={styles.settingButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  'Loyalty Reset',
+                  'Contact venue management directly to reset your loyalty status or opt-out of tracking. This feature requires venue approval.',
+                  [{ text: 'OK' }]
+                );
               }}
             >
               <Clock size={22} color="#fff" />
@@ -720,6 +725,14 @@ export default function SettingsScreen() {
               style={styles.settingButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  'Notification Settings',
+                  'Notification preferences are currently managed in your device settings. Would you like to open system settings?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                  ]
+                );
               }}
             >
               <Bell size={22} color="#fff" />
@@ -734,6 +747,11 @@ export default function SettingsScreen() {
               style={styles.settingButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  'Language & Region',
+                  'Currently set to English (US). Additional languages will be available in a future update.',
+                  [{ text: 'OK' }]
+                );
               }}
             >
               <Globe size={22} color="#fff" />
@@ -752,6 +770,14 @@ export default function SettingsScreen() {
               style={styles.settingButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  'Report a Bug',
+                  'Please email support@vibelink.com with details about the issue you encountered. Include screenshots if possible.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Open Email', onPress: () => Linking.openURL('mailto:support@vibelink.com?subject=Bug Report') }
+                  ]
+                );
               }}
             >
               <HelpCircle size={22} color="#fff" />
@@ -766,6 +792,14 @@ export default function SettingsScreen() {
               style={styles.settingButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  'Legal Information',
+                  'View our Terms of Service, Privacy Policy, and UGC Guidelines on our website.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Open Website', onPress: () => Linking.openURL('https://vibelink.com/legal') }
+                  ]
+                );
               }}
             >
               <FileText size={22} color="#fff" />
@@ -1126,6 +1160,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#fff',
+  },
+  cardHolder: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
   },
   cardDefault: {
     fontSize: 11,

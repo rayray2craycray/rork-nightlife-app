@@ -4,6 +4,18 @@
  */
 
 require('dotenv').config();
+
+// IMPORTANT: Sentry must be initialized FIRST, before any other imports
+const {
+  initSentry,
+  sentryRequestHandler,
+  sentryTracingHandler,
+  sentryErrorHandler
+} = require('./config/sentry');
+
+// Initialize Sentry error tracking
+initSentry();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -57,6 +69,10 @@ const app = express();
 
 // Connect to database
 connectDB();
+
+// Sentry request handler - MUST be first middleware
+app.use(sentryRequestHandler());
+app.use(sentryTracingHandler());
 
 // Security middleware
 app.use(helmet());
@@ -202,6 +218,9 @@ app.use((req, res) => {
     message: `Route ${req.method} ${req.path} not found`,
   });
 });
+
+// Sentry error handler - MUST be before other error handlers
+app.use(sentryErrorHandler());
 
 // Error handler
 app.use((err, req, res, next) => {

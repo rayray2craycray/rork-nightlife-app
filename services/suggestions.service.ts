@@ -7,8 +7,8 @@ import { SuggestedPerson, FriendProfile } from '@/types';
 import { getContactSuggestions, ContactMatch } from './contacts.service';
 import { getInstagramSuggestions, InstagramFollowing } from './instagram.service';
 
-const ENABLE_CONTACT_SYNC = process.env.ENABLE_CONTACT_SYNC === 'true';
-const ENABLE_INSTAGRAM_SYNC = process.env.ENABLE_INSTAGRAM_SYNC === 'true';
+const ENABLE_CONTACT_SYNC = process.env.EXPO_PUBLIC_ENABLE_CONTACT_SYNC === 'true';
+const ENABLE_INSTAGRAM_SYNC = process.env.EXPO_PUBLIC_ENABLE_INSTAGRAM_SYNC === 'true';
 
 export interface SuggestionConfig {
   includeContacts: boolean;
@@ -136,7 +136,6 @@ function sortByPriority(suggestions: SuggestedPerson[]): SuggestedPerson[] {
  */
 export function clearSuggestionsCache(): void {
   suggestionsCache = null;
-  console.log('Suggestions cache cleared');
 }
 
 /**
@@ -164,7 +163,6 @@ export async function getPersonalizedSuggestions(
 
   // Check cache if enabled
   if (finalConfig.useCache && isCacheValid(finalConfig.cacheDuration)) {
-    console.log('Using cached suggestions');
     return suggestionsCache!.data;
   }
 
@@ -228,7 +226,6 @@ export async function getPersonalizedSuggestions(
         data: finalSuggestions,
         timestamp: Date.now(),
       };
-      console.log(`Cached ${finalSuggestions.length} suggestions`);
     }
 
     return finalSuggestions;
@@ -237,7 +234,6 @@ export async function getPersonalizedSuggestions(
 
     // Return cached data if available, even if expired
     if (suggestionsCache) {
-      console.log('Error occurred, using stale cache');
       return suggestionsCache.data;
     }
 

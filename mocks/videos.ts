@@ -4,7 +4,7 @@ export const mockVideos: VibeVideo[] = [
   {
     id: 'video-1',
     venueId: 'venue-1',
-    performerId: 'performer-1',
+    performerId: 'perf-1',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1571266028243-d220c6b2fea5?w=400',
     duration: 15,
@@ -16,7 +16,7 @@ export const mockVideos: VibeVideo[] = [
   {
     id: 'video-2',
     venueId: 'venue-2',
-    performerId: 'performer-2',
+    performerId: 'perf-2',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=400',
     duration: 12,
@@ -28,7 +28,7 @@ export const mockVideos: VibeVideo[] = [
   {
     id: 'video-3',
     venueId: 'venue-1',
-    performerId: 'performer-3',
+    performerId: 'perf-3',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1571266028243-d220c6b2fea5?w=400',
     duration: 14,
@@ -51,7 +51,7 @@ export const mockVideos: VibeVideo[] = [
   {
     id: 'video-5',
     venueId: 'venue-2',
-    performerId: 'performer-1',
+    performerId: 'perf-1',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=400',
     duration: 18,
@@ -63,7 +63,7 @@ export const mockVideos: VibeVideo[] = [
   {
     id: 'video-6',
     venueId: 'venue-3',
-    performerId: 'performer-2',
+    performerId: 'perf-2',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400',
     duration: 20,
@@ -86,7 +86,7 @@ export const mockVideos: VibeVideo[] = [
   {
     id: 'video-8',
     venueId: 'venue-4',
-    performerId: 'performer-3',
+    performerId: 'perf-3',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400',
     duration: 16,

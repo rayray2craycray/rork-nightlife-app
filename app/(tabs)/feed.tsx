@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,25 +10,115 @@ import {
   Animated as RNAnimated,
   Alert,
   ScrollView,
+  Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Heart, MessageCircle, Share2, Music, UserPlus, MapPin } from 'lucide-react-native';
 import { Image } from 'expo-image';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { mockVenues } from '@/mocks/venues';
 import { mockPerformers } from '@/mocks/performers';
 import { VibeVideo, FeedFilter } from '@/types';
 import * as Haptics from 'expo-haptics';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useFeed } from '@/contexts/FeedContext';
+import { useGrowth } from '@/contexts/GrowthContext';
 import { router } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Helper function to get filter styles
+function getFilterStyle(filter: string) {
+  switch (filter) {
+    case 'neon-glitch':
+      return {
+        backgroundColor: 'rgba(255, 0, 128, 0.15)',
+        mixBlendMode: 'screen' as any,
+      };
+    case 'afterhours-noir':
+      return {
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        mixBlendMode: 'multiply' as any,
+      };
+    case 'vhs-retro':
+      return {
+        backgroundColor: 'rgba(255, 200, 100, 0.2)',
+        mixBlendMode: 'overlay' as any,
+      };
+    case 'cyber-wave':
+      return {
+        backgroundColor: 'rgba(0, 255, 255, 0.15)',
+        mixBlendMode: 'screen' as any,
+      };
+    case 'golden-hour':
+      return {
+        backgroundColor: 'rgba(255, 180, 0, 0.2)',
+        mixBlendMode: 'overlay' as any,
+      };
+    default:
+      return {};
+  }
+}
+
+// Helper function to render stickers
+function renderSticker(sticker: string, onPress?: () => void) {
+  const stickerStyles = {
+    container: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 25,
+      borderWidth: 2,
+      borderColor: '#ff0080',
+    },
+    text: {
+      color: '#ffffff',
+      fontSize: 16,
+      fontWeight: '700' as const,
+      textAlign: 'center' as const,
+    },
+  };
+
+  let text = '';
+  switch (sticker) {
+    case 'get-tickets':
+      text = '🎫 Get Tickets';
+      break;
+    case 'join-lobby':
+      text = '💬 Join Lobby';
+      break;
+    case 'live-tonight':
+      text = '🔥 Live Tonight';
+      break;
+    case 'swipe-up':
+      text = '👆 Swipe Up';
+      break;
+    default:
+      return null;
+  }
+
+  if (sticker === 'join-lobby' && onPress) {
+    return (
+      <TouchableOpacity style={stickerStyles.container} onPress={onPress}>
+        <Text style={stickerStyles.text}>{text}</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={stickerStyles.container}>
+      <Text style={stickerStyles.text}>{text}</Text>
+    </View>
+  );
+}
 
 export default function FeedScreen() {
   const { videos, selectedFilter, setFilter, isEmpty, suggestedPerformers } = useFeed();
   const { followPerformer, isFollowing } = useAppState();
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
+  const isFocused = useIsFocused();
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -56,7 +146,7 @@ export default function FeedScreen() {
     });
   }, []);
 
-  const renderVideo = ({ item, index }: { item: VibeVideo; index: number }) => {
+  const renderVideo = useCallback(({ item, index }: { item: VibeVideo; index: number }) => {
     const venue = mockVenues.find(v => v.id === item.venueId);
     const performer = item.performerId
       ? mockPerformers.find(p => p.id === item.performerId)
@@ -71,9 +161,10 @@ export default function FeedScreen() {
         isActive={index === currentIndex}
         isLiked={isLiked}
         onLike={handleLike}
+        isFocused={isFocused}
       />
     );
-  };
+  }, [currentIndex, likedVideos, handleLike, isFocused]);
 
   const handleFilterPress = useCallback((filter: FeedFilter) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -190,11 +281,30 @@ interface VideoCardProps {
   isActive: boolean;
   isLiked: boolean;
   onLike: (videoId: string) => void;
+  isFocused: boolean;
 }
 
-function VideoCard({ video, venue, performer, isActive, isLiked, onLike }: VideoCardProps) {
+function VideoCard({ video, venue, performer, isActive, isLiked, onLike, isFocused }: VideoCardProps) {
   const likeScale = useRef(new RNAnimated.Value(1)).current;
   const { profile, updateProfile } = useAppState();
+  const { shareToInstagram, generateStoryTemplate } = useGrowth();
+  const [videoError, setVideoError] = useState(false);
+
+  const player = useVideoPlayer(video.videoUrl, (player) => {
+    player.loop = true;
+    player.muted = false;
+  });
+
+  useEffect(() => {
+    if (isActive && isFocused) {
+      player.play();
+      player.muted = false;
+    } else {
+      player.pause();
+      player.currentTime = 0;
+      player.muted = true;
+    }
+  }, [isActive, isFocused, player]);
 
   const handleLikePress = useCallback(() => {
     onLike(video.id);
@@ -212,13 +322,66 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike }: Video
     ]).start();
   }, [video.id, onLike, likeScale]);
 
+  const handleChatPress = useCallback(() => {
+    if (!venue) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const alreadyJoined = profile.badges.some(badge => badge.venueId === venue.id);
+
+    if (alreadyJoined) {
+      // Already in server, go to servers tab
+      Alert.alert(
+        'Open Chat',
+        `Go to ${venue.name}'s server to chat?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Server', onPress: () => router.push('/(tabs)/servers') },
+        ]
+      );
+    } else {
+      // Not in server, ask to join
+      Alert.alert(
+        'Join Server',
+        `Join ${venue.name}'s public lobby to chat about this video?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Join',
+            onPress: () => {
+              const newBadge = {
+                id: `badge-${Date.now()}`,
+                venueId: venue.id,
+                venueName: venue.name,
+                badgeType: 'GUEST' as const,
+                unlockedAt: new Date().toISOString(),
+              };
+
+              updateProfile({
+                badges: [...profile.badges, newBadge],
+              });
+
+              Alert.alert(
+                'Joined!',
+                `You've joined ${venue.name}'s public lobby. Opening server now.`,
+                [
+                  { text: 'OK', onPress: () => router.push('/(tabs)/servers') },
+                ]
+              );
+            },
+          },
+        ]
+      );
+    }
+  }, [venue, profile.badges, updateProfile]);
+
   const handleJoinLobby = useCallback(() => {
     if (!venue) return;
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     const alreadyJoined = profile.badges.some(badge => badge.venueId === venue.id);
-    
+
     if (alreadyJoined) {
       router.push('/(tabs)/servers');
     } else {
@@ -229,11 +392,11 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike }: Video
         badgeType: 'GUEST' as const,
         unlockedAt: new Date().toISOString(),
       };
-      
+
       updateProfile({
         badges: [...profile.badges, newBadge],
       });
-      
+
       Alert.alert(
         'Joined!',
         `You've joined ${venue.name}'s public lobby. Check the Servers tab to chat.`,
@@ -244,13 +407,114 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike }: Video
     }
   }, [venue, profile.badges, updateProfile]);
 
+  const handleShareToStory = useCallback(async () => {
+    if (!venue) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      // Show options: Instagram Story or Regular Share
+      Alert.alert(
+        'Share Video',
+        'How would you like to share this content?',
+        [
+          {
+            text: 'Instagram Story',
+            onPress: async () => {
+              try {
+                // Generate story template with video data
+                const result = await generateStoryTemplate({
+                  templateId: 'story-venue',
+                  userId: profile.id,
+                  customData: {
+                    venueName: venue.name,
+                    videoTitle: video.title,
+                    performerName: performer?.stageName,
+                    venueId: venue.id,
+                  },
+                });
+
+                // Share to Instagram
+                await shareToInstagram(result.template.id);
+
+                Alert.alert(
+                  'Success!',
+                  'Opening Instagram to share your story...',
+                  [{ text: 'OK' }]
+                );
+              } catch (error) {
+                console.error('Instagram share error:', error);
+                Alert.alert(
+                  'Error',
+                  'Unable to share to Instagram. Make sure Instagram is installed.',
+                  [{ text: 'OK' }]
+                );
+              }
+            },
+          },
+          {
+            text: 'Share Elsewhere',
+            onPress: async () => {
+              try {
+                await Share.share({
+                  message: `Check out this video from ${venue.name}!${
+                    performer ? ` Featuring ${performer.stageName}` : ''
+                  }`,
+                  title: video.title,
+                });
+              } catch (error) {
+                console.error('Share error:', error);
+              }
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Share error:', error);
+    }
+  }, [venue, video, performer, profile.id, generateStoryTemplate, shareToInstagram]);
+
   return (
     <View style={styles.videoContainer}>
-      <Image
-        source={{ uri: video.thumbnailUrl }}
-        style={styles.thumbnail}
-        contentFit="cover"
-      />
+      {/* Only render Video component when active */}
+      {isActive ? (
+        <VideoView
+          player={player}
+          style={styles.video}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      ) : (
+        <View style={styles.videoPlaceholder}>
+          <Image
+            source={{ uri: video.thumbnailUrl }}
+            style={styles.thumbnail}
+            contentFit="cover"
+          />
+        </View>
+      )}
+
+      {/* Filter Overlay */}
+      {video.filter && video.filter !== 'none' && (
+        <View style={[styles.filterOverlay, getFilterStyle(video.filter)]} />
+      )}
+
+      {/* Sticker Overlay */}
+      {video.sticker && video.sticker !== 'none' && (
+        <View style={[
+          styles.stickerContainer,
+          video.stickerPosition && {
+            top: `${video.stickerPosition.y}%`,
+            left: `${video.stickerPosition.x}%`,
+          }
+        ]}>
+          {renderSticker(video.sticker, handleJoinLobby)}
+        </View>
+      )}
 
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)']}
@@ -269,12 +533,18 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike }: Video
           <Text style={styles.actionText}>{(video.likes + (isLiked ? 1 : 0)).toLocaleString()}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleChatPress}
+        >
           <MessageCircle size={32} color="#fff" />
           <Text style={styles.actionText}>Chat</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleShareToStory}
+        >
           <Share2 size={32} color="#fff" />
           <Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
@@ -512,9 +782,34 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     position: 'relative' as const,
   },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  videoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+  },
   thumbnail: {
     width: '100%',
     height: '100%',
+  },
+  filterOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+  },
+  stickerContainer: {
+    position: 'absolute' as const,
+    top: 100,
+    alignItems: 'center',
+    zIndex: 10,
+    marginLeft: '-50%',
+    marginTop: '-50%',
   },
   gradient: {
     position: 'absolute' as const,

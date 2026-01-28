@@ -5,34 +5,52 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { UserProfile, UserRole, VibeCheckVote, VenueVibeData, UserVibeCooldown, VibeEnergyLevel, WaitTimeRange } from '@/types';
 import { mockServers } from '@/mocks/servers';
 import { VIBE_CHECK } from '@/constants/app';
+import { getSecureItem, setSecureItem, deleteSecureItem, SECURE_KEYS, migrateToSecureStorage } from '@/utils/secureStorage';
 
 const STORAGE_KEYS = {
   PROFILE: 'vibelink_profile',
   VIBE_COOLDOWNS: 'vibelink_vibe_cooldowns',
   CREDENTIALS: 'vibelink_credentials',
+  LINKED_CARDS: 'vibelink_linked_cards',
 };
 
 const defaultProfile: UserProfile = {
-  id: 'user-me',
+  id: '', // Will be set from auth context
   displayName: 'Alex Rivera',
   bio: '',
   totalSpend: 0,
   badges: [],
   isIncognito: false,
   followedPerformers: [],
-  isVenueManager: false,
-  managedVenues: [],
-  role: null,
-  isAuthenticated: false,
-  isVerified: false,
-  verifiedCategory: undefined,
+  isVenueManager: true,
+  managedVenues: ['venue-1'], // The Nox Room
+  role: 'VENUE',
+  isAuthenticated: true,
+  isVerified: true,
+  verifiedCategory: 'MANAGER',
   transactionHistory: [],
 };
+
+export interface LinkedCard {
+  id: string;
+  last4: string;
+  brand: string;
+  cardholderName: string;
+  isDefault: boolean;
+}
 
 export const [AppStateProvider, useAppState] = createContextHook(() => {
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [vibeCooldowns, setVibeCooldowns] = useState<UserVibeCooldown[]>([]);
   const [venueVibeData, setVenueVibeData] = useState<VenueVibeData[]>([]);
+  const [broadcastMessages, setBroadcastMessages] = useState<Array<{
+    id: string;
+    channelId: string;
+    message: string;
+    timestamp: string;
+    venueId: string;
+  }>>([]);
+  const [linkedCards, setLinkedCards] = useState<LinkedCard[]>([]);
 
   const profileQuery = useQuery({
     queryKey: ['profile'],
@@ -56,6 +74,17 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     },
   });
 
+  const linkedCardsQuery = useQuery({
+    queryKey: ['linked-cards'],
+    queryFn: async () => {
+      const stored = await getSecureItem(SECURE_KEYS.LINKED_CARDS);
+      if (stored) {
+        return JSON.parse(stored) as LinkedCard[];
+      }
+      return [];
+    },
+  });
+
   useEffect(() => {
     if (profileQuery.data) {
       setProfile(profileQuery.data);
@@ -67,6 +96,29 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
       setVibeCooldowns(cooldownsQuery.data);
     }
   }, [cooldownsQuery.data]);
+
+  useEffect(() => {
+    if (linkedCardsQuery.data) {
+      setLinkedCards(linkedCardsQuery.data);
+    }
+  }, [linkedCardsQuery.data]);
+
+  // Migrate existing AsyncStorage data to SecureStore on app startup
+  useEffect(() => {
+    const migrateExistingData = async () => {
+      try {
+        // Migrate credentials
+        await migrateToSecureStorage(STORAGE_KEYS.CREDENTIALS, SECURE_KEYS.USER_CREDENTIALS);
+
+        // Migrate linked cards
+        await migrateToSecureStorage(STORAGE_KEYS.LINKED_CARDS, SECURE_KEYS.LINKED_CARDS);
+      } catch (error) {
+        console.error('Error migrating data to SecureStore:', error);
+      }
+    };
+
+    migrateExistingData();
+  }, []); // Run once on mount
 
   const updateProfileMutation = useMutation({
     mutationFn: async (updates: Partial<UserProfile>) => {
@@ -228,22 +280,38 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     return vibeData;
   }, [venueVibeData]);
 
+  const calculateVibePercentage = useCallback((venueId: string): number | null => {
+    const vibeData = venueVibeData.find(v => v.venueId === venueId);
+    if (!vibeData) return null;
+
+    const timeSinceUpdate = Date.now() - new Date(vibeData.lastUpdated).getTime();
+    if (timeSinceUpdate >= VIBE_CHECK.DATA_DECAY_MS) return null;
+
+    // Calculate vibe percentage from music and density scores (both 1-5)
+    const averageScore = (vibeData.musicScore + vibeData.densityScore) / 2;
+    const percentage = Math.round((averageScore / 5) * 100);
+
+    return percentage;
+  }, [venueVibeData]);
+
   const createAccount = useMutation({
     mutationFn: async ({ username, password }: { username: string; password: string }) => {
+      // TODO: Replace with backend API call to /api/auth/register
       const credentials = {
         username,
         password,
         createdAt: new Date().toISOString(),
       };
-      
-      await AsyncStorage.setItem(STORAGE_KEYS.CREDENTIALS, JSON.stringify(credentials));
-      
+
+      // Store credentials securely using SecureStore
+      await setSecureItem(SECURE_KEYS.USER_CREDENTIALS, JSON.stringify(credentials));
+
       const updated = {
         ...profile,
         displayName: username,
         isAuthenticated: true,
       };
-      
+
       await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(updated));
       return updated;
     },
@@ -251,6 +319,40 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
       setProfile(data);
     },
   });
+
+  const addBroadcastMessage = useCallback((channelId: string, message: string, venueId: string) => {
+    const newMessage = {
+      id: `broadcast-${Date.now()}`,
+      channelId,
+      message,
+      timestamp: new Date().toISOString(),
+      venueId,
+    };
+    setBroadcastMessages(prev => [...prev, newMessage]);
+  }, []);
+
+  const getBroadcastMessagesForChannel = useCallback((channelId: string) => {
+    return broadcastMessages.filter(msg => msg.channelId === channelId);
+  }, [broadcastMessages]);
+
+  const addLinkedCard = useCallback(async (card: Omit<LinkedCard, 'id'>) => {
+    // TODO: Replace with backend API call to /api/payment/cards/add
+    const newCard: LinkedCard = {
+      ...card,
+      id: Date.now().toString(),
+      isDefault: linkedCards.length === 0, // First card is default
+    };
+    const updated = [...linkedCards, newCard];
+    await setSecureItem(SECURE_KEYS.LINKED_CARDS, JSON.stringify(updated));
+    setLinkedCards(updated);
+  }, [linkedCards]);
+
+  const removeLinkedCard = useCallback(async (cardId: string) => {
+    // TODO: Replace with backend API call to /api/payment/cards/remove
+    const updated = linkedCards.filter(card => card.id !== cardId);
+    await setSecureItem(SECURE_KEYS.LINKED_CARDS, JSON.stringify(updated));
+    setLinkedCards(updated);
+  }, [linkedCards]);
 
   return {
     profile,
@@ -268,7 +370,13 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     getVibeCooldownRemaining,
     submitVibeCheck,
     getVenueVibe,
+    calculateVibePercentage,
     createAccount,
+    addBroadcastMessage,
+    getBroadcastMessagesForChannel,
+    linkedCards,
+    addLinkedCard,
+    removeLinkedCard,
   };
 });
 

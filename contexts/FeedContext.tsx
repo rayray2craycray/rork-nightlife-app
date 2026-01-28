@@ -2,7 +2,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { FeedFilter, FeedSettings } from '@/types';
+import { FeedFilter, FeedSettings, VibeVideo } from '@/types';
 import { mockVideos } from '@/mocks/videos';
 import { mockVenues } from '@/mocks/venues';
 import { mockPerformers } from '@/mocks/performers';
@@ -11,6 +11,7 @@ import { useSocial } from './SocialContext';
 
 const STORAGE_KEYS = {
   FEED_SETTINGS: 'vibelink_feed_settings',
+  USER_VIDEOS: 'vibelink_user_videos',
 };
 
 const defaultFeedSettings: FeedSettings = {
@@ -39,7 +40,8 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export const [FeedProvider, useFeed] = createContextHook(() => {
   const [feedSettings, setFeedSettings] = useState<FeedSettings>(defaultFeedSettings);
-  const { profile, getVenueVibe } = useAppState();
+  const [userVideos, setUserVideos] = useState<VibeVideo[]>([]);
+  const { profile, getVenueVibe, calculateVibePercentage } = useAppState();
   const { friendLocations } = useSocial();
 
   const feedSettingsQuery = useQuery({
@@ -53,11 +55,28 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
     },
   });
 
+  const userVideosQuery = useQuery({
+    queryKey: ['user-videos'],
+    queryFn: async () => {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.USER_VIDEOS);
+      if (stored) {
+        return JSON.parse(stored) as VibeVideo[];
+      }
+      return [];
+    },
+  });
+
   useEffect(() => {
     if (feedSettingsQuery.data) {
       setFeedSettings(feedSettingsQuery.data);
     }
   }, [feedSettingsQuery.data]);
+
+  useEffect(() => {
+    if (userVideosQuery.data) {
+      setUserVideos(userVideosQuery.data);
+    }
+  }, [userVideosQuery.data]);
 
   const updateFeedSettingsMutation = useMutation({
     mutationFn: async (updates: Partial<FeedSettings>) => {
@@ -76,8 +95,45 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
     updateFeedSettings({ selectedFilter: filter });
   }, [updateFeedSettings]);
 
+  const uploadVideo = useMutation({
+    mutationFn: async (videoData: {
+      videoUrl: string;
+      venueId: string;
+      title: string;
+      duration: number;
+      filter?: string;
+      sticker?: string;
+      stickerPosition?: { x: number; y: number };
+    }) => {
+      const newVideo: VibeVideo = {
+        id: `user-video-${Date.now()}`,
+        venueId: videoData.venueId,
+        performerId: profile.role === 'TALENT' ? profile.id : undefined,
+        videoUrl: videoData.videoUrl,
+        thumbnailUrl: videoData.videoUrl, // Use video URL as thumbnail for now
+        duration: videoData.duration,
+        title: videoData.title,
+        views: 0,
+        likes: 0,
+        timestamp: new Date().toISOString(),
+        filter: videoData.filter as any,
+        sticker: videoData.sticker as any,
+        stickerPosition: videoData.stickerPosition,
+      };
+
+      const updatedVideos = [newVideo, ...userVideos];
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_VIDEOS, JSON.stringify(updatedVideos));
+      return updatedVideos;
+    },
+    onSuccess: (data) => {
+      setUserVideos(data);
+    },
+  });
+
+  const allVideos = useMemo(() => [...userVideos, ...mockVideos], [userVideos]);
+
   const nearbyVideos = useMemo(() => {
-    const videosWithScores = mockVideos.map(video => {
+    const videosWithScores = allVideos.map(video => {
       const venue = mockVenues.find(v => v.id === video.venueId);
       if (!venue) return null;
 
@@ -100,7 +156,7 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
       const venueVibe = getVenueVibe(venue.id);
       let vibeBoost = 0;
       if (venueVibe) {
-        const hasWhales = profile.badges.some(b => 
+        const hasWhales = profile.badges.some(b =>
           b.venueId === venue.id && (b.badgeType === 'WHALE' || b.badgeType === 'PLATINUM')
         );
         const vibeScore = (venueVibe.musicScore + venueVibe.densityScore) / 2;
@@ -109,7 +165,9 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
         }
       }
 
-      const totalScore = (recencyScore * 0.5) + (distanceScore * 0.3) + (venue.currentVibeLevel * 0.2) + vibeBoost;
+      // Use calculated vibe from user feedback, fallback to static value
+      const vibeLevel = calculateVibePercentage(venue.id) ?? venue.currentVibeLevel;
+      const totalScore = (recencyScore * 0.5) + (distanceScore * 0.3) + (vibeLevel * 0.2) + vibeBoost;
 
       return {
         video,
@@ -121,12 +179,12 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
     return videosWithScores
       .sort((a, b) => b!.score - a!.score)
       .map(item => item!.video);
-  }, [profile.badges, getVenueVibe]);
+  }, [allVideos, profile.badges, getVenueVibe, calculateVibePercentage]);
 
   const followingVideos = useMemo(() => {
     const followedPerformerIds = profile.followedPerformers;
 
-    const videosWithPriority = mockVideos.map(video => {
+    const videosWithPriority = allVideos.map(video => {
       const isFromFollowedPerformer = video.performerId && followedPerformerIds.includes(video.performerId);
       
       const friendsAtVenue = friendLocations.filter(loc => loc.venueId === video.venueId);
@@ -153,7 +211,7 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
     return videosWithPriority
       .sort((a, b) => b!.priority - a!.priority)
       .map(item => item!.video);
-  }, [profile.followedPerformers, friendLocations]);
+  }, [allVideos, profile.followedPerformers, friendLocations]);
 
   const currentVideos = useMemo(() => {
     return feedSettings.selectedFilter === 'NEARBY' ? nearbyVideos : followingVideos;
@@ -201,6 +259,7 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
     isEmpty,
     suggestedPerformers,
     suggestedVenues,
+    uploadVideo,
     isLoading: feedSettingsQuery.isLoading,
   };
 });

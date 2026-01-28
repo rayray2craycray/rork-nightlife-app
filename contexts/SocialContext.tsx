@@ -1,18 +1,53 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Follow, FriendLocation, LocationSettings, FriendProfile, SuggestedPerson } from '@/types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Follow,
+  FriendLocation,
+  LocationSettings,
+  FriendProfile,
+  SuggestedPerson,
+  Crew,
+  CrewInvite,
+  CrewNightPlan,
+  Challenge,
+  ChallengeProgress,
+  ChallengeReward,
+  VenueSocialProof,
+} from '@/types';
 import { mockFollows, mockFriendLocations, mockFriendProfiles, mockSuggestedPeople } from '@/mocks/friends';
+import {
+  mockCrews,
+  mockCrewInvites,
+  mockCrewNightPlans,
+  mockChallenges,
+  mockChallengeProgress,
+  mockChallengeRewards,
+  mockVenueSocialProof,
+  getActiveChallenges,
+  getChallengesForVenue,
+  getVenueSocialProof,
+} from '@/mocks/social-extended';
 import {
   getPersonalizedSuggestions,
   getSuggestionSourceLabel,
   getSuggestionSourceColor,
+  clearSuggestionsCache,
 } from '@/services/suggestions.service';
+import { socialApi } from '@/services/api';
+import * as Haptics from 'expo-haptics';
+import { Alert } from 'react-native';
+import { useAuth } from './AuthContext';
 
 const STORAGE_KEYS = {
   FOLLOWS: 'vibelink_follows',
   LOCATION_SETTINGS: 'vibelink_location_settings',
+  CREWS: 'vibelink_crews',
+  CREW_INVITES: 'vibelink_crew_invites',
+  CREW_PLANS: 'vibelink_crew_plans',
+  CHALLENGE_PROGRESS: 'vibelink_challenge_progress',
+  CHALLENGE_REWARDS: 'vibelink_challenge_rewards',
 };
 
 const defaultLocationSettings: LocationSettings = {
@@ -24,6 +59,8 @@ const defaultLocationSettings: LocationSettings = {
 };
 
 export const [SocialProvider, useSocial] = createContextHook(() => {
+  const queryClient = useQueryClient();
+  const { userId } = useAuth();
   const [follows, setFollows] = useState<Follow[]>(mockFollows);
   const [locationSettings, setLocationSettings] = useState<LocationSettings>(defaultLocationSettings);
   const [friendLocations, setFriendLocations] = useState<FriendLocation[]>(mockFriendLocations);
@@ -136,13 +173,13 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
 
   const following = useMemo(() => {
     return acceptedFollows
-      .filter(f => f.followerId === 'user-me')
+      .filter(f => f.followerId === userId)
       .map(f => f.followingId);
   }, [acceptedFollows]);
 
   const followers = useMemo(() => {
     return acceptedFollows
-      .filter(f => f.followingId === 'user-me')
+      .filter(f => f.followingId === userId)
       .map(f => f.followerId);
   }, [acceptedFollows]);
 
@@ -158,27 +195,173 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     return mutualFollows.includes(userId);
   }, [mutualFollows]);
 
+  // Query for personalized friend suggestions based on contacts, Instagram, and mutual friends
+  const suggestionsQuery = useQuery({
+    queryKey: ['friend-suggestions', following, follows],
+    queryFn: async () => {
+      // Convert mockSuggestedPeople (FriendProfile[]) to be used as mutual friend suggestions
+      const mutualFriendSuggestions = mockSuggestedPeople;
+
+      // Include both accepted and pending follows to filter them out from suggestions
+      const allFollowingIds = follows
+        .filter(f => f.followerId === userId)
+        .map(f => f.followingId);
+
+      // Get personalized suggestions from contacts, Instagram, and mutuals
+      const personalized = await getPersonalizedSuggestions(
+        allFollowingIds,
+        mutualFriendSuggestions
+      );
+
+      return personalized;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: following.length >= 0, // Always enabled
+  });
+
+  // ===== CREW QUERIES =====
+  const crewsQuery = useQuery({
+    queryKey: ['crews'],
+    queryFn: async () => {
+      try {
+        // Use userId from auth context
+        const response = await socialApi.getUserCrews(userId);
+        return response.data || [];
+      } catch (error) {
+        console.error('Failed to fetch crews:', error);
+        return mockCrews;
+      }
+    },
+  });
+
+  const crewInvitesQuery = useQuery({
+    queryKey: ['crew-invites'],
+    queryFn: async () => {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.CREW_INVITES);
+      if (stored) {
+        return JSON.parse(stored) as CrewInvite[];
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.CREW_INVITES, JSON.stringify(mockCrewInvites));
+      return mockCrewInvites;
+    },
+  });
+
+  const crewPlansQuery = useQuery({
+    queryKey: ['crew-plans'],
+    queryFn: async () => {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.CREW_PLANS);
+      if (stored) {
+        return JSON.parse(stored) as CrewNightPlan[];
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.CREW_PLANS, JSON.stringify(mockCrewNightPlans));
+      return mockCrewNightPlans;
+    },
+  });
+
+  // ===== CHALLENGE QUERIES =====
+  const challengeProgressQuery = useQuery({
+    queryKey: ['challenge-progress'],
+    queryFn: async () => {
+      try {
+        // Use userId from auth context
+        const response = await socialApi.getUserChallenges(userId);
+        return response.data || [];
+      } catch (error) {
+        console.error('Failed to fetch challenge progress:', error);
+        return mockChallengeProgress;
+      }
+    },
+  });
+
+  const challengeRewardsQuery = useQuery({
+    queryKey: ['challenge-rewards'],
+    queryFn: async () => {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.CHALLENGE_REWARDS);
+      if (stored) {
+        return JSON.parse(stored) as ChallengeReward[];
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.CHALLENGE_REWARDS, JSON.stringify(mockChallengeRewards));
+      return mockChallengeRewards;
+    },
+  });
+
+  // ===== CREW MUTATIONS =====
+  const updateCrewsMutation = useMutation({
+    mutationFn: async (newCrews: Crew[]) => {
+      await AsyncStorage.setItem(STORAGE_KEYS.CREWS, JSON.stringify(newCrews));
+      return newCrews;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crews'] });
+    },
+  });
+
+  const updateCrewInvitesMutation = useMutation({
+    mutationFn: async (newInvites: CrewInvite[]) => {
+      await AsyncStorage.setItem(STORAGE_KEYS.CREW_INVITES, JSON.stringify(newInvites));
+      return newInvites;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crew-invites'] });
+    },
+  });
+
+  const updateCrewPlansMutation = useMutation({
+    mutationFn: async (newPlans: CrewNightPlan[]) => {
+      await AsyncStorage.setItem(STORAGE_KEYS.CREW_PLANS, JSON.stringify(newPlans));
+      return newPlans;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crew-plans'] });
+    },
+  });
+
+  // ===== CHALLENGE MUTATIONS =====
+  const updateChallengeProgressMutation = useMutation({
+    mutationFn: async (newProgress: ChallengeProgress[]) => {
+      await AsyncStorage.setItem(STORAGE_KEYS.CHALLENGE_PROGRESS, JSON.stringify(newProgress));
+      return newProgress;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['challenge-progress'] });
+    },
+  });
+
+  const updateChallengeRewardsMutation = useMutation({
+    mutationFn: async (newRewards: ChallengeReward[]) => {
+      await AsyncStorage.setItem(STORAGE_KEYS.CHALLENGE_REWARDS, JSON.stringify(newRewards));
+      return newRewards;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['challenge-rewards'] });
+    },
+  });
+
   const followUser = useCallback((userId: string, shareLocation = true) => {
     const newFollow: Follow = {
-      followerId: 'user-me',
+      followerId: userId,
       followingId: userId,
       shareLocation,
-      status: 'PENDING',
+      status: 'ACCEPTED', // Auto-accept follows (like Instagram/Twitter)
       createdAt: new Date().toISOString(),
     };
     updateFollows([...follows, newFollow]);
-  }, [follows, updateFollows]);
+
+    // Clear suggestions cache and refetch to immediately update the list
+    clearSuggestionsCache();
+    suggestionsQuery.refetch();
+  }, [follows, updateFollows, suggestionsQuery]);
 
   const unfollowUser = useCallback((userId: string) => {
     const updated = follows.filter(f => 
-      !(f.followerId === 'user-me' && f.followingId === userId)
+      !(f.followerId === userId && f.followingId === userId)
     );
     updateFollows(updated);
   }, [follows, updateFollows]);
 
   const acceptFollowRequest = useCallback((followerId: string) => {
     const updated = follows.map(f => 
-      f.followerId === followerId && f.followingId === 'user-me' && f.status === 'PENDING'
+      f.followerId === followerId && f.followingId === userId && f.status === 'PENDING'
         ? { ...f, status: 'ACCEPTED' as const }
         : f
     );
@@ -187,14 +370,14 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
 
   const rejectFollowRequest = useCallback((followerId: string) => {
     const updated = follows.filter(f => 
-      !(f.followerId === followerId && f.followingId === 'user-me' && f.status === 'PENDING')
+      !(f.followerId === followerId && f.followingId === userId && f.status === 'PENDING')
     );
     updateFollows(updated);
   }, [follows, updateFollows]);
 
   const toggleShareLocation = useCallback((userId: string) => {
     const updated = follows.map(f => 
-      f.followerId === 'user-me' && f.followingId === userId
+      f.followerId === userId && f.followingId === userId
         ? { ...f, shareLocation: !f.shareLocation }
         : f
     );
@@ -208,7 +391,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
   const visibleFriendLocations = useMemo(() => {
     return friendLocations.filter(loc => {
       const follow = acceptedFollows.find(
-        f => f.followerId === 'user-me' && f.followingId === loc.userId && f.shareLocation
+        f => f.followerId === userId && f.followingId === loc.userId && f.shareLocation
       );
       
       if (!follow) return false;
@@ -274,27 +457,16 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
   }, []);
 
   const getFriendProfile = useCallback((userId: string): FriendProfile | undefined => {
-    return mockFriendProfiles.find(p => p.id === userId);
+    // Check in regular friend profiles first
+    let profile = mockFriendProfiles.find(p => p.id === userId);
+
+    // If not found, check in suggested people (for newly followed users)
+    if (!profile) {
+      profile = mockSuggestedPeople.find(p => p.id === userId);
+    }
+
+    return profile;
   }, []);
-
-  // Query for personalized friend suggestions based on contacts, Instagram, and mutual friends
-  const suggestionsQuery = useQuery({
-    queryKey: ['friend-suggestions', following],
-    queryFn: async () => {
-      // Convert mockSuggestedPeople (FriendProfile[]) to be used as mutual friend suggestions
-      const mutualFriendSuggestions = mockSuggestedPeople;
-
-      // Get personalized suggestions from contacts, Instagram, and mutuals
-      const personalized = await getPersonalizedSuggestions(
-        following,
-        mutualFriendSuggestions
-      );
-
-      return personalized;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: following.length >= 0, // Always enabled
-  });
 
   const suggestedPeople = useMemo(() => {
     return suggestionsQuery.data || [];
@@ -302,11 +474,261 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
 
   const pendingRequests = useMemo(() => {
     return follows
-      .filter(f => f.followingId === 'user-me' && f.status === 'PENDING')
+      .filter(f => f.followingId === userId && f.status === 'PENDING')
       .map(f => f.followerId);
   }, [follows]);
 
+  // ===== CREW COMPUTED VALUES =====
+  const crews = useMemo(() => crewsQuery.data || [], [crewsQuery.data]);
+  const crewInvites = useMemo(() => crewInvitesQuery.data || [], [crewInvitesQuery.data]);
+  const crewPlans = useMemo(() => crewPlansQuery.data || [], [crewPlansQuery.data]);
+
+  const userCrews = useMemo(() => {
+    return crews.filter(crew => crew.memberIds.includes(userId));
+  }, [crews]);
+
+  const pendingCrewInvites = useMemo(() => {
+    return crewInvites.filter(invite =>
+      invite.inviteeId === userId && invite.status === 'PENDING'
+    );
+  }, [crewInvites]);
+
+  // ===== CHALLENGE COMPUTED VALUES =====
+  const challengeProgress = useMemo(() => challengeProgressQuery.data || [], [challengeProgressQuery.data]);
+  const challengeRewards = useMemo(() => challengeRewardsQuery.data || [], [challengeRewardsQuery.data]);
+
+  const activeChallenges = useMemo(() => {
+    return getActiveChallenges();
+  }, []);
+
+  const userChallengeProgress = useMemo(() => {
+    return challengeProgress.filter(progress => progress.userId === userId);
+  }, [challengeProgress]);
+
+  const availableRewards = useMemo(() => {
+    return challengeRewards.filter(reward => reward.userId === userId && !reward.isUsed);
+  }, [challengeRewards]);
+
+  // ===== CREW HELPER FUNCTIONS =====
+  const createCrewMutation = useMutation({
+    mutationFn: async (crewData: Omit<Crew, 'id' | 'createdAt'>) => {
+      try {
+        const response = await socialApi.createCrew({
+          name: crewData.name,
+          ownerId: crewData.ownerId,
+          description: crewData.description,
+          isPrivate: crewData.isPrivate,
+        });
+        return response.data!;
+      } catch (error) {
+        console.error('Failed to create crew:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crews'] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Success!', 'Crew created successfully!');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to create crew');
+    },
+  });
+
+  const createCrew = useCallback((crewData: Omit<Crew, 'id' | 'createdAt'>) => {
+    createCrewMutation.mutate(crewData);
+  }, [createCrewMutation]);
+
+  const inviteToCrewMutation = useMutation({
+    mutationFn: async ({ crewId, inviteeId }: { crewId: string; inviteeId: string }) => {
+      try {
+        const response = await socialApi.addCrewMember(crewId, inviteeId);
+        return response.data!;
+      } catch (error) {
+        console.error('Failed to invite to crew:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crews'] });
+      queryClient.invalidateQueries({ queryKey: ['crew-invites'] });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Alert.alert('Success!', 'Invite sent successfully!');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to invite to crew');
+    },
+  });
+
+  const inviteToCrew = useCallback((crewId: string, inviteeId: string) => {
+    inviteToCrewMutation.mutate({ crewId, inviteeId });
+  }, [inviteToCrewMutation]);
+
+  const respondToCrewInvite = useCallback((inviteId: string, accept: boolean) => {
+    const invite = crewInvites.find(inv => inv.id === inviteId);
+    if (!invite) return;
+
+    if (accept) {
+      // Update invite status
+      const updatedInvites = crewInvites.map(inv =>
+        inv.id === inviteId
+          ? { ...inv, status: 'ACCEPTED' as const, respondedAt: new Date().toISOString() }
+          : inv
+      );
+      updateCrewInvitesMutation.mutate(updatedInvites);
+
+      // Add user to crew
+      const updatedCrews = crews.map(crew =>
+        crew.id === invite.crewId && !crew.memberIds.includes(userId)
+          ? { ...crew, memberIds: [...crew.memberIds, userId] }
+          : crew
+      );
+      updateCrewsMutation.mutate(updatedCrews);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      // Reject invite
+      const updatedInvites = crewInvites.map(inv =>
+        inv.id === inviteId
+          ? { ...inv, status: 'DECLINED' as const, respondedAt: new Date().toISOString() }
+          : inv
+      );
+      updateCrewInvitesMutation.mutate(updatedInvites);
+    }
+  }, [crewInvites, crews, updateCrewInvitesMutation, updateCrewsMutation]);
+
+  const leaveCrewMutation = useMutation({
+    mutationFn: async (crewId: string) => {
+      try {
+        // Use userId from auth context
+        const response = await socialApi.removeCrewMember(crewId, userId);
+        return response.data!;
+      } catch (error) {
+        console.error('Failed to leave crew:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crews'] });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Alert.alert('Success!', 'You have left the crew.');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to leave crew');
+    },
+  });
+
+  const leaveCrew = useCallback((crewId: string) => {
+    leaveCrewMutation.mutate(crewId);
+  }, [leaveCrewMutation]);
+
+  const planCrewNight = useCallback((planData: Omit<CrewNightPlan, 'id' | 'createdAt'>) => {
+    const newPlan: CrewNightPlan = {
+      ...planData,
+      id: `plan-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    updateCrewPlansMutation.mutate([...crewPlans, newPlan]);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [crewPlans, updateCrewPlansMutation]);
+
+  const updateCrewPlanAttendance = useCallback((planId: string, attending: boolean) => {
+    const updatedPlans = crewPlans.map(plan => {
+      if (plan.id !== planId) return plan;
+
+      const attendingMemberIds = attending
+        ? [...plan.attendingMemberIds, userId]
+        : plan.attendingMemberIds.filter(id => id !== userId);
+
+      return { ...plan, attendingMemberIds };
+    });
+    updateCrewPlansMutation.mutate(updatedPlans);
+  }, [crewPlans, updateCrewPlansMutation]);
+
+  // ===== CHALLENGE HELPER FUNCTIONS =====
+  const joinChallengeMutation = useMutation({
+    mutationFn: async (challengeId: string) => {
+      try {
+        // Use userId from auth context
+        const response = await socialApi.joinChallenge(challengeId, userId);
+        return response.data!;
+      } catch (error) {
+        console.error('Failed to join challenge:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['challenge-progress'] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Success!', 'Challenge joined!');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to join challenge');
+    },
+  });
+
+  const joinChallenge = useCallback((challengeId: string) => {
+    joinChallengeMutation.mutate(challengeId);
+  }, [joinChallengeMutation]);
+
+  const updateChallengeProgressApiMutation = useMutation({
+    mutationFn: async ({ challengeId, incrementBy }: { challengeId: string; incrementBy: number }) => {
+      try {
+        // Use userId from auth context
+        const response = await socialApi.updateChallengeProgress(challengeId, userId, incrementBy);
+        return response.data!;
+      } catch (error) {
+        console.error('Failed to update challenge progress:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['challenge-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['challenge-rewards'] });
+
+      // Check if challenge was completed and show success alert
+      if (data?.status === 'COMPLETED') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Challenge Complete!', 'You earned a reward!');
+      }
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to update challenge progress');
+    },
+  });
+
+  const updateChallengeProgress = useCallback((challengeId: string, incrementBy: number) => {
+    updateChallengeProgressApiMutation.mutate({ challengeId, incrementBy });
+  }, [updateChallengeProgressApiMutation]);
+
+  const claimChallengeReward = useCallback((rewardId: string) => {
+    const updatedRewards = challengeRewards.map(reward =>
+      reward.id === rewardId ? { ...reward, isUsed: true } : reward
+    );
+    updateChallengeRewardsMutation.mutate(updatedRewards);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [challengeRewards, updateChallengeRewardsMutation]);
+
+  const getChallengeProgressForChallenge = useCallback((challengeId: string): ChallengeProgress | undefined => {
+    return challengeProgress.find(
+      progress => progress.challengeId === challengeId && progress.userId === userId
+    );
+  }, [challengeProgress]);
+
+  const getVenueSocialProofData = useCallback((venueId: string): VenueSocialProof | undefined => {
+    const socialProof = getVenueSocialProof(venueId);
+    if (!socialProof) return undefined;
+
+    // Populate with actual friends present at this venue
+    const friendsHere = getFriendsByVenue(venueId);
+
+    return {
+      ...socialProof,
+      friendsPresent: friendsHere,
+    };
+  }, [getFriendsByVenue]);
+
   return {
+    // Original social features
     follows,
     following,
     followers,
@@ -333,5 +755,28 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     isLoading: followsQuery.isLoading || locationSettingsQuery.isLoading,
     isSuggestionsLoading: suggestionsQuery.isLoading,
     refreshSuggestions: suggestionsQuery.refetch,
+    // Crew features
+    crews,
+    userCrews,
+    crewInvites,
+    pendingCrewInvites,
+    crewPlans,
+    createCrew,
+    inviteToCrew,
+    respondToCrewInvite,
+    leaveCrew,
+    planCrewNight,
+    updateCrewPlanAttendance,
+    // Challenge features
+    activeChallenges,
+    userChallengeProgress,
+    availableRewards,
+    joinChallenge,
+    updateChallengeProgress,
+    claimChallengeReward,
+    getChallengeProgressForChallenge,
+    getChallengesForVenue,
+    // Social proof
+    getVenueSocialProofData,
   };
 });

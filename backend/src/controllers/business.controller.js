@@ -30,15 +30,17 @@ exports.registerBusiness = async (req, res) => {
     } = req.body;
 
     // CRITICAL: Validate authentication
-    if (!req.user || !req.user._id) {
-      logger.warn('Unauthenticated business registration attempt');
+    console.log('🔍 Business registration - req.user:', req.user);
+    if (!req.user || !req.user.id) {
+      logger.warn('Unauthenticated business registration attempt', { user: req.user });
       return res.status(401).json({
         success: false,
         error: 'Authentication required',
       });
     }
 
-    const userId = req.user._id;
+    const userId = req.user.id;
+    console.log('✅ Business registration - userId:', userId);
 
     logger.info('Business registration attempt', {
       userId: userId.toString(),
@@ -387,7 +389,7 @@ exports.verifyEmail = async (req, res) => {
  */
 exports.resendVerificationEmail = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     // Get business profile
     const businessProfile = await BusinessProfile.findOne({ userId });
@@ -449,7 +451,7 @@ exports.resendVerificationEmail = async (req, res) => {
  */
 exports.getBusinessProfile = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const businessProfile = await BusinessProfile.findOne({ userId }).populate(
       'venueId',
@@ -484,7 +486,7 @@ exports.getBusinessProfile = async (req, res) => {
  */
 exports.updateBusinessProfile = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const updates = req.body;
 
     // Fields that can be updated

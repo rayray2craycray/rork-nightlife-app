@@ -13,15 +13,22 @@ import {
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { X, MapPin, Users, DollarSign, Navigation, Ghost, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { X, MapPin, Users, DollarSign, Navigation, Ghost, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react-native';
 import { mockVenues } from '@/mocks/venues';
-import { Venue, FriendLocation } from '@/types';
+import { Venue, FriendLocation, GroupPurchase } from '@/types';
 import { useDiscovery, useAppState } from '@/contexts/AppStateContext';
 import { useSocial } from '@/contexts/SocialContext';
+import { useGrowth } from '@/contexts/GrowthContext';
 import { useGlow } from '@/contexts/GlowContext';
+import { useMonetization } from '@/contexts/MonetizationContext';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
+import UserProfileModal from '@/components/UserProfileModal';
+import { GroupPurchaseCard } from '@/components/GroupPurchaseCard';
+import { GroupPurchaseModal } from '@/components/modals/GroupPurchaseModal';
+import { useNearbyVenues } from '@/hooks/useNearbyVenues';
+import { DiscoveredVenue } from '@/services/places.service';
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3958.8;
@@ -37,43 +44,42 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export default function DiscoveryScreen() {
   const { selectedVenueId, setSelectedVenueId } = useDiscovery();
-  const { friendLocations, getFriendsByVenue, locationSettings, toggleGhostMode, getLargestFriendCluster } = useSocial();
+  const { friendLocations, getFriendsByVenue, locationSettings, toggleGhostMode, getLargestFriendCluster, getVenueSocialProofData } = useSocial();
+  const { openGroupPurchases, joinGroupPurchase, createGroupPurchase } = useGrowth();
   const [locationPermission, setLocationPermission] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [showFriendDrawer, setShowFriendDrawer] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [showGroupPurchaseModal, setShowGroupPurchaseModal] = useState(false);
+  const [useMockData, setUseMockData] = useState(false); // Toggle for development
   const mapRef = useRef<MapView>(null);
 
+  // Use Google Places API to fetch real venues within 50-mile radius
+  const {
+    venues: discoveredVenues,
+    isLoading: isLoadingVenues,
+    error: venuesError,
+    userLocation,
+    refreshVenues,
+  } = useNearbyVenues({
+    radiusMiles: 50,
+    maxResults: 100,
+    autoFetch: true,
+  });
+
+  const handleOpenDM = (userId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowUserProfile(false);
+    router.push(`/servers?openDM=${userId}`);
+  };
+
   useEffect(() => {
-    requestLocationPermission();
+    checkLocationPermission();
   }, []);
 
-  const requestLocationPermission = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status === 'granted') {
-        setLocationPermission(true);
-        const location = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-      } else {
-        setLocationPermission(false);
-        setUserLocation({ latitude: 40.7489, longitude: -73.9680 });
-        Alert.alert(
-          'Location Access',
-          'Location permission is required to show nearby venues. Using default location (NYC).',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (error) {
-      console.error('Error requesting location permission:', error);
-      setUserLocation({ latitude: 40.7489, longitude: -73.9680 });
-    } finally {
-      setIsLoadingLocation(false);
-    }
+  const checkLocationPermission = async () => {
+    const { status } = await Location.getForegroundPermissionsAsync();
+    setLocationPermission(status === 'granted');
   };
 
   const recenterMap = () => {
@@ -103,18 +109,48 @@ export default function DiscoveryScreen() {
     }
   };
 
+  // Convert discovered venues to match Venue type for compatibility
+  const convertedVenues = useMemo(() => {
+    return discoveredVenues.map((venue): Venue => ({
+      id: venue.id,
+      name: venue.name,
+      type: venue.type,
+      location: {
+        latitude: venue.location.latitude,
+        longitude: venue.location.longitude,
+        address: venue.location.address,
+        city: venue.location.city || '',
+        state: venue.location.state || '',
+        country: 'USA',
+      },
+      rating: venue.rating || 0,
+      priceLevel: venue.priceLevel || 2,
+      hours: {
+        monday: '6:00 PM - 2:00 AM',
+        tuesday: '6:00 PM - 2:00 AM',
+        wednesday: '6:00 PM - 2:00 AM',
+        thursday: '6:00 PM - 2:00 AM',
+        friday: '6:00 PM - 4:00 AM',
+        saturday: '6:00 PM - 4:00 AM',
+        sunday: '6:00 PM - 2:00 AM',
+      },
+      imageUrl: venue.photoUrl || 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2',
+      tags: [venue.type.toLowerCase()],
+      genres: [], // Google Maps venues don't have genre data
+      capacity: 200,
+      features: [],
+      isOpen: venue.isOpen || false,
+      distance: venue.distance,
+    }));
+  }, [discoveredVenues]);
+
   const nearbyVenues = useMemo(() => {
-    if (!userLocation) return [];
-    return mockVenues.filter(venue => {
-      const distance = calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
-        venue.location.latitude,
-        venue.location.longitude
-      );
-      return distance <= 50;
-    });
-  }, [userLocation]);
+    // Use mock data for development or when Google Places fails
+    if (useMockData || venuesError || discoveredVenues.length === 0) {
+      return mockVenues;
+    }
+    return convertedVenues;
+  }, [useMockData, venuesError, discoveredVenues, convertedVenues]);
 
   const friendsByVenue = useMemo(() => {
     return nearbyVenues.reduce((acc, venue) => {
@@ -128,12 +164,37 @@ export default function DiscoveryScreen() {
 
   const selectedVenue = nearbyVenues.find(v => v.id === selectedVenueId);
 
-  if (isLoadingLocation || !userLocation) {
+  // Filter group purchases for selected venue
+  const venueGroupPurchases = useMemo(() => {
+    if (!selectedVenueId) return [];
+    return openGroupPurchases.filter((gp: GroupPurchase) => gp.venueId === selectedVenueId);
+  }, [selectedVenueId, openGroupPurchases]);
+
+  if (isLoadingVenues || !userLocation) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#ff0080" />
-        <Text style={styles.loadingText}>Getting your location...</Text>
+        <Text style={styles.loadingText}>
+          {isLoadingVenues ? 'Finding nearby venues...' : 'Getting your location...'}
+        </Text>
+        <Text style={styles.loadingSubtext}>
+          Searching within 50 miles
+        </Text>
       </View>
+    );
+  }
+
+  // Show error alert if venues failed to load but continue with mock data
+  if (venuesError && !useMockData) {
+    Alert.alert(
+      'Unable to Load Venues',
+      'Could not fetch nearby venues from Google Maps. Using sample data instead.\n\nPlease ensure Google Maps API key is configured.',
+      [
+        {
+          text: 'Use Sample Data',
+          onPress: () => setUseMockData(true),
+        },
+      ]
     );
   }
 
@@ -144,10 +205,10 @@ export default function DiscoveryScreen() {
         provider={PROVIDER_DEFAULT}
         style={styles.map}
         initialRegion={{
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-          latitudeDelta: 0.5,
-          longitudeDelta: 0.5,
+          latitude: 40.7489,
+          longitude: -73.9680,
+          latitudeDelta: 0.1,
+          longitudeDelta: 0.1,
         }}
         showsUserLocation={locationPermission}
         showsMyLocationButton={false}
@@ -161,7 +222,10 @@ export default function DiscoveryScreen() {
                 latitude: venue.location.latitude,
                 longitude: venue.location.longitude,
               }}
-              onPress={() => setSelectedVenueId(venue.id)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setSelectedVenueId(venue.id);
+              }}
             >
               <View style={[styles.markerContainer, venue.isOpen && styles.markerLive]}>
                 <Text style={styles.markerText}>🎵</Text>
@@ -182,14 +246,8 @@ export default function DiscoveryScreen() {
             coordinate={friend.location}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              if (mapRef.current) {
-                mapRef.current.animateToRegion({
-                  latitude: friend.location.latitude,
-                  longitude: friend.location.longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }, 500);
-              }
+              setSelectedUserId(friend.userId);
+              setShowUserProfile(true);
             }}
           >
             <View style={styles.friendAvatarContainer}>
@@ -214,13 +272,17 @@ export default function DiscoveryScreen() {
         />
         <Text style={styles.headerTitle}>Discover Venues</Text>
         <Text style={styles.headerSubtitle}>
-          {nearbyVenues.filter(v => v.isOpen).length} venues live now • Within 50 miles
+          {useMockData ? (
+            'Using sample data'
+          ) : (
+            `${nearbyVenues.filter(v => v.isOpen).length} open now • ${nearbyVenues.length} within 50 miles`
+          )}
         </Text>
       </View>
 
       <View style={styles.mapControls}>
-        <TouchableOpacity 
-          style={[styles.controlButton, locationSettings.ghostMode && styles.controlButtonActive]} 
+        <TouchableOpacity
+          style={[styles.controlButton, locationSettings.ghostMode && styles.controlButtonActive]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             toggleGhostMode();
@@ -228,13 +290,25 @@ export default function DiscoveryScreen() {
         >
           <Ghost size={22} color={locationSettings.ghostMode ? '#000000' : '#fff'} />
         </TouchableOpacity>
-        
+
+        {!useMockData && (
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={async () => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              await refreshVenues();
+            }}
+          >
+            <RefreshCw size={22} color="#fff" />
+          </TouchableOpacity>
+        )}
+
         {friendLocations.length > 0 && (
           <TouchableOpacity style={styles.controlButton} onPress={findMyGroup}>
             <Users size={22} color="#fff" />
           </TouchableOpacity>
         )}
-        
+
         <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
           <Navigation size={24} color="#000000" />
         </TouchableOpacity>
@@ -258,27 +332,46 @@ export default function DiscoveryScreen() {
       )}
 
       {showFriendDrawer && !selectedVenue && (
-        <FriendListDrawer 
-          friendLocations={friendLocations} 
+        <FriendListDrawer
+          friendLocations={friendLocations}
           onClose={() => setShowFriendDrawer(false)}
           onFriendPress={(friend) => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            if (mapRef.current) {
-              mapRef.current.animateToRegion({
-                latitude: friend.location.latitude,
-                longitude: friend.location.longitude,
-                latitudeDelta: 0.05,
-                longitudeDelta: 0.05,
-              }, 500);
-            }
+            setSelectedUserId(friend.userId);
+            setShowUserProfile(true);
             setShowFriendDrawer(false);
           }}
         />
       )}
 
       {selectedVenue && (
-        <VenueBottomSheet venue={selectedVenue} onClose={() => setSelectedVenueId(null)} />
+        <VenueBottomSheet
+          venue={selectedVenue}
+          friendsAtVenue={friendsByVenue[selectedVenue.id] || []}
+          groupPurchases={venueGroupPurchases}
+          onClose={() => setSelectedVenueId(null)}
+          onCreateGroupPurchase={() => setShowGroupPurchaseModal(true)}
+          onJoinGroupPurchase={(groupPurchaseId) => joinGroupPurchase({ groupPurchaseId, userId: 'user-me' })}
+        />
       )}
+
+      <UserProfileModal
+        visible={showUserProfile}
+        userId={selectedUserId}
+        onClose={() => setShowUserProfile(false)}
+        onMessage={handleOpenDM}
+      />
+
+      <GroupPurchaseModal
+        visible={showGroupPurchaseModal}
+        venueId={selectedVenueId || undefined}
+        venueName={selectedVenue?.name}
+        onClose={() => setShowGroupPurchaseModal(false)}
+        onCreate={(purchase) => {
+          createGroupPurchase(purchase);
+          setShowGroupPurchaseModal(false);
+        }}
+      />
     </View>
   );
 }
@@ -357,12 +450,25 @@ function FriendListDrawer({ friendLocations, onClose, onFriendPress }: FriendLis
 
 interface VenueBottomSheetProps {
   venue: Venue;
+  friendsAtVenue: FriendLocation[];
+  groupPurchases: GroupPurchase[];
   onClose: () => void;
+  onCreateGroupPurchase: () => void;
+  onJoinGroupPurchase: (groupPurchaseId: string) => void;
 }
 
-function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
-  const { profile, updateProfile, canRejoinVenue } = useAppState();
+function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCreateGroupPurchase, onJoinGroupPurchase }: VenueBottomSheetProps) {
+  const { profile, updateProfile, canRejoinVenue, calculateVibePercentage } = useAppState();
   const { triggerGlow } = useGlow();
+  const { getDynamicPricing } = useMonetization();
+
+  // Get calculated vibe from user feedback, fallback to static value
+  const calculatedVibe = calculateVibePercentage(venue.id);
+  const vibePercentage = calculatedVibe ?? venue.currentVibeLevel;
+  const isLiveVibe = calculatedVibe !== null;
+
+  // Get dynamic pricing
+  const dynamicPricing = getDynamicPricing(venue.id);
 
   const handleGetDirections = () => {
     const { latitude, longitude } = venue.location;
@@ -491,7 +597,12 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
           style={styles.venueImage}
         />
 
-        <View style={styles.sheetContent}>
+        <ScrollView
+          style={styles.sheetContent}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          contentContainerStyle={styles.sheetContentContainer}
+        >
           <View style={styles.venueHeader}>
             <View>
               <Text style={styles.venueName}>{venue.name}</Text>
@@ -503,9 +614,9 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
               </View>
             </View>
             {venue.isOpen && (
-              <View style={styles.vibeBadge}>
-                <Text style={styles.vibeText}>{venue.currentVibeLevel}%</Text>
-                <Text style={styles.vibeLabel}>VIBE</Text>
+              <View style={[styles.vibeBadge, isLiveVibe && styles.vibeBadgeLive]}>
+                <Text style={styles.vibeText}>{vibePercentage}%</Text>
+                <Text style={styles.vibeLabel}>{isLiveVibe ? 'LIVE VIBE' : 'VIBE'}</Text>
               </View>
             )}
           </View>
@@ -520,7 +631,15 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <DollarSign size={18} color="#ff0080" />
-              <Text style={styles.statText}>${venue.coverCharge} cover</Text>
+              <Text style={styles.statText}>
+                {dynamicPricing ? (
+                  <>
+                    <Text style={styles.strikethrough}>${venue.coverCharge}</Text> ${dynamicPricing.currentPrice}
+                  </>
+                ) : (
+                  `$${venue.coverCharge} cover`
+                )}
+              </Text>
             </View>
             <View style={styles.statItem}>
               <Users size={18} color="#ff0080" />
@@ -528,13 +647,107 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
             </View>
           </View>
 
-          <View style={styles.genresContainer}>
-            {venue.genres.map((genre, index) => (
-              <View key={index} style={styles.genreTag}>
-                <Text style={styles.genreText}>{genre}</Text>
+          {/* Dynamic Pricing Badge */}
+          {dynamicPricing && (
+            <View style={styles.pricingBadgeContainer}>
+              <LinearGradient
+                colors={['rgba(0, 255, 128, 0.2)', 'rgba(0, 255, 128, 0.05)']}
+                style={styles.pricingBadge}
+              >
+                <Text style={styles.pricingBadgeEmoji}>💰</Text>
+                <View style={styles.pricingBadgeContent}>
+                  <Text style={styles.pricingBadgeTitle}>{dynamicPricing.discountPercentage}% OFF</Text>
+                  <Text style={styles.pricingBadgeDescription}>{dynamicPricing.description}</Text>
+                  <Text style={styles.pricingBadgeExpiry}>
+                    Ends {new Date(dynamicPricing.validUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
+          )}
+
+          {venue.genres && venue.genres.length > 0 && (
+            <View style={styles.genresContainer}>
+              {venue.genres.map((genre, index) => (
+                <View key={index} style={styles.genreTag}>
+                  <Text style={styles.genreText}>{genre}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Social Proof Section */}
+          <SocialProofSection venueId={venue.id} />
+
+          {friendsAtVenue.length > 0 && (
+            <View style={styles.friendsSection}>
+              <View style={styles.friendsSectionHeader}>
+                <Users size={16} color="#ff0080" />
+                <Text style={styles.friendsSectionTitle}>
+                  {friendsAtVenue.length} {friendsAtVenue.length === 1 ? 'Friend' : 'Friends'} Here
+                </Text>
               </View>
-            ))}
-          </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.friendsScrollContent}
+              >
+                {friendsAtVenue.map((friend) => (
+                  <View key={friend.userId} style={styles.friendAtVenueCard}>
+                    <View style={[styles.friendAvatarRing, styles.friendAvatarRingActive]}>
+                      <Image
+                        source={{ uri: friend.avatarUrl }}
+                        style={styles.friendAtVenueAvatar}
+                      />
+                    </View>
+                    <Text style={styles.friendAtVenueName} numberOfLines={1}>
+                      {friend.displayName}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Group Purchases Section */}
+          {groupPurchases.length > 0 && (
+            <View style={styles.groupPurchasesSection}>
+              <View style={styles.groupPurchasesSectionHeader}>
+                <Users size={16} color="#00d4ff" />
+                <Text style={styles.groupPurchasesSectionTitle}>
+                  Group Purchase Opportunities ({groupPurchases.length})
+                </Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.groupPurchasesScrollContent}
+              >
+                {groupPurchases.map((gp) => (
+                  <View key={gp.id} style={styles.groupPurchaseScrollCard}>
+                    <GroupPurchaseCard
+                      groupPurchase={gp}
+                      onJoin={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        onJoinGroupPurchase(gp.id);
+                      }}
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.createGroupPurchaseButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onCreateGroupPurchase();
+            }}
+          >
+            <Users size={18} color="#00d4ff" />
+            <Text style={styles.createGroupPurchaseButtonText}>Create Group Purchase</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.joinButton} onPress={handleJoinLobby}>
             <Text style={styles.joinButtonText}>
@@ -545,8 +758,81 @@ function VenueBottomSheet({ venue, onClose }: VenueBottomSheetProps) {
           <TouchableOpacity style={styles.directionsButton} onPress={handleGetDirections}>
             <Text style={styles.directionsButtonText}>Get Directions</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </LinearGradient>
+    </View>
+  );
+}
+
+interface SocialProofSectionProps {
+  venueId: string;
+}
+
+function SocialProofSection({ venueId }: SocialProofSectionProps) {
+  const { getVenueSocialProofData } = useSocial();
+  const socialProof = getVenueSocialProofData(venueId);
+
+  if (!socialProof) return null;
+
+  const hypeFactorIcons: Record<string, string> = {
+    FRIENDS_HERE: '👥',
+    TRENDING_UP: '📈',
+    EVENT_TONIGHT: '🎉',
+    CHALLENGE_ACTIVE: '🏆',
+    HOT_SPOT: '🔥',
+  };
+
+  const getTrendingColor = (score: number) => {
+    if (score >= 90) return '#ff0080';
+    if (score >= 70) return '#00d4ff';
+    if (score >= 50) return '#a855f7';
+    return '#ffa64d';
+  };
+
+  const trendingColor = getTrendingColor(socialProof.trendingScore);
+
+  return (
+    <View style={styles.socialProofSection}>
+      {/* Trending Score */}
+      <View style={styles.socialProofHeader}>
+        <View style={[styles.trendingBadge, { backgroundColor: `${trendingColor}20` }]}>
+          <Text style={[styles.trendingScore, { color: trendingColor }]}>
+            {socialProof.trendingScore}
+          </Text>
+          <Text style={[styles.trendingLabel, { color: trendingColor }]}>
+            TRENDING
+          </Text>
+        </View>
+        {socialProof.popularityRank && socialProof.popularityRank <= 3 && (
+          <View style={styles.rankBadge}>
+            <Text style={styles.rankEmoji}>
+              {socialProof.popularityRank === 1 ? '🥇' : socialProof.popularityRank === 2 ? '🥈' : '🥉'}
+            </Text>
+            <Text style={styles.rankText}>#{socialProof.popularityRank} in area</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Check-ins */}
+      <View style={styles.checkInsRow}>
+        <Text style={styles.checkInsText}>
+          <Text style={styles.checkInsValue}>{socialProof.recentCheckIns}</Text> check-ins in last hour
+        </Text>
+      </View>
+
+      {/* Hype Factors */}
+      {socialProof.hypeFactors.length > 0 && (
+        <View style={styles.hypeFactors}>
+          {socialProof.hypeFactors.map((factor, index) => (
+            <View key={index} style={styles.hypeFactorChip}>
+              <Text style={styles.hypeFactorIcon}>
+                {hypeFactorIcons[factor.type] || '✨'}
+              </Text>
+              <Text style={styles.hypeFactorText}>{factor.label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -624,6 +910,7 @@ const styles = StyleSheet.create({
   sheetGradient: {
     padding: 20,
     paddingBottom: 40,
+    flex: 1,
   },
   closeButton: {
     position: 'absolute' as const,
@@ -644,7 +931,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sheetContent: {
+    flex: 1,
+  },
+  sheetContentContainer: {
     gap: 16,
+    paddingBottom: 20,
   },
   venueHeader: {
     flexDirection: 'row' as const,
@@ -685,6 +976,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
     alignItems: 'center' as const,
+  },
+  vibeBadgeLive: {
+    backgroundColor: 'rgba(168, 85, 247, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.5)',
   },
   vibeText: {
     fontSize: 20,
@@ -772,6 +1068,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     fontWeight: '600' as const,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
   },
   mapControls: {
     position: 'absolute' as const,
@@ -954,6 +1255,205 @@ const styles = StyleSheet.create({
   },
   friendItemStatus: {
     fontSize: 12,
+    color: '#999',
+  },
+  friendsSection: {
+    backgroundColor: 'rgba(0, 255, 204, 0.05)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 204, 0.1)',
+  },
+  friendsSectionHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    marginBottom: 12,
+  },
+  friendsSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+  friendsScrollContent: {
+    gap: 12,
+    paddingRight: 16,
+  },
+  friendAtVenueCard: {
+    alignItems: 'center' as const,
+    gap: 8,
+    width: 64,
+  },
+  friendAtVenueAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  friendAtVenueName: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#fff',
+    textAlign: 'center' as const,
+  },
+  groupPurchasesSection: {
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  groupPurchasesSectionHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    marginBottom: 12,
+  },
+  groupPurchasesSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  groupPurchasesScrollContent: {
+    gap: 12,
+    paddingHorizontal: 2,
+  },
+  groupPurchaseScrollCard: {
+    width: 280,
+  },
+  createGroupPurchaseButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#00d4ff',
+    marginBottom: 12,
+  },
+  createGroupPurchaseButtonText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#00d4ff',
+  },
+  // Social Proof Styles
+  socialProofSection: {
+    backgroundColor: 'rgba(168, 85, 247, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.1)',
+  },
+  socialProofHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 12,
+  },
+  trendingBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 8,
+  },
+  trendingScore: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+  },
+  trendingLabel: {
+    fontSize: 11,
+    fontWeight: '800' as const,
+    letterSpacing: 0.5,
+  },
+  rankBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
+  },
+  rankEmoji: {
+    fontSize: 16,
+  },
+  rankText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#ffd700',
+  },
+  checkInsRow: {
+    marginBottom: 12,
+  },
+  checkInsText: {
+    fontSize: 13,
+    color: '#ccc',
+    fontWeight: '500' as const,
+  },
+  checkInsValue: {
+    fontSize: 14,
+    fontWeight: '800' as const,
+    color: '#fff',
+  },
+  hypeFactors: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 8,
+  },
+  hypeFactorChip: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  hypeFactorIcon: {
+    fontSize: 14,
+  },
+  hypeFactorText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#00d4ff',
+  },
+  // Dynamic Pricing Styles
+  pricingBadgeContainer: {
+    marginBottom: 16,
+  },
+  pricingBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  pricingBadgeEmoji: {
+    fontSize: 32,
+  },
+  pricingBadgeContent: {
+    flex: 1,
+  },
+  pricingBadgeTitle: {
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: '#00ff80',
+    marginBottom: 4,
+  },
+  pricingBadgeDescription: {
+    fontSize: 13,
+    color: '#ccc',
+    marginBottom: 4,
+  },
+  pricingBadgeExpiry: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#999',
+  },
+  strikethrough: {
+    textDecorationLine: 'line-through' as const,
     color: '#999',
   },
 });

@@ -119,6 +119,42 @@ export const [PerformerProvider, usePerformer] = createContextHook(() => {
     setSelectedGig(gig);
   }, []);
 
+  const bookTalent = useCallback((booking: {
+    talentId: string;
+    talentName: string;
+    venueId: string;
+    venueName: string;
+    venueImageUrl: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    fee: number;
+    genre: string;
+  }) => {
+    const newGig: Gig = {
+      id: `gig-${Date.now()}`,
+      performerId: booking.talentId,
+      venueId: booking.venueId,
+      venueName: booking.venueName,
+      venueImageUrl: booking.venueImageUrl,
+      venueLocation: 'To be confirmed',
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      fee: booking.fee,
+      status: 'UPCOMING',
+      genre: booking.genre,
+    };
+
+    // Add the new gig to the list
+    mockGigs.push(newGig);
+
+    // Refetch to update the UI
+    gigsQuery.refetch();
+
+    return newGig;
+  }, [gigsQuery]);
+
   return {
     isPerformerMode,
     togglePerformerMode,
@@ -132,5 +168,6 @@ export const [PerformerProvider, usePerformer] = createContextHook(() => {
     selectedGig,
     createPromoVideo,
     setSelectedGig,
+    bookTalent,
   };
 });

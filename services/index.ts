@@ -13,6 +13,9 @@ export * from './contacts.service';
 export * from './instagram.service';
 export * from './suggestions.service';
 
+// Export upload service
+export * from './upload.service';
+
 // Re-export for convenience
 export const services = {
   venues: venuesService,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,19 +11,85 @@ import {
   Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Hash, Lock, Send, MessageCircle, Settings, LogOut, Users, Bell, AlertTriangle, X, Zap } from 'lucide-react-native';
+import { Hash, Lock, Send, MessageCircle, Settings, LogOut, Users, Bell, AlertTriangle, X, Zap, MessageSquare, Shield } from 'lucide-react-native';
 import { mockServers, mockMessages } from '@/mocks/servers';
 import { VenueServer, ServerChannel, Message, VibeEnergyLevel, WaitTimeRange } from '@/types';
 import * as Haptics from 'expo-haptics';
 import { useAppState } from '@/contexts/AppStateContext';
+import { useSocial } from '@/contexts/SocialContext';
+import { mockBookings } from '@/mocks/analytics';
+import { PerformerBooking } from '@/types';
+import UserProfileModal from '@/components/UserProfileModal';
+import { useLocalSearchParams } from 'expo-router';
+import { Calendar, Clock, DollarSign } from 'lucide-react-native';
+
+type TabType = 'servers' | 'messages';
 
 export default function ServersScreen() {
+  const params = useLocalSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>('servers');
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showUserProfile, setShowUserProfile] = useState(false);
 
+  // Handle deep link to open DM with specific user
+  useEffect(() => {
+    if (params.openDM && typeof params.openDM === 'string') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setActiveTab('messages');
+      setSelectedConversation(`conv-${params.openDM}`);
+    }
+  }, [params.openDM]);
+
+  const handleOpenUserProfile = (userId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedUserId(userId);
+    setShowUserProfile(true);
+  };
+
+  const handleOpenDM = (userId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowUserProfile(false);
+    setActiveTab('messages');
+    setSelectedConversation(`conv-${userId}`);
+  };
+
+  // Direct Messages flow
+  if (activeTab === 'messages') {
+    if (selectedConversation) {
+      return (
+        <>
+          <DirectMessageChat
+            conversationId={selectedConversation}
+            onBack={() => setSelectedConversation(null)}
+            onOpenUserProfile={handleOpenUserProfile}
+          />
+          <UserProfileModal
+            visible={showUserProfile}
+            userId={selectedUserId}
+            onClose={() => setShowUserProfile(false)}
+            onMessage={handleOpenDM}
+          />
+        </>
+      );
+    }
+    return (
+      <TabContainer activeTab={activeTab} onChangeTab={setActiveTab}>
+        <DirectMessagesList onSelectConversation={setSelectedConversation} />
+      </TabContainer>
+    );
+  }
+
+  // Servers flow
   if (!selectedServer) {
-    return <ServerList onSelectServer={setSelectedServer} />;
+    return (
+      <TabContainer activeTab={activeTab} onChangeTab={setActiveTab}>
+        <ServerList onSelectServer={setSelectedServer} />
+      </TabContainer>
+    );
   }
 
   const server = mockServers.find(s => s.venueId === selectedServer);
@@ -52,11 +118,529 @@ export default function ServersScreen() {
   }
 
   return (
-    <ChatView
-      server={server}
-      channelId={selectedChannel}
-      onBack={() => setSelectedChannel(null)}
-    />
+    <>
+      <ChatView
+        server={server}
+        channelId={selectedChannel}
+        onBack={() => setSelectedChannel(null)}
+        onOpenUserProfile={handleOpenUserProfile}
+      />
+      <UserProfileModal
+        visible={showUserProfile}
+        userId={selectedUserId}
+        onClose={() => setShowUserProfile(false)}
+        onMessage={handleOpenDM}
+      />
+    </>
+  );
+}
+
+interface TabContainerProps {
+  activeTab: TabType;
+  onChangeTab: (tab: TabType) => void;
+  children: React.ReactNode;
+}
+
+function TabContainer({ activeTab, onChangeTab, children }: TabContainerProps) {
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#000000', '#1a1a1a']}
+        style={styles.gradient}
+      >
+        <View style={styles.tabHeader}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'servers' && styles.tabActive]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onChangeTab('servers');
+            }}
+          >
+            <MessageCircle size={20} color={activeTab === 'servers' ? '#ff0080' : '#666'} />
+            <Text style={[styles.tabText, activeTab === 'servers' && styles.tabTextActive]}>
+              Servers
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'messages' && styles.tabActive]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onChangeTab('messages');
+            }}
+          >
+            <MessageSquare size={20} color={activeTab === 'messages' ? '#ff0080' : '#666'} />
+            <Text style={[styles.tabText, activeTab === 'messages' && styles.tabTextActive]}>
+              Messages
+            </Text>
+            <View style={styles.encryptedBadge}>
+              <Shield size={10} color="#00ff99" />
+            </View>
+          </TouchableOpacity>
+        </View>
+        {children}
+      </LinearGradient>
+    </View>
+  );
+}
+
+interface DirectMessagesListProps {
+  onSelectConversation: (conversationId: string) => void;
+}
+
+function DirectMessagesList({ onSelectConversation }: DirectMessagesListProps) {
+  const mockConversations = [
+    {
+      id: 'conv-1',
+      userId: 'user-2',
+      userName: 'Alex Chen',
+      lastMessage: 'See you tonight at The Midnight Lounge!',
+      timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+      unreadCount: 2,
+      isOnline: true,
+    },
+    {
+      id: 'conv-2',
+      userId: 'user-3',
+      userName: 'Sarah Martinez',
+      lastMessage: 'That venue was amazing! 🔥',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      unreadCount: 0,
+      isOnline: false,
+    },
+    {
+      id: 'conv-3',
+      userId: 'user-4',
+      userName: 'Marcus Wright',
+      lastMessage: 'Got VIP access! Come join',
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      unreadCount: 1,
+      isOnline: true,
+    },
+  ];
+
+  return (
+    <>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Direct Messages</Text>
+        <View style={styles.encryptionInfo}>
+          <Shield size={14} color="#00ff99" />
+          <Text style={styles.encryptionText}>End-to-end encrypted</Text>
+        </View>
+      </View>
+
+      <ScrollView style={styles.conversationList} showsVerticalScrollIndicator={false}>
+        {mockConversations.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MessageSquare size={48} color="#666" />
+            <Text style={styles.emptyStateTitle}>No messages yet</Text>
+            <Text style={styles.emptyStateText}>Start a conversation with your friends!</Text>
+          </View>
+        ) : (
+          mockConversations.map((conversation) => (
+            <TouchableOpacity
+              key={conversation.id}
+              style={styles.conversationCard}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onSelectConversation(conversation.id);
+              }}
+            >
+              <LinearGradient
+                colors={['#1a1a2e', '#1a1a1a']}
+                style={styles.conversationCardGradient}
+              >
+                <View style={styles.avatarContainer}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{conversation.userName[0]}</Text>
+                  </View>
+                  {conversation.isOnline && <View style={styles.onlineIndicator} />}
+                </View>
+                <View style={styles.conversationInfo}>
+                  <View style={styles.conversationHeader}>
+                    <Text style={styles.conversationName}>{conversation.userName}</Text>
+                    <Text style={styles.conversationTime}>{getTimeAgo(conversation.timestamp)}</Text>
+                  </View>
+                  <View style={styles.conversationFooter}>
+                    <Text style={styles.lastMessage} numberOfLines={1}>
+                      {conversation.lastMessage}
+                    </Text>
+                    {conversation.unreadCount > 0 && (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadText}>{conversation.unreadCount}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+    </>
+  );
+}
+
+interface DirectMessageChatProps {
+  conversationId: string;
+  onBack: () => void;
+  onOpenUserProfile: (userId: string) => void;
+}
+
+function DirectMessageChat({ conversationId, onBack, onOpenUserProfile }: DirectMessageChatProps) {
+  const { profile } = useAppState();
+  const { getFriendProfile } = useSocial();
+  const [message, setMessage] = useState<string>('');
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState({
+    date: '',
+    startTime: '',
+    endTime: '',
+    fee: '',
+  });
+
+  // Mock conversations data (need to look up the userId)
+  const mockConversations = [
+    { id: 'conv-1', userId: 'user-2', userName: 'Alex Chen' },
+    { id: 'conv-2', userId: 'user-3', userName: 'Sarah Martinez' },
+    { id: 'conv-3', userId: 'user-4', userName: 'Marcus Wright' },
+  ];
+
+  // Look up the conversation to get the actual userId
+  const conversation = mockConversations.find(c => c.id === conversationId);
+  const otherUserId = conversation?.userId || conversationId.replace('conv-', '');
+  const otherUserProfile = getFriendProfile(otherUserId);
+  const otherUserName = otherUserProfile?.displayName || conversation?.userName || 'User';
+
+  // Check if current user is a venue manager and the other user is a performer
+  const isVenueManager = profile.isVenueManager;
+  const isTalent = otherUserProfile?.isVerified && otherUserProfile.verifiedCategory === 'PERFORMER';
+  const canBook = isVenueManager && isTalent;
+
+  // Debug logging
+  console.log('🔍 Booking Debug:', {
+    conversationId,
+    otherUserId,
+    otherUserName,
+    otherUserProfile,
+    isVenueManager,
+    isTalent,
+    canBook,
+    profileIsVenueManager: profile.isVenueManager,
+  });
+
+  // Initialize messages based on conversationId
+  const getInitialMessages = () => {
+    // Check if this is one of the pre-existing conversations
+    if (conversationId === 'conv-1' || otherUserId === 'user-2') {
+      return [
+        {
+          id: 'msg-1',
+          senderId: 'user-2',
+          senderName: otherUserName,
+          content: 'Hey! Are you going to The Midnight Lounge tonight?',
+          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          isOwn: false,
+          isEncrypted: true,
+        },
+        {
+          id: 'msg-2',
+          senderId: 'user-me',
+          senderName: 'You',
+          content: 'Yeah! What time are you heading there?',
+          timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+          isOwn: true,
+          isEncrypted: true,
+        },
+        {
+          id: 'msg-3',
+          senderId: 'user-2',
+          senderName: otherUserName,
+          content: 'Probably around 10pm. See you tonight at The Midnight Lounge!',
+          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          isOwn: false,
+          isEncrypted: true,
+        },
+      ];
+    }
+    // New conversation - start empty
+    return [];
+  };
+
+  const [messages, setMessages] = useState(getInitialMessages());
+
+  const handleSendMessage = () => {
+    if (!message.trim()) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Add new message to the chat
+    const newMessage = {
+      id: `msg-${Date.now()}`,
+      senderId: 'user-me',
+      senderName: 'You',
+      content: message,
+      timestamp: new Date().toISOString(),
+      isOwn: true,
+      isEncrypted: true,
+    };
+
+    setMessages([...messages, newMessage]);
+    setMessage('');
+  };
+
+  const handleBookTalent = () => {
+    if (!bookingDetails.date || !bookingDetails.startTime || !bookingDetails.endTime || !bookingDetails.fee) {
+      Alert.alert('Missing Information', 'Please fill in all booking details');
+      return;
+    }
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Get venue info from profile
+    const venueId = profile.managedVenues?.[0] || 'venue-1';
+
+    // Create the booking
+    const newBooking: PerformerBooking = {
+      id: `booking-${Date.now()}`,
+      performerId: otherUserId,
+      venueId: venueId,
+      date: bookingDetails.date,
+      startTime: bookingDetails.startTime,
+      endTime: bookingDetails.endTime,
+      fee: parseFloat(bookingDetails.fee),
+      status: 'PENDING',
+    };
+
+    // Add to mock bookings
+    mockBookings.push(newBooking);
+
+    // Send confirmation message
+    const confirmationMessage = {
+      id: `msg-${Date.now()}`,
+      senderId: 'user-me',
+      senderName: 'You',
+      content: `🎉 Booking request sent! ${otherUserName} is scheduled for ${bookingDetails.date} from ${bookingDetails.startTime} to ${bookingDetails.endTime}. Fee: $${bookingDetails.fee}. Check Talent Booking to manage this booking.`,
+      timestamp: new Date().toISOString(),
+      isOwn: true,
+      isEncrypted: true,
+    };
+
+    setMessages([...messages, confirmationMessage]);
+    setShowBookingModal(false);
+    setBookingDetails({
+      date: '',
+      startTime: '',
+      endTime: '',
+      fee: '',
+    });
+
+    Alert.alert(
+      'Booking Request Sent!',
+      `${otherUserName} has been booked. Check the Talent Booking page to manage this booking.`,
+      [{ text: 'OK' }]
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#000000', '#1a1a1a']}
+        style={styles.gradient}
+      >
+        <View style={styles.dmHeader}>
+          <TouchableOpacity onPress={onBack}>
+            <Text style={styles.backButton}>← Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.dmHeaderInfo}
+            onPress={() => onOpenUserProfile(otherUserId)}
+          >
+            <Text style={styles.dmHeaderTitle}>{otherUserName}</Text>
+            <View style={styles.encryptionBadge}>
+              <Shield size={12} color="#00ff99" />
+              <Text style={styles.encryptionBadgeText}>Encrypted</Text>
+            </View>
+          </TouchableOpacity>
+          {canBook && (
+            <TouchableOpacity
+              style={styles.bookButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowBookingModal(true);
+              }}
+            >
+              <LinearGradient
+                colors={['#ff0080', '#a855f7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.bookButtonGradient}
+              >
+                <Calendar size={16} color="#000" />
+                <Text style={styles.bookButtonText}>Book</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <FlatList
+          data={messages}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <View style={[styles.dmBubble, item.isOwn && styles.dmBubbleOwn]}>
+              {!item.isOwn && (
+                <TouchableOpacity onPress={() => onOpenUserProfile(item.senderId)}>
+                  <Text style={styles.dmSenderName}>{item.senderName}</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={[styles.dmContent, item.isOwn && styles.dmContentOwn]}>
+                {item.content}
+              </Text>
+              <View style={styles.dmFooter}>
+                <Text style={[styles.dmTime, item.isOwn && styles.dmTimeOwn]}>
+                  {getTimeAgo(item.timestamp)}
+                </Text>
+                {item.isEncrypted && (
+                  <Shield size={10} color={item.isOwn ? '#000' : '#00ff99'} />
+                )}
+              </View>
+            </View>
+          )}
+          style={styles.messageList}
+          contentContainerStyle={styles.messageListContent}
+        />
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type an encrypted message..."
+            placeholderTextColor="#666"
+            value={message}
+            onChangeText={setMessage}
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+            <Send size={20} color="#000000" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      {/* Booking Modal */}
+      <Modal
+        visible={showBookingModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowBookingModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setShowBookingModal(false)}
+          />
+          <View style={styles.bookingModalContent}>
+            <LinearGradient
+              colors={['#1a1a1a', '#0a0a0a']}
+              style={styles.bookingModalGradient}
+            >
+              <View style={styles.bookingModalHeader}>
+                <Text style={styles.bookingModalTitle}>Book {otherUserName}</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowBookingModal(false);
+                  }}
+                >
+                  <X size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.bookingForm} showsVerticalScrollIndicator={false}>
+                <View style={styles.bookingInputGroup}>
+                  <View style={styles.bookingInputIcon}>
+                    <Calendar size={18} color="#ff0080" />
+                  </View>
+                  <View style={styles.bookingInputContent}>
+                    <Text style={styles.bookingInputLabel}>Date</Text>
+                    <TextInput
+                      style={styles.bookingInput}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#666"
+                      value={bookingDetails.date}
+                      onChangeText={(text) => setBookingDetails({ ...bookingDetails, date: text })}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.bookingInputRow}>
+                  <View style={[styles.bookingInputGroup, { flex: 1, marginRight: 8 }]}>
+                    <View style={styles.bookingInputIcon}>
+                      <Clock size={18} color="#ff0080" />
+                    </View>
+                    <View style={styles.bookingInputContent}>
+                      <Text style={styles.bookingInputLabel}>Start Time</Text>
+                      <TextInput
+                        style={styles.bookingInput}
+                        placeholder="HH:MM"
+                        placeholderTextColor="#666"
+                        value={bookingDetails.startTime}
+                        onChangeText={(text) => setBookingDetails({ ...bookingDetails, startTime: text })}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={[styles.bookingInputGroup, { flex: 1, marginLeft: 8 }]}>
+                    <View style={styles.bookingInputIcon}>
+                      <Clock size={18} color="#ff0080" />
+                    </View>
+                    <View style={styles.bookingInputContent}>
+                      <Text style={styles.bookingInputLabel}>End Time</Text>
+                      <TextInput
+                        style={styles.bookingInput}
+                        placeholder="HH:MM"
+                        placeholderTextColor="#666"
+                        value={bookingDetails.endTime}
+                        onChangeText={(text) => setBookingDetails({ ...bookingDetails, endTime: text })}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.bookingInputGroup}>
+                  <View style={styles.bookingInputIcon}>
+                    <DollarSign size={18} color="#00ff99" />
+                  </View>
+                  <View style={styles.bookingInputContent}>
+                    <Text style={styles.bookingInputLabel}>Fee</Text>
+                    <TextInput
+                      style={styles.bookingInput}
+                      placeholder="0.00"
+                      placeholderTextColor="#666"
+                      keyboardType="numeric"
+                      value={bookingDetails.fee}
+                      onChangeText={(text) => setBookingDetails({ ...bookingDetails, fee: text })}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.confirmBookingButton}
+                  onPress={handleBookTalent}
+                >
+                  <LinearGradient
+                    colors={['#ff0080', '#a855f7']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.confirmBookingGradient}
+                  >
+                    <Calendar size={20} color="#000" />
+                    <Text style={styles.confirmBookingText}>Confirm Booking</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </ScrollView>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -68,17 +652,13 @@ function ServerList({ onSelectServer }: ServerListProps) {
   const { joinedServers } = useAppState();
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#000000', '#1a1a1a']}
-        style={styles.gradient}
-      >
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Your Servers</Text>
-          <Text style={styles.headerSubtitle}>Connected to {joinedServers.length} venues</Text>
-        </View>
+    <>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Your Servers</Text>
+        <Text style={styles.headerSubtitle}>Connected to {joinedServers.length} venues</Text>
+      </View>
 
-        <ScrollView style={styles.serverList} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.serverList} showsVerticalScrollIndicator={false}>
           {joinedServers.length === 0 ? (
             <View style={styles.emptyState}>
               <MessageCircle size={48} color="#666" />
@@ -121,8 +701,7 @@ function ServerList({ onSelectServer }: ServerListProps) {
             <Text style={styles.joinNewSubtext}>Visit a venue and scan the QR code</Text>
           </TouchableOpacity>
         </ScrollView>
-      </LinearGradient>
-    </View>
+    </>
   );
 }
 
@@ -218,20 +797,58 @@ interface ChatViewProps {
   server: VenueServer;
   channelId: string;
   onBack: () => void;
+  onOpenUserProfile: (userId: string) => void;
 }
 
-function ChatView({ server, channelId, onBack }: ChatViewProps) {
+function ChatView({ server, channelId, onBack, onOpenUserProfile }: ChatViewProps) {
+  const { getBroadcastMessagesForChannel } = useAppState();
   const [message, setMessage] = useState<string>('');
   const [showVibeCheck, setShowVibeCheck] = useState<boolean>(false);
-  const messages = mockMessages.filter(m => m.channelId === channelId);
+  const [channelMessages, setChannelMessages] = useState(mockMessages.filter(m => m.channelId === channelId));
+
+  // Get regular messages
+  const regularMessages = channelMessages;
+
+  // Get broadcast messages and convert to Message format
+  const channelName = server.channels.find(c => c.id === channelId)?.name || 'general';
+  const broadcastMessages = getBroadcastMessagesForChannel(`#${channelName}`).map(broadcast => ({
+    id: broadcast.id,
+    channelId: channelId,
+    userId: 'venue-manager',
+    userName: '🎤 Venue Broadcast',
+    userBadge: 'MANAGER',
+    content: broadcast.message,
+    timestamp: broadcast.timestamp,
+    isOwn: false,
+    isBroadcast: true,
+  }));
+
+  // Merge and sort messages by timestamp
+  const messages = [...regularMessages, ...broadcastMessages].sort((a, b) =>
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
   const channel = server.channels.find(c => c.id === channelId);
   const isGeneralChannel = channel?.name === 'general' && channel?.type === 'PUBLIC_LOBBY';
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Message Sent', 'Your message has been sent to the channel!');
+
+    // Add new message to the chat
+    const newMessage = {
+      id: `msg-${Date.now()}`,
+      channelId: channelId,
+      userId: 'user-me',
+      userName: 'You',
+      userBadge: 'GUEST' as const,
+      content: message,
+      timestamp: new Date().toISOString(),
+      isOwn: true,
+    };
+
+    setChannelMessages([...channelMessages, newMessage]);
     setMessage('');
   };
 
@@ -260,7 +877,12 @@ function ChatView({ server, channelId, onBack }: ChatViewProps) {
         <FlatList
           data={messages}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => <MessageBubble message={item} />}
+          renderItem={({ item }) => (
+            <MessageBubble
+              message={item}
+              onOpenUserProfile={onOpenUserProfile}
+            />
+          )}
           style={styles.messageList}
           contentContainerStyle={styles.messageListContent}
         />
@@ -284,21 +906,53 @@ function ChatView({ server, channelId, onBack }: ChatViewProps) {
 
 interface MessageBubbleProps {
   message: Message;
+  onOpenUserProfile: (userId: string) => void;
 }
 
-function MessageBubble({ message }: MessageBubbleProps) {
+function MessageBubble({ message, onOpenUserProfile }: MessageBubbleProps) {
   const badgeColors: Record<string, string> = {
     PLATINUM: '#ff0080',
     WHALE: '#ff006e',
     PERFORMER: '#ffcc00',
     REGULAR: '#6680ff',
     GUEST: '#666',
+    MANAGER: '#ffa64d',
   };
+
+  const isBroadcast = 'isBroadcast' in message && message.isBroadcast;
+
+  if (isBroadcast) {
+    return (
+      <View style={styles.broadcastWrapper}>
+        <LinearGradient
+          colors={['rgba(255, 0, 128, 0.25)', 'rgba(138, 85, 247, 0.25)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.broadcastBubble}
+        >
+          <View style={styles.broadcastBorder}>
+            <View style={styles.messageHeader}>
+              <TouchableOpacity onPress={() => onOpenUserProfile(message.userId)}>
+                <Text style={styles.messageName}>{message.userName}</Text>
+              </TouchableOpacity>
+              <View style={[styles.messageBadge, { backgroundColor: badgeColors[message.userBadge] }]}>
+                <Text style={styles.messageBadgeText}>{message.userBadge}</Text>
+              </View>
+            </View>
+            <Text style={[styles.messageContent, styles.broadcastContent]}>{message.content}</Text>
+            <Text style={styles.messageTime}>{getTimeAgo(message.timestamp)}</Text>
+          </View>
+        </LinearGradient>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.messageBubble, message.isOwn && styles.messageBubbleOwn]}>
       <View style={styles.messageHeader}>
-        <Text style={styles.messageName}>{message.userName}</Text>
+        <TouchableOpacity onPress={() => onOpenUserProfile(message.userId)}>
+          <Text style={styles.messageName}>{message.userName}</Text>
+        </TouchableOpacity>
         <View style={[styles.messageBadge, { backgroundColor: badgeColors[message.userBadge] }]}>
           <Text style={styles.messageBadgeText}>{message.userBadge}</Text>
         </View>
@@ -335,22 +989,29 @@ interface ServerSettingsModalProps {
 function ServerSettingsModal({ visible, server, onClose, onLeave }: ServerSettingsModalProps) {
   const { leaveServer, profile } = useAppState();
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState<boolean>(false);
-  
+
   const userBadge = profile.badges.find(b => b.venueId === server.venueId);
   const isVIP = userBadge?.badgeType === 'WHALE' || userBadge?.badgeType === 'PLATINUM';
 
   const handleLeave = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowLeaveConfirmation(true);
   };
 
   const confirmLeave = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setShowLeaveConfirmation(false);
-    onClose();
-    onLeave();
     leaveServer.mutate(server.venueId, {
+      onSuccess: (data) => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setShowLeaveConfirmation(false);
+        onClose();
+        onLeave();
+        Alert.alert('Left Server', `You've left ${server.venueName}'s server.`, [{ text: 'OK' }]);
+      },
       onError: (error) => {
         console.error('Error leaving server:', error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setShowLeaveConfirmation(false);
+        Alert.alert('Error', 'Failed to leave server. Please try again.', [{ text: 'OK' }]);
       }
     });
   };
@@ -362,7 +1023,7 @@ function ServerSettingsModal({ visible, server, onClose, onLeave }: ServerSettin
   return (
     <>
       <Modal
-        visible={visible}
+        visible={visible && !showLeaveConfirmation}
         transparent
         animationType="slide"
         onRequestClose={onClose}
@@ -403,7 +1064,10 @@ function ServerSettingsModal({ visible, server, onClose, onLeave }: ServerSettin
 
             <View style={styles.settingsSection}>
               <Text style={styles.settingsSectionTitle}>Danger Zone</Text>
-              <TouchableOpacity style={styles.leaveButton} onPress={handleLeave}>
+              <TouchableOpacity
+                style={styles.leaveButton}
+                onPress={handleLeave}
+              >
                 <LogOut size={20} color="#ff006e" />
                 <Text style={styles.leaveButtonText}>Leave Server</Text>
               </TouchableOpacity>
@@ -439,11 +1103,11 @@ interface PublicLobbyLeaveConfirmationModalProps {
   onCancel: () => void;
 }
 
-function PublicLobbyLeaveConfirmationModal({ 
-  visible, 
-  venueName, 
-  onConfirm, 
-  onCancel 
+function PublicLobbyLeaveConfirmationModal({
+  visible,
+  venueName,
+  onConfirm,
+  onCancel
 }: PublicLobbyLeaveConfirmationModalProps) {
   return (
     <Modal
@@ -642,17 +1306,35 @@ function VibeCheckOverlay({ venueId, venueName, visible, onToggle }: VibeCheckOv
         <View style={styles.vibeCheckSection}>
           <Text style={styles.vibeCheckLabel}>Music</Text>
           <View style={styles.vibeSlider}>
-            <View style={styles.sliderTrack}>
+            <TouchableOpacity
+              style={styles.sliderTrack}
+              activeOpacity={0.8}
+              onPress={(e) => {
+                const touchX = e.nativeEvent.locationX;
+                const sliderWidth = 300; // Approximate width
+                const value = Math.ceil((touchX / sliderWidth) * 5);
+                const clampedValue = Math.max(1, Math.min(5, value));
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setMusic(clampedValue);
+              }}
+            >
               <LinearGradient
                 colors={['#6680ff', '#ff0080']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[styles.sliderFill, { width: `${(music / 5) * 100}%` }]}
               />
-            </View>
+            </TouchableOpacity>
             <View style={styles.sliderLabels}>
               {[1, 2, 3, 4, 5].map((val) => (
-                <TouchableOpacity key={val} onPress={() => setMusic(val)}>
+                <TouchableOpacity
+                  key={val}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setMusic(val);
+                  }}
+                  style={styles.sliderLabelButton}
+                >
                   <Text style={[styles.sliderLabel, music === val && styles.sliderLabelActive]}>
                     {val === 1 ? 'Weak' : val === 5 ? 'Fire' : val}
                   </Text>
@@ -665,17 +1347,35 @@ function VibeCheckOverlay({ venueId, venueName, visible, onToggle }: VibeCheckOv
         <View style={styles.vibeCheckSection}>
           <Text style={styles.vibeCheckLabel}>Density</Text>
           <View style={styles.vibeSlider}>
-            <View style={styles.sliderTrack}>
+            <TouchableOpacity
+              style={styles.sliderTrack}
+              activeOpacity={0.8}
+              onPress={(e) => {
+                const touchX = e.nativeEvent.locationX;
+                const sliderWidth = 300; // Approximate width
+                const value = Math.ceil((touchX / sliderWidth) * 5);
+                const clampedValue = Math.max(1, Math.min(5, value));
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setDensity(clampedValue);
+              }}
+            >
               <LinearGradient
                 colors={['#6680ff', '#ff006e']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[styles.sliderFill, { width: `${(density / 5) * 100}%` }]}
               />
-            </View>
+            </TouchableOpacity>
             <View style={styles.sliderLabels}>
               {[1, 2, 3, 4, 5].map((val) => (
-                <TouchableOpacity key={val} onPress={() => setDensity(val)}>
+                <TouchableOpacity
+                  key={val}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setDensity(val);
+                  }}
+                  style={styles.sliderLabelButton}
+                >
                   <Text style={[styles.sliderLabel, density === val && styles.sliderLabelActive]}>
                     {val === 1 ? 'Empty' : val === 5 ? 'Packed' : val}
                   </Text>
@@ -692,7 +1392,10 @@ function VibeCheckOverlay({ venueId, venueName, visible, onToggle }: VibeCheckOv
               <TouchableOpacity
                 key={level}
                 style={[styles.energyButton, energy === level && styles.energyButtonActive]}
-                onPress={() => setEnergy(level)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setEnergy(level);
+                }}
               >
                 <Text style={[styles.energyButtonText, energy === level && styles.energyButtonTextActive]}>
                   {level}
@@ -709,7 +1412,10 @@ function VibeCheckOverlay({ venueId, venueName, visible, onToggle }: VibeCheckOv
               <TouchableOpacity
                 key={time}
                 style={[styles.waitTimeButton, waitTime === time && styles.waitTimeButtonActive]}
-                onPress={() => setWaitTime(time)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setWaitTime(time);
+                }}
               >
                 <Text style={[styles.waitTimeButtonText, waitTime === time && styles.waitTimeButtonTextActive]}>
                   {time}
@@ -766,7 +1472,16 @@ export function AccessRevokedModal({ visible, venueName, onDismiss }: AccessRevo
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.revokedAppealButton}>
+          <TouchableOpacity
+            style={styles.revokedAppealButton}
+            onPress={() => {
+              Alert.alert(
+                'Appeal Process',
+                'To appeal this decision, please email support@vibelink.com with your user ID and explanation. Appeals are reviewed within 3-5 business days.',
+                [{ text: 'OK' }]
+              );
+            }}
+          >
             <Text style={styles.revokedAppealButtonText}>Appeal Decision / View Community Guidelines</Text>
           </TouchableOpacity>
 
@@ -988,6 +1703,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#999',
     marginTop: 4,
+  },
+  broadcastWrapper: {
+    width: '100%',
+    maxWidth: '100%',
+  },
+  broadcastBubble: {
+    borderRadius: 12,
+    padding: 2,
+  },
+  broadcastBorder: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 10,
+    padding: 12,
+  },
+  broadcastContent: {
+    fontWeight: '600' as const,
+    fontSize: 15,
   },
   inputContainer: {
     flexDirection: 'row' as const,
@@ -1298,14 +2030,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sliderTrack: {
-    height: 8,
+    height: 12,
     backgroundColor: '#000000',
-    borderRadius: 4,
+    borderRadius: 6,
     overflow: 'hidden',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   sliderFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 6,
   },
   sliderLabels: {
     flexDirection: 'row' as const,
@@ -1318,6 +2053,11 @@ const styles = StyleSheet.create({
   sliderLabelActive: {
     color: '#ff0080',
     fontWeight: '700' as const,
+  },
+  sliderLabelButton: {
+    padding: 4,
+    minWidth: 44,
+    alignItems: 'center' as const,
   },
   energyButtons: {
     flexDirection: 'row' as const,
@@ -1424,5 +2164,292 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#ff0080',
     fontWeight: '600' as const,
+  },
+  // Tab Navigation Styles
+  tabHeader: {
+    flexDirection: 'row' as const,
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a2e',
+    gap: 12,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+    backgroundColor: 'transparent',
+  },
+  tabActive: {
+    backgroundColor: 'rgba(255, 0, 128, 0.15)',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#666',
+  },
+  tabTextActive: {
+    color: '#ff0080',
+    fontWeight: '700' as const,
+  },
+  encryptedBadge: {
+    position: 'absolute' as const,
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 255, 153, 0.2)',
+    borderRadius: 8,
+    padding: 2,
+  },
+  // Direct Messages List Styles
+  encryptionInfo: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    marginTop: 4,
+  },
+  encryptionText: {
+    fontSize: 12,
+    color: '#00ff99',
+    fontWeight: '600' as const,
+  },
+  conversationList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  conversationCard: {
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  conversationCardGradient: {
+    padding: 16,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+  },
+  avatarContainer: {
+    position: 'relative' as const,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#ff0080',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#000',
+  },
+  onlineIndicator: {
+    position: 'absolute' as const,
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#00ff99',
+    borderWidth: 2,
+    borderColor: '#1a1a1a',
+  },
+  conversationInfo: {
+    flex: 1,
+  },
+  conversationHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 4,
+  },
+  conversationName: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  conversationTime: {
+    fontSize: 11,
+    color: '#666',
+  },
+  conversationFooter: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  lastMessage: {
+    flex: 1,
+    fontSize: 14,
+    color: '#999',
+  },
+  // Direct Message Chat Styles
+  dmHeader: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a2e',
+  },
+  dmHeaderInfo: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginTop: 8,
+  },
+  dmHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  encryptionBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    backgroundColor: 'rgba(0, 255, 153, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  encryptionBadgeText: {
+    fontSize: 11,
+    color: '#00ff99',
+    fontWeight: '600' as const,
+  },
+  dmBubble: {
+    backgroundColor: '#1a1a2e',
+    padding: 12,
+    borderRadius: 16,
+    maxWidth: '80%',
+    marginBottom: 8,
+  },
+  dmBubbleOwn: {
+    backgroundColor: '#ff0080',
+    alignSelf: 'flex-end' as const,
+    marginLeft: 'auto' as const,
+  },
+  dmSenderName: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#ff0080',
+    marginBottom: 4,
+  },
+  dmContent: {
+    fontSize: 15,
+    color: '#fff',
+    lineHeight: 21,
+  },
+  dmContentOwn: {
+    color: '#000',
+  },
+  dmFooter: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    marginTop: 4,
+  },
+  dmTime: {
+    fontSize: 10,
+    color: '#666',
+  },
+  dmTimeOwn: {
+    color: 'rgba(0, 0, 0, 0.6)',
+  },
+  bookButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  bookButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  bookButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'flex-end',
+  },
+  bookingModalContent: {
+    maxHeight: '90%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
+  bookingModalGradient: {
+    paddingBottom: 40,
+  },
+  bookingModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a2e',
+  },
+  bookingModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  bookingForm: {
+    padding: 20,
+  },
+  bookingInputGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a2e',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+  },
+  bookingInputRow: {
+    flexDirection: 'row',
+  },
+  bookingInputIcon: {
+    marginRight: 12,
+  },
+  bookingInputContent: {
+    flex: 1,
+  },
+  bookingInputLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  bookingInput: {
+    fontSize: 16,
+    color: '#fff',
+    padding: 0,
+  },
+  confirmBookingButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  confirmBookingGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 18,
+  },
+  confirmBookingText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
   },
 });

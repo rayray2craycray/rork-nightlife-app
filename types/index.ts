@@ -18,13 +18,21 @@ export interface Venue {
 export interface Performer {
   id: string;
   name: string;
-  stageName: string;
+  stageName?: string;
+  bio?: string;
   genres: string[];
-  imageUrl: string;
+  imageUrl?: string;
   followerCount: number;
+  followersCount: number; // Alias for followerCount (used in content features)
   totalRevenueGenerated: number;
   baseCity: string;
   epkVideoUrl: string;
+  verified: boolean;
+  socialLinks?: {
+    instagram?: string;
+    spotify?: string;
+    soundcloud?: string;
+  };
 }
 
 export interface VibeVideo {
@@ -38,6 +46,9 @@ export interface VibeVideo {
   views: number;
   likes: number;
   timestamp: string;
+  filter?: 'none' | 'neon-glitch' | 'afterhours-noir' | 'vhs-retro' | 'cyber-wave' | 'golden-hour';
+  sticker?: 'none' | 'get-tickets' | 'join-lobby' | 'live-tonight' | 'swipe-up';
+  stickerPosition?: { x: number; y: number }; // Position as percentage (0-100)
 }
 
 export interface UserBadge {
@@ -176,6 +187,7 @@ export interface Gig {
   venueId: string;
   venueName: string;
   venueImageUrl: string;
+  venueLocation?: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -288,6 +300,8 @@ export interface FriendProfile {
   currentVenueId?: string;
   currentVenueName?: string;
   mutualFriends: number;
+  isVerified?: boolean;
+  verifiedCategory?: 'PERFORMER' | 'PROMOTER' | 'MANAGER';
 }
 
 export type SuggestionSource =
@@ -360,4 +374,532 @@ export interface CardTokenMapping {
   cardToken: string;
   lastUsed: string;
   provider: 'STRIPE' | 'PLAID';
+}
+
+// ===== GROWTH FEATURES: VIRAL LOOP =====
+
+// Group Purchases & Ticket Splitting
+export interface GroupPurchase {
+  id: string;
+  initiatorId: string;
+  venueId: string;
+  eventId?: string;
+  ticketType: 'ENTRY' | 'TABLE' | 'BOTTLE_SERVICE';
+  totalAmount: number;
+  perPersonAmount: number;
+  maxParticipants: number;
+  currentParticipants: string[]; // userId[]
+  status: 'OPEN' | 'FULL' | 'COMPLETED' | 'CANCELLED';
+  expiresAt: string;
+  createdAt: string;
+  notes?: string;
+}
+
+export interface GroupPurchaseInvite {
+  id: string;
+  groupPurchaseId: string;
+  inviterId: string;
+  inviteeId: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  sentAt: string;
+  respondedAt?: string;
+}
+
+// Referral System
+export interface Referral {
+  id: string;
+  referrerId: string;
+  refereeId: string;
+  referralCode: string;
+  status: 'PENDING' | 'COMPLETED' | 'REWARDED';
+  rewardType: 'DISCOUNT' | 'SKIP_LINE' | 'FREE_DRINK' | 'VIP_ACCESS';
+  rewardValue: number;
+  usedAt?: string;
+  createdAt: string;
+}
+
+export interface ReferralReward {
+  id: string;
+  userId: string;
+  referralId: string;
+  type: 'REFERRER' | 'REFEREE';
+  reward: {
+    type: 'DISCOUNT' | 'SKIP_LINE' | 'FREE_DRINK' | 'VIP_ACCESS';
+    value: number;
+    description: string;
+  };
+  isUsed: boolean;
+  expiresAt: string;
+  usedAt?: string;
+}
+
+export interface UserReferralStats {
+  userId: string;
+  referralCode: string;
+  totalReferrals: number;
+  successfulReferrals: number;
+  totalRewardsEarned: number;
+  pendingRewards: ReferralReward[];
+  lifetimeValue: number;
+}
+
+// Instagram Story Sharing
+export interface StoryTemplate {
+  id: string;
+  name: string;
+  type: 'EVENT' | 'VENUE' | 'GROUP_INVITE' | 'ACHIEVEMENT';
+  backgroundUrl: string;
+  overlayElements: {
+    type: 'TEXT' | 'IMAGE' | 'STICKER' | 'QR_CODE';
+    content: string;
+    position: { x: number; y: number };
+    style?: any;
+  }[];
+  deepLink: string;
+}
+
+export interface ShareableContent {
+  id: string;
+  userId: string;
+  type: 'GROUP_PURCHASE' | 'EVENT' | 'ACHIEVEMENT' | 'REFERRAL';
+  templateId: string;
+  customData: any;
+  deepLink: string;
+  createdAt: string;
+  shareCount: number;
+  clickCount: number;
+}
+
+// ===== GROWTH FEATURES: COLD START SOLUTIONS =====
+
+// Events & Ticketing
+export interface Event {
+  id: string;
+  venueId: string;
+  title: string;
+  description: string;
+  performerIds: string[];
+  date: string;
+  startTime: string;
+  endTime: string;
+  ticketTiers: TicketTier[];
+  imageUrl: string;
+  genres: string[];
+  totalCapacity: number;
+  createdAt: string;
+  status: 'UPCOMING' | 'LIVE' | 'COMPLETED' | 'CANCELLED';
+}
+
+export interface TicketTier {
+  id: string;
+  eventId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  sold: number;
+  tier: 'EARLY_BIRD' | 'GENERAL' | 'VIP' | 'TABLE';
+  salesWindow: {
+    start: string;
+    end: string;
+  };
+  isAppExclusive: boolean;
+  perks?: string[];
+}
+
+export interface Ticket {
+  id: string;
+  eventId: string;
+  userId: string;
+  tierId: string;
+  qrCode: string;
+  status: 'ACTIVE' | 'USED' | 'TRANSFERRED' | 'CANCELLED';
+  purchasedAt: string;
+  usedAt?: string;
+  transferredTo?: string;
+  transferredAt?: string;
+}
+
+export interface TicketTransfer {
+  id: string;
+  ticketId: string;
+  fromUserId: string;
+  toUserId: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+  createdAt: string;
+  acceptedAt?: string;
+}
+
+// Guest List Management
+export interface GuestListEntry {
+  id: string;
+  venueId: string;
+  eventId?: string;
+  date: string;
+  guestUserId?: string;
+  guestName: string;
+  guestPhone?: string;
+  guestEmail?: string;
+  plusOnes: number;
+  status: 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'NO_SHOW' | 'CANCELLED';
+  addedBy: string;
+  notes?: string;
+  checkedInAt?: string;
+  createdAt: string;
+}
+
+export interface CheckInRecord {
+  id: string;
+  guestListEntryId?: string;
+  ticketId?: string;
+  venueId: string;
+  eventId?: string;
+  userId?: string;
+  guestName?: string;
+  checkedInBy: string;
+  checkedInAt: string;
+  method: 'QR_CODE' | 'MANUAL' | 'GUEST_LIST';
+}
+
+// ===== GROWTH FEATURES: NETWORK EFFECTS =====
+
+// Crews & Squads
+export interface Crew {
+  id: string;
+  name: string;
+  description?: string;
+  ownerId: string;
+  memberIds: string[];
+  imageUrl?: string;
+  isPrivate: boolean;
+  stats: {
+    totalNightsOut: number;
+    totalSpent: number;
+    favoriteVenueId?: string;
+    streakDays: number;
+  };
+  createdAt: string;
+}
+
+export interface CrewInvite {
+  id: string;
+  crewId: string;
+  inviterId: string;
+  inviteeId: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  sentAt: string;
+  respondedAt?: string;
+}
+
+export interface CrewNightPlan {
+  id: string;
+  crewId: string;
+  plannerId: string;
+  venueId: string;
+  eventId?: string;
+  date: string;
+  time: string;
+  description?: string;
+  attendingMemberIds: string[];
+  status: 'PLANNED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+}
+
+// Challenges & Rewards
+export interface Challenge {
+  id: string;
+  venueId?: string;
+  type: 'VISIT_COUNT' | 'SPEND_AMOUNT' | 'STREAK' | 'SOCIAL' | 'EVENT_ATTENDANCE';
+  title: string;
+  description: string;
+  requirements: {
+    type: string;
+    target: number;
+    timeframe?: string; // e.g., "7_DAYS", "30_DAYS", "ALL_TIME"
+  };
+  reward: {
+    type: 'DISCOUNT' | 'FREE_DRINK' | 'VIP_ACCESS' | 'SKIP_LINE' | 'BADGE' | 'POINTS';
+    value: any;
+    description: string;
+  };
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY';
+  participantCount: number;
+  completedCount: number;
+}
+
+export interface ChallengeProgress {
+  id: string;
+  userId: string;
+  challengeId: string;
+  currentProgress: number;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'EXPIRED' | 'CLAIMED';
+  startedAt: string;
+  completedAt?: string;
+  claimedAt?: string;
+}
+
+export interface ChallengeReward {
+  id: string;
+  userId: string;
+  challengeId: string;
+  reward: Challenge['reward'];
+  isUsed: boolean;
+  expiresAt?: string;
+  usedAt?: string;
+  createdAt: string;
+}
+
+// Social Proof & Trending
+export interface VenueSocialProof {
+  venueId: string;
+  friendsPresent: FriendLocation[];
+  trendingScore: number; // 0-100
+  recentCheckIns: number; // Last hour
+  popularityRank?: number; // 1-10 in area
+  hypeFactors: {
+    type: 'FRIENDS_HERE' | 'TRENDING_UP' | 'EVENT_TONIGHT' | 'CHALLENGE_ACTIVE' | 'HOT_SPOT';
+    label: string;
+  }[];
+}
+
+export interface TrendingVenue {
+  venueId: string;
+  trendingScore: number;
+  trendingReason: string;
+  timeframeHours: number; // 1, 6, 24
+}
+
+// ===== GROWTH FEATURES: CONTENT & DISCOVERY =====
+
+// Performer type is defined above (lines 18-36)
+
+export interface PerformerPost {
+  id: string;
+  performerId: string;
+  type: 'GIG_ANNOUNCEMENT' | 'BEHIND_SCENES' | 'TRACK_DROP' | 'UPDATE';
+  content: {
+    text?: string;
+    imageUrl?: string;
+    videoUrl?: string;
+    eventId?: string; // Link to Event
+    trackUrl?: string; // Spotify/SoundCloud link
+  };
+  timestamp: string;
+  likes: number;
+  likedByUser?: boolean;
+}
+
+// Highlight Videos (15-second venue moments)
+export interface HighlightVideo {
+  id: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  venueId: string;
+  venueName: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  duration: number; // Max 15 seconds
+  expiresAt: string; // 24 hours from creation
+  viewCount: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// Calendar Filters
+export interface CalendarFilter {
+  venueIds?: string[];
+  performerIds?: string[];
+  genres?: string[];
+  dateRange: {
+    start: string; // ISO date
+    end: string; // ISO date
+  };
+  priceRange?: {
+    min: number;
+    max: number;
+  };
+}
+
+// ===== GROWTH FEATURES: MONETIZATION =====
+
+export interface DynamicPricing {
+  id: string;
+  venueId: string;
+  basePrice: number;
+  currentPrice: number;
+  discountPercentage: number;
+  validUntil: string;
+  reason: 'SLOW_HOUR' | 'EARLY_BIRD' | 'APP_EXCLUSIVE' | 'HAPPY_HOUR' | 'FLASH_SALE';
+  description: string;
+}
+
+export interface PriceAlert {
+  id: string;
+  userId: string;
+  venueId: string;
+  targetDiscount: number; // Percentage
+  isActive: boolean;
+  createdAt: string;
+  notifiedAt?: string;
+}
+
+// ===== GROWTH FEATURES: RETENTION =====
+
+export interface Streak {
+  id: string;
+  userId: string;
+  type: 'WEEKEND_WARRIOR' | 'VENUE_LOYALTY' | 'SOCIAL_BUTTERFLY' | 'EVENT_ENTHUSIAST';
+  currentStreak: number; // Days or count
+  longestStreak: number;
+  lastActivityDate: string;
+  rewards: {
+    milestones: number[]; // e.g., [3, 7, 14, 30]
+    nextMilestone?: number;
+    currentRewards: StreakReward[];
+  };
+}
+
+export interface StreakReward {
+  type: 'DISCOUNT' | 'FREE_DRINK' | 'VIP_ACCESS' | 'BADGE' | 'POINTS';
+  value: any;
+  description: string;
+  expiresAt?: string;
+}
+
+export interface Memory {
+  id: string;
+  userId: string;
+  venueId: string;
+  venueName: string;
+  date: string;
+  type: 'CHECK_IN' | 'VIDEO' | 'PHOTO' | 'MILESTONE' | 'EVENT';
+  content: {
+    imageUrl?: string;
+    videoUrl?: string;
+    caption?: string;
+    eventId?: string;
+    friendIds?: string[]; // Tagged friends
+  };
+  isPrivate: boolean;
+  createdAt: string;
+}
+
+// ============================================================================
+// BUSINESS PROFILES & VENUE MANAGEMENT
+// ============================================================================
+
+/**
+ * Business Profile - Created by venue owners/managers
+ */
+export interface BusinessProfile {
+  id: string;
+  userId: string; // User who created the profile
+  venueName: string;
+  venueId?: string; // Linked venue after approval
+  businessEmail: string;
+  location: {
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  phone?: string;
+  website?: string;
+  description?: string;
+  businessType: 'BAR' | 'CLUB' | 'LOUNGE' | 'RESTAURANT' | 'OTHER';
+  status: 'PENDING_VERIFICATION' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
+  verificationToken?: string;
+  verificationTokenExpiry?: string;
+  emailVerified: boolean;
+  emailVerifiedAt?: string;
+  documentsSubmitted: boolean;
+  documentsApproved: boolean;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Venue Role - Permissions for managing a venue
+ */
+export interface VenueRole {
+  id: string;
+  venueId: string;
+  userId: string;
+  role: 'HEAD_MODERATOR' | 'MODERATOR' | 'STAFF' | 'VIEWER';
+  permissions: VenuePermission[];
+  assignedBy: string;
+  assignedAt: string;
+  isActive: boolean;
+}
+
+/**
+ * Venue Permissions
+ */
+export type VenuePermission =
+  | 'EDIT_VENUE_INFO' // Edit name, description, hours
+  | 'EDIT_VENUE_DISPLAY' // Edit images, theme, styling
+  | 'MANAGE_EVENTS' // Create/edit events
+  | 'MANAGE_GUEST_LIST' // Add/remove guests
+  | 'MANAGE_TICKETS' // Create/edit tickets
+  | 'MANAGE_PRICING' // Set dynamic pricing
+  | 'MANAGE_STAFF' // Add/remove moderators
+  | 'VIEW_ANALYTICS' // View venue analytics
+  | 'MANAGE_CONTENT' // Moderate videos/posts
+  | 'MANAGE_CHALLENGES' // Create venue challenges
+  | 'FULL_ACCESS'; // All permissions (HEAD_MODERATOR only)
+
+/**
+ * Email Verification Token
+ */
+export interface EmailVerificationToken {
+  id: string;
+  businessProfileId: string;
+  email: string;
+  token: string;
+  expiresAt: string;
+  verifiedAt?: string;
+  createdAt: string;
+}
+
+/**
+ * Venue Edit Request - For displaying what changed
+ */
+export interface VenueEditRequest {
+  id: string;
+  venueId: string;
+  userId: string;
+  changes: {
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }[];
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  approvedBy?: string;
+  approvedAt?: string;
+  createdAt: string;
+}
+
+/**
+ * Business Registration Form Data
+ */
+export interface BusinessRegistrationData {
+  venueName: string;
+  businessEmail: string;
+  location: {
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  phone?: string;
+  website?: string;
+  businessType: 'BAR' | 'CLUB' | 'LOUNGE' | 'RESTAURANT' | 'OTHER';
 }

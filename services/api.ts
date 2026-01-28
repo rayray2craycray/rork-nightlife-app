@@ -4,7 +4,25 @@
  * Makes it easy to swap mock data for real API calls
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API } from '@/constants/app';
+import { API_BASE_URL, API_ENDPOINTS } from './config';
+import type {
+  GroupPurchase,
+  Referral,
+  Event,
+  Ticket,
+  GuestListEntry,
+  Crew,
+  Challenge,
+  Performer,
+  PerformerPost,
+  HighlightVideo,
+  DynamicPricing,
+  PriceAlert,
+  Streak,
+  Memory,
+} from '../types';
 
 // ============================================================================
 // BASE API CLIENT
@@ -12,6 +30,13 @@ import { API } from '@/constants/app';
 
 interface RequestConfig extends RequestInit {
   timeout?: number;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
 }
 
 class ApiError extends Error {
@@ -31,10 +56,40 @@ class ApiError extends Error {
 class ApiClient {
   private baseUrl: string;
   private defaultTimeout: number;
+  private authToken: string | null = null;
 
-  constructor(baseUrl: string = process.env.API_BASE_URL || '', timeout: number = API.REQUEST_TIMEOUT_MS) {
+  constructor(baseUrl: string = API_BASE_URL, timeout: number = API.REQUEST_TIMEOUT_MS) {
     this.baseUrl = baseUrl;
     this.defaultTimeout = timeout;
+    this.loadAuthToken();
+  }
+
+  /**
+   * Load authentication token from AsyncStorage
+   */
+  private async loadAuthToken() {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      this.authToken = token;
+    } catch (error) {
+      console.error('Failed to load auth token:', error);
+    }
+  }
+
+  /**
+   * Set authentication token
+   */
+  async setAuthToken(token: string) {
+    this.authToken = token;
+    await AsyncStorage.setItem('authToken', token);
+  }
+
+  /**
+   * Clear authentication token
+   */
+  async clearAuthToken() {
+    this.authToken = null;
+    await AsyncStorage.removeItem('authToken');
   }
 
   private async fetchWithTimeout(
@@ -102,13 +157,20 @@ class ApiClient {
 
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...config?.headers,
+    };
+
+    // Add auth token if available
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
     const response = await this.retryFetch(url, {
       ...config,
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...config?.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -124,13 +186,20 @@ class ApiClient {
 
   async post<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...config?.headers,
+    };
+
+    // Add auth token if available
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
     const response = await this.retryFetch(url, {
       ...config,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...config?.headers,
-      },
+      headers,
       body: data ? JSON.stringify(data) : undefined,
     });
 
@@ -147,13 +216,20 @@ class ApiClient {
 
   async put<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...config?.headers,
+    };
+
+    // Add auth token if available
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
     const response = await this.retryFetch(url, {
       ...config,
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...config?.headers,
-      },
+      headers,
       body: data ? JSON.stringify(data) : undefined,
     });
 
@@ -168,15 +244,52 @@ class ApiClient {
     return response.json();
   }
 
+  async patch<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...config?.headers,
+    };
+
+    // Add auth token if available
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
+    const response = await this.retryFetch(url, {
+      ...config,
+      method: 'PATCH',
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+    });
+
+    if (!response.ok) {
+      throw new ApiError(
+        `PATCH ${endpoint} failed: ${response.statusText}`,
+        response.status,
+        response
+      );
+    }
+
+    return response.json();
+  }
+
   async delete<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...config?.headers,
+    };
+
+    // Add auth token if available
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
     const response = await this.retryFetch(url, {
       ...config,
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...config?.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -268,3 +381,869 @@ export async function exchangeInstagramCode(code: string): Promise<{
 }> {
   return apiClient.post('/auth/instagram/token', { code });
 }
+
+// ============================================================================
+// GROWTH FEATURES API METHODS
+// ============================================================================
+
+// Phase 1: Growth - Group Purchases & Referrals
+export const growthApi = {
+  // Group Purchases
+  createGroupPurchase: async (data: {
+    initiatorId: string;
+    venueId: string;
+    eventId?: string;
+    ticketType: 'ENTRY' | 'TABLE' | 'BOTTLE_SERVICE';
+    totalAmount: number;
+    maxParticipants: number;
+    expiresAt: string;
+  }): Promise<ApiResponse<GroupPurchase>> => {
+    return apiClient.post<ApiResponse<GroupPurchase>>(
+      API_ENDPOINTS.growth.groupPurchases.create,
+      data
+    );
+  },
+
+  getGroupPurchasesByVenue: async (
+    venueId: string
+  ): Promise<ApiResponse<GroupPurchase[]>> => {
+    return apiClient.get<ApiResponse<GroupPurchase[]>>(
+      API_ENDPOINTS.growth.groupPurchases.venue(venueId)
+    );
+  },
+
+  getGroupPurchasesByUser: async (
+    userId: string
+  ): Promise<ApiResponse<GroupPurchase[]>> => {
+    return apiClient.get<ApiResponse<GroupPurchase[]>>(
+      API_ENDPOINTS.growth.groupPurchases.user(userId)
+    );
+  },
+
+  joinGroupPurchase: async (
+    id: string,
+    userId: string
+  ): Promise<ApiResponse<GroupPurchase>> => {
+    return apiClient.post<ApiResponse<GroupPurchase>>(
+      API_ENDPOINTS.growth.groupPurchases.join(id),
+      { userId }
+    );
+  },
+
+  completeGroupPurchase: async (
+    id: string
+  ): Promise<ApiResponse<GroupPurchase>> => {
+    return apiClient.post<ApiResponse<GroupPurchase>>(
+      API_ENDPOINTS.growth.groupPurchases.complete(id)
+    );
+  },
+
+  // Referrals
+  generateReferralCode: async (
+    userId: string
+  ): Promise<ApiResponse<Referral>> => {
+    return apiClient.post<ApiResponse<Referral>>(API_ENDPOINTS.growth.referrals.generate, {
+      userId,
+    });
+  },
+
+  applyReferralCode: async (
+    code: string,
+    userId: string
+  ): Promise<ApiResponse<Referral>> => {
+    return apiClient.post<ApiResponse<Referral>>(API_ENDPOINTS.growth.referrals.apply, {
+      referralCode: code,
+      userId,
+    });
+  },
+
+  getReferralStats: async (userId: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.growth.referrals.stats(userId));
+  },
+
+  getReferralRewards: async (userId: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.growth.referrals.rewards(userId));
+  },
+};
+
+// Phase 2: Events & Ticketing
+export const eventsApi = {
+  // Events
+  getEvents: async (filters?: {
+    venueId?: string;
+    performerId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiResponse<Event[]>> => {
+    const params = new URLSearchParams(filters as any);
+    return apiClient.get<ApiResponse<Event[]>>(
+      `${API_ENDPOINTS.events.list}?${params.toString()}`
+    );
+  },
+
+  getUpcomingEvents: async (): Promise<ApiResponse<Event[]>> => {
+    return apiClient.get<ApiResponse<Event[]>>(API_ENDPOINTS.events.upcoming);
+  },
+
+  getEventDetails: async (id: string): Promise<ApiResponse<Event>> => {
+    return apiClient.get<ApiResponse<Event>>(API_ENDPOINTS.events.detail(id));
+  },
+
+  getEventsByVenue: async (venueId: string): Promise<ApiResponse<Event[]>> => {
+    return apiClient.get<ApiResponse<Event[]>>(API_ENDPOINTS.events.venue(venueId));
+  },
+
+  getEventsByPerformer: async (
+    performerId: string
+  ): Promise<ApiResponse<Event[]>> => {
+    return apiClient.get<ApiResponse<Event[]>>(API_ENDPOINTS.events.performer(performerId));
+  },
+
+  // Tickets
+  purchaseTicket: async (data: {
+    eventId: string;
+    userId: string;
+    tierId: string;
+    quantity?: number;
+  }): Promise<ApiResponse<Ticket>> => {
+    return apiClient.post<ApiResponse<Ticket>>(
+      API_ENDPOINTS.events.tickets.purchase,
+      data
+    );
+  },
+
+  getUserTickets: async (userId: string): Promise<ApiResponse<Ticket[]>> => {
+    return apiClient.get<ApiResponse<Ticket[]>>(API_ENDPOINTS.events.tickets.user(userId));
+  },
+
+  transferTicket: async (
+    id: string,
+    toUserId: string
+  ): Promise<ApiResponse<Ticket>> => {
+    return apiClient.post<ApiResponse<Ticket>>(API_ENDPOINTS.events.tickets.transfer(id), {
+      toUserId,
+    });
+  },
+
+  validateTicket: async (
+    qrCode: string
+  ): Promise<ApiResponse<{ valid: boolean; ticket?: Ticket }>> => {
+    return apiClient.post<ApiResponse<{ valid: boolean; ticket?: Ticket }>>(
+      API_ENDPOINTS.events.tickets.validate,
+      { qrCode }
+    );
+  },
+
+  checkInTicket: async (id: string): Promise<ApiResponse<Ticket>> => {
+    return apiClient.post<ApiResponse<Ticket>>(API_ENDPOINTS.events.tickets.checkIn(id));
+  },
+
+  // Guest List
+  addToGuestList: async (data: {
+    venueId: string;
+    eventId?: string;
+    guestName: string;
+    guestPhone?: string;
+    addedBy: string;
+    plusOnes?: number;
+    listType?: 'STANDARD' | 'VIP' | 'MEDIA';
+  }): Promise<ApiResponse<GuestListEntry>> => {
+    return apiClient.post<ApiResponse<GuestListEntry>>(
+      API_ENDPOINTS.events.guestList.add,
+      data
+    );
+  },
+
+  getVenueGuestList: async (
+    venueId: string
+  ): Promise<ApiResponse<GuestListEntry[]>> => {
+    return apiClient.get<ApiResponse<GuestListEntry[]>>(
+      API_ENDPOINTS.events.guestList.venue(venueId)
+    );
+  },
+
+  getEventGuestList: async (
+    eventId: string
+  ): Promise<ApiResponse<GuestListEntry[]>> => {
+    return apiClient.get<ApiResponse<GuestListEntry[]>>(
+      API_ENDPOINTS.events.guestList.event(eventId)
+    );
+  },
+
+  checkGuestList: async (data: {
+    venueId: string;
+    guestName: string;
+    eventId?: string;
+  }): Promise<ApiResponse<{ onList: boolean; entry?: GuestListEntry }>> => {
+    return apiClient.post<ApiResponse<{ onList: boolean; entry?: GuestListEntry }>>(
+      API_ENDPOINTS.events.guestList.check,
+      data
+    );
+  },
+
+  checkInGuest: async (id: string): Promise<ApiResponse<GuestListEntry>> => {
+    return apiClient.post<ApiResponse<GuestListEntry>>(
+      API_ENDPOINTS.events.guestList.checkIn(id)
+    );
+  },
+
+  cancelGuestListEntry: async (
+    id: string
+  ): Promise<ApiResponse<GuestListEntry>> => {
+    return apiClient.post<ApiResponse<GuestListEntry>>(
+      API_ENDPOINTS.events.guestList.cancel(id)
+    );
+  },
+};
+
+// Phase 3: Social - Crews & Challenges
+export const socialApi = {
+  // Crews
+  createCrew: async (data: {
+    name: string;
+    ownerId: string;
+    description?: string;
+    isPrivate?: boolean;
+  }): Promise<ApiResponse<Crew>> => {
+    return apiClient.post<ApiResponse<Crew>>(API_ENDPOINTS.social.crews.create, data);
+  },
+
+  getCrewDetails: async (id: string): Promise<ApiResponse<Crew>> => {
+    return apiClient.get<ApiResponse<Crew>>(API_ENDPOINTS.social.crews.detail(id));
+  },
+
+  getUserCrews: async (userId: string): Promise<ApiResponse<Crew[]>> => {
+    return apiClient.get<ApiResponse<Crew[]>>(API_ENDPOINTS.social.crews.user(userId));
+  },
+
+  searchCrews: async (query: string): Promise<ApiResponse<Crew[]>> => {
+    return apiClient.get<ApiResponse<Crew[]>>(
+      `${API_ENDPOINTS.social.crews.search}?q=${encodeURIComponent(query)}`
+    );
+  },
+
+  getActiveCrews: async (): Promise<ApiResponse<Crew[]>> => {
+    return apiClient.get<ApiResponse<Crew[]>>(API_ENDPOINTS.social.crews.active);
+  },
+
+  addCrewMember: async (
+    id: string,
+    userId: string
+  ): Promise<ApiResponse<Crew>> => {
+    return apiClient.post<ApiResponse<Crew>>(API_ENDPOINTS.social.crews.addMember(id), {
+      userId,
+    });
+  },
+
+  removeCrewMember: async (
+    id: string,
+    userId: string
+  ): Promise<ApiResponse<Crew>> => {
+    return apiClient.delete<ApiResponse<Crew>>(
+      API_ENDPOINTS.social.crews.removeMember(id, userId)
+    );
+  },
+
+  // Challenges
+  getActiveChallenges: async (): Promise<ApiResponse<Challenge[]>> => {
+    return apiClient.get<ApiResponse<Challenge[]>>(API_ENDPOINTS.social.challenges.active);
+  },
+
+  getChallengeDetails: async (id: string): Promise<ApiResponse<Challenge>> => {
+    return apiClient.get<ApiResponse<Challenge>>(API_ENDPOINTS.social.challenges.detail(id));
+  },
+
+  getUserChallenges: async (
+    userId: string
+  ): Promise<ApiResponse<Challenge[]>> => {
+    return apiClient.get<ApiResponse<Challenge[]>>(
+      API_ENDPOINTS.social.challenges.user(userId)
+    );
+  },
+
+  joinChallenge: async (
+    id: string,
+    userId: string
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.social.challenges.join(id), {
+      userId,
+    });
+  },
+
+  getChallengeProgress: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.social.challenges.progress(id));
+  },
+
+  claimChallengeReward: async (
+    id: string,
+    userId: string
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.social.challenges.claim(id), {
+      userId,
+    });
+  },
+
+  // Contact & Instagram Sync (existing features)
+  syncContacts: async (data: {
+    userId: string;
+    contacts: Array<{ name: string; phoneNumber: string }>;
+  }): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.social.sync.contacts, data);
+  },
+
+  syncInstagram: async (data: {
+    userId: string;
+    instagramToken: string;
+  }): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.social.sync.instagram, data);
+  },
+};
+
+// Phase 4: Content - Performers & Highlights
+export const contentApi = {
+  // Performers
+  searchPerformers: async (query: string): Promise<ApiResponse<Performer[]>> => {
+    return apiClient.get<ApiResponse<Performer[]>>(
+      `${API_ENDPOINTS.content.performers.search}?q=${encodeURIComponent(query)}`
+    );
+  },
+
+  getPerformersByGenre: async (
+    genre: string
+  ): Promise<ApiResponse<Performer[]>> => {
+    return apiClient.get<ApiResponse<Performer[]>>(
+      API_ENDPOINTS.content.performers.genre(genre)
+    );
+  },
+
+  getTrendingPerformers: async (): Promise<ApiResponse<Performer[]>> => {
+    return apiClient.get<ApiResponse<Performer[]>>(
+      API_ENDPOINTS.content.performers.trending
+    );
+  },
+
+  getPerformerDetails: async (id: string): Promise<ApiResponse<Performer>> => {
+    return apiClient.get<ApiResponse<Performer>>(API_ENDPOINTS.content.performers.detail(id));
+  },
+
+  followPerformer: async (
+    id: string,
+    userId: string
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.content.performers.follow(id), {
+      userId,
+    });
+  },
+
+  unfollowPerformer: async (
+    id: string,
+    userId: string
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.content.performers.unfollow(id), {
+      userId,
+    });
+  },
+
+  getPerformerPosts: async (
+    id: string
+  ): Promise<ApiResponse<PerformerPost[]>> => {
+    return apiClient.get<ApiResponse<PerformerPost[]>>(
+      API_ENDPOINTS.content.performers.posts(id)
+    );
+  },
+
+  getPerformerFeed: async (
+    userId: string
+  ): Promise<ApiResponse<PerformerPost[]>> => {
+    return apiClient.get<ApiResponse<PerformerPost[]>>(
+      API_ENDPOINTS.content.performers.feed(userId)
+    );
+  },
+
+  likePerformerPost: async (
+    performerId: string,
+    postId: string,
+    userId: string
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(
+      API_ENDPOINTS.content.performers.likePost(performerId, postId),
+      { userId }
+    );
+  },
+
+  // Highlights
+  uploadHighlight: async (data: {
+    videoUrl: string;
+    thumbnailUrl: string;
+    venueId: string;
+    userId: string;
+    duration: number;
+    eventId?: string;
+  }): Promise<ApiResponse<HighlightVideo>> => {
+    return apiClient.post<ApiResponse<HighlightVideo>>(
+      API_ENDPOINTS.content.highlights.upload,
+      data
+    );
+  },
+
+  getVenueHighlights: async (
+    venueId: string
+  ): Promise<ApiResponse<HighlightVideo[]>> => {
+    return apiClient.get<ApiResponse<HighlightVideo[]>>(
+      API_ENDPOINTS.content.highlights.venue(venueId)
+    );
+  },
+
+  getEventHighlights: async (
+    eventId: string
+  ): Promise<ApiResponse<HighlightVideo[]>> => {
+    return apiClient.get<ApiResponse<HighlightVideo[]>>(
+      API_ENDPOINTS.content.highlights.event(eventId)
+    );
+  },
+
+  getUserHighlights: async (
+    userId: string
+  ): Promise<ApiResponse<HighlightVideo[]>> => {
+    return apiClient.get<ApiResponse<HighlightVideo[]>>(
+      API_ENDPOINTS.content.highlights.user(userId)
+    );
+  },
+
+  getTrendingHighlights: async (): Promise<
+    ApiResponse<HighlightVideo[]>
+  > => {
+    return apiClient.get<ApiResponse<HighlightVideo[]>>(
+      API_ENDPOINTS.content.highlights.trending
+    );
+  },
+
+  getHighlightsFeed: async (
+    userId: string
+  ): Promise<ApiResponse<HighlightVideo[]>> => {
+    return apiClient.get<ApiResponse<HighlightVideo[]>>(
+      API_ENDPOINTS.content.highlights.feed(userId)
+    );
+  },
+
+  viewHighlight: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.content.highlights.view(id));
+  },
+
+  likeHighlight: async (
+    id: string,
+    userId: string
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.content.highlights.like(id), {
+      userId,
+    });
+  },
+
+  // Get all active highlights (not expired)
+  getActiveHighlights: async (): Promise<ApiResponse<HighlightVideo[]>> => {
+    return apiClient.get<ApiResponse<HighlightVideo[]>>(
+      API_ENDPOINTS.content.highlights.trending // Use trending endpoint or create new one
+    );
+  },
+};
+
+// Phase 5: Monetization - Dynamic Pricing
+export const pricingApi = {
+  // Dynamic Pricing
+  getCurrentPricing: async (
+    venueId: string
+  ): Promise<ApiResponse<DynamicPricing>> => {
+    return apiClient.get<ApiResponse<DynamicPricing>>(
+      API_ENDPOINTS.pricing.dynamic.current(venueId)
+    );
+  },
+
+  calculateDynamicPrice: async (data: {
+    venueId: string;
+    basePrice: number;
+    occupancyPercentage: number;
+    dayOfWeek: number;
+    hour: number;
+  }): Promise<ApiResponse<DynamicPricing>> => {
+    return apiClient.post<ApiResponse<DynamicPricing>>(
+      API_ENDPOINTS.pricing.dynamic.calculate,
+      data
+    );
+  },
+
+  getPricingHistory: async (
+    venueId: string,
+    days?: number
+  ): Promise<ApiResponse<DynamicPricing[]>> => {
+    return apiClient.get<ApiResponse<DynamicPricing[]>>(
+      `${API_ENDPOINTS.pricing.dynamic.history(venueId)}?days=${days || 7}`
+    );
+  },
+
+  // Price Alerts
+  createPriceAlert: async (data: {
+    userId: string;
+    venueId: string;
+    targetDiscount: number;
+    eventId?: string;
+  }): Promise<ApiResponse<PriceAlert>> => {
+    return apiClient.post<ApiResponse<PriceAlert>>(
+      API_ENDPOINTS.pricing.alerts.create,
+      data
+    );
+  },
+
+  getUserPriceAlerts: async (
+    userId: string
+  ): Promise<ApiResponse<PriceAlert[]>> => {
+    return apiClient.get<ApiResponse<PriceAlert[]>>(
+      API_ENDPOINTS.pricing.alerts.user(userId)
+    );
+  },
+
+  getVenuePriceAlerts: async (
+    venueId: string
+  ): Promise<ApiResponse<PriceAlert[]>> => {
+    return apiClient.get<ApiResponse<PriceAlert[]>>(
+      API_ENDPOINTS.pricing.alerts.venue(venueId)
+    );
+  },
+
+  updatePriceAlert: async (
+    id: string,
+    data: { targetDiscount?: number; isActive?: boolean }
+  ): Promise<ApiResponse<PriceAlert>> => {
+    return apiClient.patch<ApiResponse<PriceAlert>>(
+      API_ENDPOINTS.pricing.alerts.update(id),
+      data
+    );
+  },
+
+  deactivatePriceAlert: async (id: string): Promise<ApiResponse<PriceAlert>> => {
+    return apiClient.post<ApiResponse<PriceAlert>>(
+      API_ENDPOINTS.pricing.alerts.deactivate(id)
+    );
+  },
+
+  deletePriceAlert: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.delete<ApiResponse<any>>(API_ENDPOINTS.pricing.alerts.delete(id));
+  },
+
+  // Get all active pricing across all venues
+  getAllActivePricing: async (): Promise<ApiResponse<DynamicPricing[]>> => {
+    // This would need a new endpoint, for now return empty array
+    return Promise.resolve({ success: true, data: [] });
+  },
+};
+
+// Phase 6: Retention - Streaks & Memories
+export const retentionApi = {
+  // Streaks
+  getUserStreaks: async (userId: string): Promise<ApiResponse<Streak[]>> => {
+    return apiClient.get<ApiResponse<Streak[]>>(
+      API_ENDPOINTS.retention.streaks.user(userId)
+    );
+  },
+
+  incrementStreak: async (
+    id: string,
+    activityType: string
+  ): Promise<ApiResponse<Streak>> => {
+    return apiClient.post<ApiResponse<Streak>>(
+      API_ENDPOINTS.retention.streaks.increment(id),
+      { activityType }
+    );
+  },
+
+  claimStreakMilestone: async (
+    id: string,
+    milestone: number
+  ): Promise<ApiResponse<Streak>> => {
+    return apiClient.post<ApiResponse<Streak>>(
+      API_ENDPOINTS.retention.streaks.claimMilestone(id, milestone)
+    );
+  },
+
+  getStreakLeaderboard: async (
+    type: string
+  ): Promise<ApiResponse<any[]>> => {
+    return apiClient.get<ApiResponse<any[]>>(
+      API_ENDPOINTS.retention.streaks.leaderboard(type)
+    );
+  },
+
+  getStreaksAtRisk: async (): Promise<ApiResponse<Streak[]>> => {
+    return apiClient.get<ApiResponse<Streak[]>>(API_ENDPOINTS.retention.streaks.atRisk);
+  },
+
+  // Memories
+  createMemory: async (data: {
+    userId: string;
+    venueId: string;
+    date: string;
+    type: 'CHECK_IN' | 'VIDEO' | 'PHOTO' | 'MILESTONE';
+    content: {
+      imageUrl?: string;
+      videoUrl?: string;
+      caption?: string;
+    };
+    isPrivate?: boolean;
+    taggedUserIds?: string[];
+  }): Promise<ApiResponse<Memory>> => {
+    return apiClient.post<ApiResponse<Memory>>(
+      API_ENDPOINTS.retention.memories.create,
+      data
+    );
+  },
+
+  getUserTimeline: async (userId: string): Promise<ApiResponse<Memory[]>> => {
+    return apiClient.get<ApiResponse<Memory[]>>(
+      API_ENDPOINTS.retention.memories.timeline(userId)
+    );
+  },
+
+  getVenueMemories: async (venueId: string): Promise<ApiResponse<Memory[]>> => {
+    return apiClient.get<ApiResponse<Memory[]>>(
+      API_ENDPOINTS.retention.memories.venue(venueId)
+    );
+  },
+
+  getTaggedMemories: async (userId: string): Promise<ApiResponse<Memory[]>> => {
+    return apiClient.get<ApiResponse<Memory[]>>(
+      API_ENDPOINTS.retention.memories.tagged(userId)
+    );
+  },
+
+  getOnThisDayMemories: async (
+    userId: string
+  ): Promise<ApiResponse<Memory[]>> => {
+    return apiClient.get<ApiResponse<Memory[]>>(
+      API_ENDPOINTS.retention.memories.onThisDay(userId)
+    );
+  },
+
+  getMemoryHighlights: async (
+    userId: string
+  ): Promise<ApiResponse<Memory[]>> => {
+    return apiClient.get<ApiResponse<Memory[]>>(
+      API_ENDPOINTS.retention.memories.highlights(userId)
+    );
+  },
+
+  likeMemory: async (id: string, userId: string): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.retention.memories.like(id), {
+      userId,
+    });
+  },
+
+  addMemoryComment: async (
+    id: string,
+    userId: string,
+    text: string
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.retention.memories.addComment(id), {
+      userId,
+      text,
+    });
+  },
+
+  // Alias for getUserTimeline - used by RetentionContext
+  getUserMemories: async (userId: string): Promise<ApiResponse<Memory[]>> => {
+    return apiClient.get<ApiResponse<Memory[]>>(
+      API_ENDPOINTS.retention.memories.timeline(userId)
+    );
+  },
+};
+
+// Authentication
+export const authApi = {
+  setAuthToken: (token: string) => apiClient.setAuthToken(token),
+  clearAuthToken: () => apiClient.clearAuthToken(),
+};
+
+// ============================================================================
+// BUSINESS PROFILE API
+// ============================================================================
+
+export const businessApi = {
+  /**
+   * Register a new business profile
+   */
+  register: async (data: {
+    venueName: string;
+    businessEmail: string;
+    location: {
+      address: string;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+    };
+    businessType: string;
+  }): Promise<ApiResponse<{ businessProfile: any; message: string }>> => {
+    return apiClient.post<ApiResponse<{ businessProfile: any; message: string }>>(
+      API_ENDPOINTS.business.register,
+      data
+    );
+  },
+
+  /**
+   * Verify business email with token
+   */
+  verifyEmail: async (
+    token: string
+  ): Promise<ApiResponse<{ businessProfile: any; venue: any; venueRole: any }>> => {
+    return apiClient.get<
+      ApiResponse<{ businessProfile: any; venue: any; venueRole: any }>
+    >(API_ENDPOINTS.business.verify(token));
+  },
+
+  /**
+   * Resend verification email
+   */
+  resendVerificationEmail: async (): Promise<ApiResponse<{ message: string }>> => {
+    return apiClient.post<ApiResponse<{ message: string }>>(
+      API_ENDPOINTS.business.resendVerification
+    );
+  },
+
+  /**
+   * Get user's business profile
+   */
+  getProfile: async (): Promise<
+    ApiResponse<{ businessProfile: any; venues: any[] }>
+  > => {
+    return apiClient.get<ApiResponse<{ businessProfile: any; venues: any[] }>>(
+      API_ENDPOINTS.business.profile
+    );
+  },
+
+  /**
+   * Update business profile
+   */
+  updateProfile: async (updates: {
+    venueName?: string;
+    businessEmail?: string;
+    location?: any;
+  }): Promise<ApiResponse<{ businessProfile: any }>> => {
+    return apiClient.patch<ApiResponse<{ businessProfile: any }>>(
+      API_ENDPOINTS.business.updateProfile,
+      updates
+    );
+  },
+};
+
+// ============================================================================
+// VENUE MANAGEMENT API
+// ============================================================================
+
+export const venueManagementApi = {
+  /**
+   * Get user's venue roles
+   */
+  getUserRoles: async (): Promise<ApiResponse<{ roles: any[] }>> => {
+    return apiClient.get<ApiResponse<{ roles: any[] }>>(
+      API_ENDPOINTS.venueManagement.roles
+    );
+  },
+
+  /**
+   * Get venue details
+   */
+  getVenueDetails: async (
+    venueId: string
+  ): Promise<ApiResponse<{ venue: any; userRole: any }>> => {
+    return apiClient.get<ApiResponse<{ venue: any; userRole: any }>>(
+      API_ENDPOINTS.venueManagement.detail(venueId)
+    );
+  },
+
+  /**
+   * Update venue basic information
+   */
+  updateVenueInfo: async (
+    venueId: string,
+    updates: {
+      name?: string;
+      location?: any;
+      coverCharge?: number;
+      hours?: any;
+      tags?: string[];
+      capacity?: number;
+      priceLevel?: number;
+    }
+  ): Promise<ApiResponse<{ venue: any }>> => {
+    return apiClient.patch<ApiResponse<{ venue: any }>>(
+      API_ENDPOINTS.venueManagement.updateInfo(venueId),
+      updates
+    );
+  },
+
+  /**
+   * Update venue display (images, description, tags)
+   */
+  updateVenueDisplay: async (
+    venueId: string,
+    displayUpdates: {
+      imageUrl?: string;
+      description?: string;
+      tags?: string[];
+      genres?: string[];
+    }
+  ): Promise<ApiResponse<{ venue: any }>> => {
+    return apiClient.patch<ApiResponse<{ venue: any }>>(
+      API_ENDPOINTS.venueManagement.updateDisplay(venueId),
+      displayUpdates
+    );
+  },
+
+  /**
+   * Assign role to user for venue
+   */
+  assignRole: async (
+    venueId: string,
+    data: {
+      userId: string;
+      role: string;
+      permissions?: string[];
+    }
+  ): Promise<ApiResponse<{ venueRole: any }>> => {
+    return apiClient.post<ApiResponse<{ venueRole: any }>>(
+      API_ENDPOINTS.venueManagement.assignRole(venueId),
+      data
+    );
+  },
+
+  /**
+   * Remove role from user
+   */
+  removeRole: async (venueId: string, roleId: string): Promise<ApiResponse<any>> => {
+    return apiClient.delete<ApiResponse<any>>(
+      API_ENDPOINTS.venueManagement.removeRole(venueId, roleId)
+    );
+  },
+
+  /**
+   * Get venue staff list
+   */
+  getVenueStaff: async (
+    venueId: string
+  ): Promise<ApiResponse<{ staff: any[] }>> => {
+    return apiClient.get<ApiResponse<{ staff: any[] }>>(
+      API_ENDPOINTS.venueManagement.staff(venueId)
+    );
+  },
+};
+
+// Export all APIs as a unified object
+export const fullApi = {
+  growth: growthApi,
+  events: eventsApi,
+  social: socialApi,
+  content: contentApi,
+  pricing: pricingApi,
+  retention: retentionApi,
+  auth: authApi,
+  business: businessApi,
+  venueManagement: venueManagementApi,
+};

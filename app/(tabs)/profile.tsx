@@ -11,20 +11,32 @@ import {
   KeyboardAvoidingView,
   Platform,
   Share,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { Award, Eye, EyeOff, Settings, CreditCard, Users, BarChart3, Edit, X, CheckCircle2, Shield, UserPlus, UserMinus, Share2 } from 'lucide-react-native';
+import { Award, Eye, EyeOff, Settings, CreditCard, Users, BarChart3, Edit, X, CheckCircle2, Shield, UserPlus, UserMinus, Share2, ChevronRight, DollarSign, Camera, Image as ImageIcon, Plus, MapPin, Building2 } from 'lucide-react-native';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useSocial } from '@/contexts/SocialContext';
+import { useGrowth } from '@/contexts/GrowthContext';
+import { useRetention } from '@/contexts/RetentionContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useVenueManagement } from '@/contexts/VenueManagementContext';
+import { useUpload } from '@/hooks/useUpload';
 import { router } from 'expo-router';
 import { mockVenues } from '@/mocks/venues';
 import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
+import UserProfileModal from '@/components/UserProfileModal';
+import { ReferralCard } from '@/components/ReferralCard';
+import { ReferralRewardModal } from '@/components/modals/ReferralRewardModal';
 
 type SocialTab = 'FOLLOWERS' | 'FOLLOWING';
 
 export default function ProfileScreen() {
-  const { profile, toggleIncognito, updateProfileDetails } = useAppState();
+  const { profile, toggleIncognito, updateProfileDetails, addLinkedCard } = useAppState();
+  const { user } = useAuth();
   const {
     following,
     followers,
@@ -35,13 +47,54 @@ export default function ProfileScreen() {
     suggestedPeople,
     getSuggestionSourceLabel,
     getSuggestionSourceColor,
+    userCrews,
   } = useSocial();
+  const { referralStats, referralRewards, claimReferralReward, myGroupPurchases } = useGrowth();
+  const { activeStreaks, stats: retentionStats, getTimeline, addMemory, memories } = useRetention();
+  const { hasBusinessProfile, businessProfile, managedVenues } = useVenueManagement();
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [showSocialList, setShowSocialList] = useState(false);
   const [socialTab, setSocialTab] = useState<SocialTab>('FOLLOWING');
   const [showBadgesList, setShowBadgesList] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState(profile.displayName);
   const [editBio, setEditBio] = useState(profile.bio || '');
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [showRewardsModal, setShowRewardsModal] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState(user?.profileImageUrl || profile.profileImageUrl);
+  const [showAddMemoryModal, setShowAddMemoryModal] = useState(false);
+  const [memoryCaption, setMemoryCaption] = useState('');
+  const [uploadedMemoryImageUrl, setUploadedMemoryImageUrl] = useState<string | null>(null);
+  const [detectedVenue, setDetectedVenue] = useState<{ id: string; name: string; distance: number } | null>(null);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
+  // Upload hook for profile picture
+  const upload = useUpload({
+    onSuccess: (result) => {
+      setProfileImageUrl(result.url);
+      // Update profile with new image URL
+      // TODO: Add updateProfileImage to AppStateContext
+      Alert.alert('Success', 'Profile picture updated!');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: (error) => {
+      Alert.alert('Upload Failed', error.message);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    },
+  });
+
+  // Upload hook for memory photos
+  const memoryUpload = useUpload({
+    onSuccess: (result) => {
+      setUploadedMemoryImageUrl(result.url);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: (error) => {
+      Alert.alert('Upload Failed', error.message);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    },
+  });
 
   const handleIncognitoToggle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -61,14 +114,170 @@ export default function ProfileScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in kilometers
+  };
+
+  const handleAddMemory = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      // Step 1: Request location permissions
+      setIsDetectingLocation(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== 'granted') {
+        setIsDetectingLocation(false);
+        Alert.alert(
+          'Location Permission Required',
+          'We need your location to verify you\'re at a venue to capture this memory.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Step 2: Get current location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const { latitude, longitude } = location.coords;
+
+      // Step 3: Find nearest venue
+      let nearestVenue: { id: string; name: string; distance: number } | null = null;
+      let minDistance = Infinity;
+
+      mockVenues.forEach((venue) => {
+        const distance = calculateDistance(
+          latitude,
+          longitude,
+          venue.location.latitude,
+          venue.location.longitude
+        );
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestVenue = {
+            id: venue.id,
+            name: venue.name,
+            distance: distance,
+          };
+        }
+      });
+
+      setIsDetectingLocation(false);
+
+      // Step 4: Check if user is close enough to a venue (within 500 meters)
+      if (!nearestVenue || nearestVenue.distance > 0.5) {
+        Alert.alert(
+          'Not at a Venue',
+          nearestVenue
+            ? `You're ${(nearestVenue.distance * 1000).toFixed(0)}m away from ${nearestVenue.name}. Get closer to capture this memory!`
+            : 'No venues found nearby. Make sure you\'re at a nightlife venue to capture memories.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Step 5: Set detected venue and open modal
+      setDetectedVenue(nearestVenue);
+      setShowAddMemoryModal(true);
+
+      // Step 6: Open camera to take live photo
+      const result = await memoryUpload.uploadProfileFromCamera();
+
+      if (!result) {
+        setShowAddMemoryModal(false);
+        setDetectedVenue(null);
+      }
+    } catch (error) {
+      console.error('Error adding memory:', error);
+      setIsDetectingLocation(false);
+      Alert.alert('Error', 'Failed to detect your location. Please try again.');
+    }
+  };
+
+  const handleSaveMemory = () => {
+    if (!uploadedMemoryImageUrl) {
+      Alert.alert('Error', 'Please take a photo first');
+      return;
+    }
+
+    if (!memoryCaption.trim()) {
+      Alert.alert('Error', 'Please add a caption for your memory');
+      return;
+    }
+
+    if (!detectedVenue) {
+      Alert.alert('Error', 'Venue location not detected');
+      return;
+    }
+
+    addMemory({
+      venueId: detectedVenue.id,
+      venueName: detectedVenue.name,
+      date: new Date().toISOString(),
+      type: 'PHOTO',
+      content: {
+        imageUrl: uploadedMemoryImageUrl,
+        caption: memoryCaption,
+      },
+      isPrivate: false,
+    });
+
+    // Reset state
+    setShowAddMemoryModal(false);
+    setMemoryCaption('');
+    setUploadedMemoryImageUrl(null);
+    setDetectedVenue(null);
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handleChangeProfilePicture = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Change Profile Picture',
+      'Choose a photo source',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => {
+            upload.uploadProfileFromCamera();
+          },
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: () => {
+            upload.uploadProfileFromGallery();
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       const profileLink = `https://Nox.app/profile/${profile.id}`;
-      const message = profile.bio 
+      const message = profile.bio
         ? `Check out ${profile.displayName} on Nox!\n\n${profile.bio}\n\n${profileLink}`
         : `Check out ${profile.displayName} on Nox!\n\n${profileLink}`;
-      
+
       await Share.share({
         message,
         title: `${profile.displayName} on Nox`,
@@ -77,6 +286,25 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error('Error sharing profile:', error);
     }
+  };
+
+  const handleOpenUserProfile = (userId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedUserId(userId);
+    setShowUserProfile(true);
+  };
+
+  const handleOpenDM = (userId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowUserProfile(false);
+    router.push(`/servers?openDM=${userId}`);
+  };
+
+  const handleSelectCard = async (card: { last4: string; brand: string; cardholderName: string }) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await addLinkedCard(card);
+    setShowWalletModal(false);
+    router.push('/settings');
   };
 
   return (
@@ -92,16 +320,41 @@ export default function ProfileScreen() {
           <Share2 size={24} color="#ff0080" />
         </TouchableOpacity>
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={handleChangeProfilePicture}
+            disabled={upload.isUploading}
+          >
             <LinearGradient
               colors={['#ff0080', '#a855f7']}
               style={styles.avatarGradient}
             >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{profile.displayName[0]}</Text>
-              </View>
+              {profileImageUrl ? (
+                <Image
+                  source={{ uri: profileImageUrl }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{profile.displayName[0]}</Text>
+                </View>
+              )}
+              {upload.isUploading && (
+                <View style={styles.uploadingOverlay}>
+                  <ActivityIndicator size="large" color="#fff" />
+                  <Text style={styles.uploadingText}>
+                    {upload.uploadProgress}%
+                  </Text>
+                </View>
+              )}
+              {!upload.isUploading && (
+                <View style={styles.cameraIconContainer}>
+                  <Camera size={20} color="#fff" />
+                </View>
+              )}
             </LinearGradient>
-          </View>
+          </TouchableOpacity>
           <View style={styles.nameRow}>
             <Text style={styles.displayName}>{profile.displayName}</Text>
             {profile.isVerified && (
@@ -271,7 +524,10 @@ export default function ProfileScreen() {
                     colors={['#1a1a2e', '#1a1a1a']}
                     style={styles.userCardGradient}
                   >
-                    <View style={styles.userCardLeft}>
+                    <TouchableOpacity
+                      style={styles.userCardLeft}
+                      onPress={() => handleOpenUserProfile(userId)}
+                    >
                       <Image
                         source={{ uri: userProfile.avatarUrl }}
                         style={styles.userAvatar}
@@ -286,7 +542,7 @@ export default function ProfileScreen() {
                           </View>
                         )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       style={[
                         styles.followButton,
@@ -320,7 +576,10 @@ export default function ProfileScreen() {
                     colors={['#1a1a2e', '#1a1a1a']}
                     style={styles.userCardGradient}
                   >
-                    <View style={styles.userCardLeft}>
+                    <TouchableOpacity
+                      style={styles.userCardLeft}
+                      onPress={() => handleOpenUserProfile(userId)}
+                    >
                       <Image
                         source={{ uri: userProfile.avatarUrl }}
                         style={styles.userAvatar}
@@ -335,7 +594,7 @@ export default function ProfileScreen() {
                           </View>
                         )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.followingButton}
                       onPress={() => {
@@ -452,10 +711,283 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* Referrals Section */}
+        {referralStats && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Referrals</Text>
+            <ReferralCard
+              referralStats={referralStats}
+              onViewRewards={() => setShowRewardsModal(true)}
+            />
+          </View>
+        )}
+
+        {/* Streaks Section */}
+        {activeStreaks.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Active Streaks 🔥</Text>
+            <View style={styles.streaksContainer}>
+              {activeStreaks.map((streak) => (
+                <View key={streak.id} style={styles.streakCard}>
+                  <Text style={styles.streakEmoji}>
+                    {streak.type === 'WEEKEND_WARRIOR' ? '🎉' :
+                     streak.type === 'VENUE_LOYALTY' ? '🏆' :
+                     streak.type === 'SOCIAL_BUTTERFLY' ? '🦋' : '🎪'}
+                  </Text>
+                  <View style={styles.streakInfo}>
+                    <Text style={styles.streakTitle}>
+                      {streak.type.replace(/_/g, ' ')}
+                    </Text>
+                    <Text style={styles.streakCount}>
+                      {streak.currentStreak} {streak.currentStreak === 1 ? 'day' : 'days'}
+                    </Text>
+                  </View>
+                  <View style={styles.streakBadge}>
+                    <Text style={styles.streakBadgeText}>
+                      Best: {streak.longestStreak}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Crews Section */}
+        {userCrews.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Crews</Text>
+              <TouchableOpacity onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                // Navigate to crews list
+              }}>
+                <Text style={styles.sectionLink}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            {userCrews.slice(0, 3).map((crew) => (
+              <TouchableOpacity
+                key={crew.id}
+                style={styles.crewItem}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  router.push(`/crews/${crew.id}`);
+                }}
+              >
+                <View style={styles.crewIcon}>
+                  <Users size={20} color="#a855f7" />
+                </View>
+                <View style={styles.crewInfo}>
+                  <Text style={styles.crewName}>{crew.name}</Text>
+                  <Text style={styles.crewMembers}>
+                    {crew.memberIds.length} members • {crew.stats.totalNightsOut} nights out
+                  </Text>
+                </View>
+                <ChevronRight size={20} color="#999" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Memories Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Memories</Text>
+            <TouchableOpacity onPress={handleAddMemory}>
+              <View style={styles.addButton}>
+                <Plus size={16} color="#ff0080" />
+                <Text style={styles.addButtonText}>Add</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {memories.length === 0 ? (
+            <View style={styles.emptyMemories}>
+              <Camera size={48} color="#666" />
+              <Text style={styles.emptyMemoriesText}>No memories yet</Text>
+              <Text style={styles.emptyMemoriesSubtext}>
+                Visit a venue and capture live moments with your camera
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyMemoriesButton}
+                onPress={handleAddMemory}
+                disabled={isDetectingLocation}
+              >
+                {isDetectingLocation ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.emptyMemoriesButtonText}>Detecting Location...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Camera size={20} color="#fff" />
+                    <Text style={styles.emptyMemoriesButtonText}>Capture Memory</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View style={styles.memoriesGrid}>
+                {getTimeline(6).map((memory) => (
+                  <TouchableOpacity
+                    key={memory.id}
+                    style={styles.memoryItem}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      // Navigate to memory detail
+                    }}
+                  >
+                    <Image
+                      source={{ uri: memory.content.imageUrl }}
+                      style={styles.memoryImage}
+                      contentFit="cover"
+                    />
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.7)']}
+                      style={styles.memoryOverlay}
+                    >
+                      <Text style={styles.memoryVenue} numberOfLines={1}>
+                        {memory.venueName}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {memories.length > 6 && (
+                <TouchableOpacity
+                  style={styles.viewAllMemoriesButton}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    // Navigate to full memories timeline
+                  }}
+                >
+                  <Text style={styles.viewAllMemoriesText}>View All Memories</Text>
+                  <ChevronRight size={16} color="#ff0080" />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
+
+        {/* Group Purchases Section */}
+        {myGroupPurchases.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Group Purchases</Text>
+              {myGroupPurchases.length > 3 && (
+                <TouchableOpacity onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  // Navigate to full group purchases list
+                }}>
+                  <Text style={styles.sectionLink}>View All</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {myGroupPurchases.slice(0, 3).map((gp) => {
+              const venue = mockVenues.find(v => v.id === gp.venueId);
+              const isInitiator = gp.initiatorId === 'user-me';
+              const participantCount = gp.currentParticipants.length;
+              const spotsLeft = gp.maxParticipants - participantCount;
+
+              const getStatusColor = () => {
+                if (gp.status === 'COMPLETED') return '#00ff80';
+                if (gp.status === 'FULL') return '#00d4ff';
+                if (gp.status === 'CANCELLED') return '#ff4444';
+                return '#ffa64d';
+              };
+
+              const getStatusText = () => {
+                if (gp.status === 'COMPLETED') return 'Completed';
+                if (gp.status === 'FULL') return 'Full';
+                if (gp.status === 'CANCELLED') return 'Cancelled';
+                return `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left`;
+              };
+
+              return (
+                <View key={gp.id} style={styles.groupPurchaseItem}>
+                  <View style={styles.groupPurchaseIcon}>
+                    <Users size={20} color="#00d4ff" />
+                  </View>
+                  <View style={styles.groupPurchaseInfo}>
+                    <Text style={styles.groupPurchaseName}>
+                      {venue?.name || 'Unknown Venue'}
+                    </Text>
+                    <View style={styles.groupPurchaseDetails}>
+                      <View style={styles.groupPurchaseDetailItem}>
+                        <DollarSign size={14} color="#999" />
+                        <Text style={styles.groupPurchaseDetailText}>
+                          ${gp.perPersonAmount.toFixed(2)} per person
+                        </Text>
+                      </View>
+                      <View style={styles.groupPurchaseDetailItem}>
+                        <Users size={14} color="#999" />
+                        <Text style={styles.groupPurchaseDetailText}>
+                          {participantCount}/{gp.maxParticipants} people
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.groupPurchaseMeta}>
+                      {isInitiator && (
+                        <View style={styles.initiatorBadge}>
+                          <Text style={styles.initiatorBadgeText}>Organizer</Text>
+                        </View>
+                      )}
+                      <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor()}20` }]}>
+                        <Text style={[styles.statusBadgeText, { color: getStatusColor() }]}>
+                          {getStatusText()}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Quick Links Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Links</Text>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push('/challenges');
+            }}
+          >
+            <Award size={20} color="#00d4ff" />
+            <Text style={styles.quickLinkText}>View Challenges</Text>
+            <ChevronRight size={20} color="#999" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push('/calendar');
+            }}
+          >
+            <BarChart3 size={20} color="#00d4ff" />
+            <Text style={styles.quickLinkText}>Event Calendar</Text>
+            <ChevronRight size={20} color="#999" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickLinkButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push('/tickets');
+            }}
+          >
+            <CreditCard size={20} color="#00d4ff" />
+            <Text style={styles.quickLinkText}>My Tickets</Text>
+            <ChevronRight size={20} color="#999" />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           {profile.isVenueManager && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.managementButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -473,7 +1005,52 @@ export default function ProfileScreen() {
               </LinearGradient>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.actionButton}>
+
+          {/* Register Business Button */}
+          {!hasBusinessProfile && (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#ff0080' }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push('/business/register');
+              }}
+            >
+              <Building2 size={20} color="#ff0080" />
+              <Text style={[styles.actionButtonText, { color: '#ff0080' }]}>Register Business</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Show Business Profile Status if exists */}
+          {hasBusinessProfile && businessProfile && (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#1a1a2e' }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                if (businessProfile.status === 'VERIFIED' && managedVenues.length > 0) {
+                  router.push(`/venue/edit/${managedVenues[0]}`);
+                } else if (businessProfile.status === 'PENDING_VERIFICATION') {
+                  router.push('/business/verification-pending');
+                }
+              }}
+            >
+              <Building2 size={20} color={businessProfile.status === 'VERIFIED' ? '#00ff00' : '#ff9500'} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.actionButtonText}>{businessProfile.venueName}</Text>
+                <Text style={{ fontSize: 12, color: '#999', marginTop: 2 }}>
+                  {businessProfile.status === 'VERIFIED' ? '✓ Verified' : '⏱ Pending Verification'}
+                </Text>
+              </View>
+              <ChevronRight size={20} color="#999" />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setShowWalletModal(true);
+            }}
+          >
             <CreditCard size={20} color="#fff" />
             <Text style={styles.actionButtonText}>Link Payment Card</Text>
           </TouchableOpacity>
@@ -508,7 +1085,10 @@ export default function ProfileScreen() {
                     colors={['#1a1a2e', '#1a1a1a']}
                     style={styles.userCardGradient}
                   >
-                    <View style={styles.userCardLeft}>
+                    <TouchableOpacity
+                      style={styles.userCardLeft}
+                      onPress={() => handleOpenUserProfile(person.id)}
+                    >
                       <Image
                         source={{ uri: person.avatarUrl }}
                         style={styles.userAvatar}
@@ -549,7 +1129,7 @@ export default function ProfileScreen() {
                           </View>
                         )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.followButton}
                       onPress={() => {
@@ -636,6 +1216,233 @@ export default function ProfileScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal
+        visible={showWalletModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowWalletModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setShowWalletModal(false)}
+          />
+          <View style={styles.walletModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Payment Method</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowWalletModal(false);
+                }}
+              >
+                <X size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.walletCardsContainer}>
+              <Text style={styles.walletSubtitle}>Cards in your wallet</Text>
+
+              <TouchableOpacity
+                style={styles.walletCard}
+                onPress={() => handleSelectCard({
+                  last4: '4242',
+                  brand: 'Visa',
+                  cardholderName: profile.displayName,
+                })}
+              >
+                <LinearGradient
+                  colors={['#1a1a2e', '#15151f']}
+                  style={styles.walletCardGradient}
+                >
+                  <View style={styles.walletCardLeft}>
+                    <View style={styles.walletCardIcon}>
+                      <Text style={styles.walletCardBrand}>VISA</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.walletCardNumber}>•••• 4242</Text>
+                      <Text style={styles.walletCardName}>{profile.displayName}</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color="#666" />
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.walletCard}
+                onPress={() => handleSelectCard({
+                  last4: '5555',
+                  brand: 'Mastercard',
+                  cardholderName: profile.displayName,
+                })}
+              >
+                <LinearGradient
+                  colors={['#1a1a2e', '#15151f']}
+                  style={styles.walletCardGradient}
+                >
+                  <View style={styles.walletCardLeft}>
+                    <View style={[styles.walletCardIcon, { backgroundColor: '#ff6b6b' }]}>
+                      <Text style={styles.walletCardBrand}>MC</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.walletCardNumber}>•••• 5555</Text>
+                      <Text style={styles.walletCardName}>{profile.displayName}</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color="#666" />
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.walletCard}
+                onPress={() => handleSelectCard({
+                  last4: '8888',
+                  brand: 'Amex',
+                  cardholderName: profile.displayName,
+                })}
+              >
+                <LinearGradient
+                  colors={['#1a1a2e', '#15151f']}
+                  style={styles.walletCardGradient}
+                >
+                  <View style={styles.walletCardLeft}>
+                    <View style={[styles.walletCardIcon, { backgroundColor: '#00d4ff' }]}>
+                      <Text style={styles.walletCardBrand}>AMEX</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.walletCardNumber}>•••• 8888</Text>
+                      <Text style={styles.walletCardName}>{profile.displayName}</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color="#666" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <UserProfileModal
+        visible={showUserProfile}
+        userId={selectedUserId}
+        onClose={() => setShowUserProfile(false)}
+        onMessage={handleOpenDM}
+      />
+
+      <ReferralRewardModal
+        visible={showRewardsModal}
+        rewards={referralRewards}
+        onClose={() => setShowRewardsModal(false)}
+        onClaimReward={claimReferralReward}
+      />
+
+      {/* Add Memory Modal */}
+      <Modal
+        visible={showAddMemoryModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowAddMemoryModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalContainer}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Memory</Text>
+                <TouchableOpacity onPress={() => setShowAddMemoryModal(false)}>
+                  <X size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Upload Preview */}
+              {/* Detected Venue Display */}
+              {detectedVenue && (
+                <View style={styles.detectedVenueCard}>
+                  <MapPin size={20} color="#ff0080" />
+                  <View style={styles.detectedVenueInfo}>
+                    <Text style={styles.detectedVenueLabel}>Captured at</Text>
+                    <Text style={styles.detectedVenueName}>{detectedVenue.name}</Text>
+                    <Text style={styles.detectedVenueDistance}>
+                      {(detectedVenue.distance * 1000).toFixed(0)}m away
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Upload Preview */}
+              {uploadedMemoryImageUrl ? (
+                <View style={styles.memoryUploadPreview}>
+                  <Image
+                    source={{ uri: uploadedMemoryImageUrl }}
+                    style={styles.memoryPreviewImage}
+                    contentFit="cover"
+                  />
+                  {memoryUpload.isUploading && (
+                    <View style={styles.uploadingOverlayMemory}>
+                      <ActivityIndicator size="large" color="#fff" />
+                      <Text style={styles.uploadingTextMemory}>
+                        Uploading {memoryUpload.uploadProgress}%
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.memoryUploadPlaceholder}>
+                  {memoryUpload.isUploading ? (
+                    <>
+                      <ActivityIndicator size="large" color="#ff0080" />
+                      <Text style={styles.uploadingTextMemory}>
+                        Uploading {memoryUpload.uploadProgress}%
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Camera size={48} color="#666" />
+                      <Text style={styles.memoryUploadPlaceholderText}>
+                        Opening camera...
+                      </Text>
+                    </>
+                  )}
+                </View>
+              )}
+
+              {/* Caption Input */}
+              <View style={styles.memoryInputSection}>
+                <Text style={styles.memoryInputLabel}>Caption</Text>
+                <TextInput
+                  style={styles.memoryTextInput}
+                  placeholder="What made this moment special?"
+                  placeholderTextColor="#666"
+                  value={memoryCaption}
+                  onChangeText={setMemoryCaption}
+                  maxLength={200}
+                  multiline
+                />
+                <Text style={styles.charCountMemory}>
+                  {memoryCaption.length}/200
+                </Text>
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity
+                style={[
+                  styles.saveMemoryButton,
+                  (!uploadedMemoryImageUrl || memoryUpload.isUploading) && styles.saveMemoryButtonDisabled,
+                ]}
+                onPress={handleSaveMemory}
+                disabled={!uploadedMemoryImageUrl || memoryUpload.isUploading}
+              >
+                <CheckCircle2 size={20} color="#fff" />
+                <Text style={styles.saveMemoryButtonText}>Save Memory</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -681,10 +1488,48 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
+  avatarImage: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: '#000000',
+  },
   avatarText: {
     fontSize: 36,
     fontWeight: '700' as const,
     color: '#ff0080',
+  },
+  uploadingOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+  },
+  uploadingText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  cameraIconContainer: {
+    position: 'absolute' as const,
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ff0080',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    borderWidth: 3,
+    borderColor: '#000000',
   },
   displayName: {
     fontSize: 24,
@@ -1121,5 +1966,428 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     marginTop: 2,
+  },
+  walletModalContent: {
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  walletCardsContainer: {
+    padding: 20,
+  },
+  walletSubtitle: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 16,
+  },
+  walletCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  walletCardGradient: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: 16,
+  },
+  walletCardLeft: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+  },
+  walletCardIcon: {
+    width: 50,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#1e40af',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  walletCardBrand: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  walletCardNumber: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#fff',
+    marginBottom: 2,
+  },
+  walletCardName: {
+    fontSize: 12,
+    color: '#999',
+  },
+  // Streaks Styles
+  streaksContainer: {
+    gap: 12,
+  },
+  streakCard: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#1a1a2e',
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  streakEmoji: {
+    fontSize: 32,
+  },
+  streakInfo: {
+    flex: 1,
+  },
+  streakTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#fff',
+    textTransform: 'capitalize' as const,
+    marginBottom: 4,
+  },
+  streakCount: {
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: '#ffa64d',
+  },
+  streakBadge: {
+    backgroundColor: 'rgba(255, 166, 77, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  streakBadgeText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#ffa64d',
+  },
+  // Crews Styles
+  sectionHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 12,
+  },
+  sectionLink: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#00d4ff',
+  },
+  crewItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#1a1a2e',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 12,
+  },
+  crewIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  crewInfo: {
+    flex: 1,
+  },
+  crewName: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#fff',
+    marginBottom: 4,
+  },
+  crewMembers: {
+    fontSize: 12,
+    color: '#999',
+  },
+  groupPurchaseItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    backgroundColor: '#1a1a2e',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 12,
+  },
+  groupPurchaseIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  groupPurchaseInfo: {
+    flex: 1,
+    gap: 8,
+  },
+  groupPurchaseName: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+  groupPurchaseDetails: {
+    gap: 6,
+  },
+  groupPurchaseDetailItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  groupPurchaseDetailText: {
+    fontSize: 13,
+    color: '#999',
+  },
+  groupPurchaseMeta: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    flexWrap: 'wrap' as const,
+  },
+  initiatorBadge: {
+    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  initiatorBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#a855f7',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+  },
+  // Quick Links Styles
+  quickLinkButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#1a1a2e',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 12,
+  },
+  quickLinkText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+  // Memories Styles
+  addButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 0, 128, 0.1)',
+  },
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#ff0080',
+  },
+  emptyMemories: {
+    alignItems: 'center' as const,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyMemoriesText: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#fff',
+    marginTop: 16,
+  },
+  emptyMemoriesSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center' as const,
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  emptyMemoriesButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    backgroundColor: '#ff0080',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    marginTop: 20,
+  },
+  emptyMemoriesButtonText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+  memoriesGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 8,
+    marginBottom: 12,
+  },
+  memoryItem: {
+    width: '31.5%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: 'hidden' as const,
+    backgroundColor: '#1a1a2e',
+  },
+  memoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  memoryOverlay: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 8,
+  },
+  memoryVenue: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+  viewAllMemoriesButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 4,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 0, 128, 0.1)',
+  },
+  viewAllMemoriesText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#ff0080',
+  },
+  memoryUploadPreview: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 12,
+    overflow: 'hidden' as const,
+    backgroundColor: '#1a1a2e',
+    marginBottom: 20,
+    position: 'relative' as const,
+  },
+  memoryPreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  uploadingOverlayMemory: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+  },
+  uploadingTextMemory: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  memoryUploadPlaceholder: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 12,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 12,
+    marginBottom: 20,
+  },
+  memoryUploadPlaceholderText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  memoryInputSection: {
+    marginBottom: 20,
+  },
+  memoryInputLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#fff',
+    marginBottom: 8,
+  },
+  memoryTextInput: {
+    backgroundColor: '#1a1a2e',
+    color: '#fff',
+    fontSize: 15,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a4e',
+    minHeight: 80,
+    textAlignVertical: 'top' as const,
+  },
+  charCountMemory: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'right' as const,
+    marginTop: 4,
+  },
+  detectedVenueCard: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 12,
+    backgroundColor: 'rgba(255, 0, 128, 0.1)',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ff0080',
+    marginBottom: 20,
+  },
+  detectedVenueInfo: {
+    flex: 1,
+  },
+  detectedVenueLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 2,
+  },
+  detectedVenueName: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#ff0080',
+    marginBottom: 2,
+  },
+  detectedVenueDistance: {
+    fontSize: 12,
+    color: '#999',
+  },
+  saveMemoryButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    backgroundColor: '#ff0080',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  saveMemoryButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveMemoryButtonText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#fff',
   },
 });

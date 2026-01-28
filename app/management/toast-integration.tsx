@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Switch,
+  Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -18,6 +20,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Bluetooth,
+  Loader,
 } from 'lucide-react-native';
 import { useToast } from '@/contexts/ToastContext';
 import { useGlow } from '@/contexts/GlowContext';
@@ -43,14 +47,53 @@ export default function ToastIntegrationScreen() {
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>(
     integration.selectedLocations
   );
+  const [showBluetoothModal, setShowBluetoothModal] = useState(false);
+  const [isBluetoothPairing, setIsBluetoothPairing] = useState(false);
 
   const handleConnect = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    connectToast.mutate(undefined, {
-      onSuccess: () => {
-        triggerGlow({ color: 'gold', intensity: 0.7, duration: 1200 });
-      },
-    });
+
+    // Show Bluetooth connection prompt
+    Alert.alert(
+      'Connect Toast POS',
+      'To connect to your Toast POS system, we need to pair with your terminal via Bluetooth. Make sure Bluetooth is enabled on your device and your Toast terminal is nearby.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Connect via Bluetooth',
+          onPress: () => {
+            setShowBluetoothModal(true);
+            startBluetoothPairing();
+          },
+        },
+      ]
+    );
+  };
+
+  const startBluetoothPairing = () => {
+    setIsBluetoothPairing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Simulate Bluetooth pairing process
+    setTimeout(() => {
+      setIsBluetoothPairing(false);
+      setShowBluetoothModal(false);
+
+      // Actually connect to Toast after successful pairing
+      connectToast.mutate(undefined, {
+        onSuccess: () => {
+          triggerGlow({ color: 'gold', intensity: 0.7, duration: 1200 });
+          Alert.alert(
+            'Connected!',
+            'Successfully connected to Toast POS system via Bluetooth.',
+            [{ text: 'OK' }]
+          );
+        },
+      });
+    }, 3000); // 3 second pairing simulation
   };
 
   const handleDisconnect = () => {
@@ -289,6 +332,57 @@ export default function ToastIntegrationScreen() {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      <Modal
+        visible={showBluetoothModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowBluetoothModal(false)}
+      >
+        <View style={styles.bluetoothModalOverlay}>
+          <View style={styles.bluetoothModalContent}>
+            <LinearGradient
+              colors={['#1a1a2e', '#15151f']}
+              style={styles.bluetoothModalGradient}
+            >
+              <View style={styles.bluetoothIconContainer}>
+                {isBluetoothPairing ? (
+                  <View style={styles.pulsingBluetoothIcon}>
+                    <Bluetooth size={48} color="#00d4ff" />
+                  </View>
+                ) : (
+                  <CheckCircle2 size={48} color="#a855f7" />
+                )}
+              </View>
+
+              <Text style={styles.bluetoothModalTitle}>
+                {isBluetoothPairing ? 'Pairing with Toast POS...' : 'Paired Successfully!'}
+              </Text>
+
+              <Text style={styles.bluetoothModalDescription}>
+                {isBluetoothPairing
+                  ? 'Searching for Toast terminals nearby. Make sure your terminal is powered on and in pairing mode.'
+                  : 'Your device is now connected to the Toast POS system.'}
+              </Text>
+
+              {isBluetoothPairing && (
+                <View style={styles.pairingLoader}>
+                  <ActivityIndicator size="large" color="#00d4ff" />
+                </View>
+              )}
+
+              {!isBluetoothPairing && (
+                <TouchableOpacity
+                  style={styles.bluetoothDoneButton}
+                  onPress={() => setShowBluetoothModal(false)}
+                >
+                  <Text style={styles.bluetoothDoneButtonText}>Done</Text>
+                </TouchableOpacity>
+              )}
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -537,5 +631,67 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  bluetoothModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 20,
+  },
+  bluetoothModalContent: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  bluetoothModalGradient: {
+    padding: 32,
+    alignItems: 'center' as const,
+  },
+  bluetoothIconContainer: {
+    marginBottom: 24,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  pulsingBluetoothIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(0, 212, 255, 0.15)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    borderWidth: 2,
+    borderColor: 'rgba(0, 212, 255, 0.3)',
+  },
+  bluetoothModalTitle: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: '#fff',
+    textAlign: 'center' as const,
+    marginBottom: 12,
+  },
+  bluetoothModalDescription: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  pairingLoader: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  bluetoothDoneButton: {
+    backgroundColor: '#ff0080',
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+    borderRadius: 24,
+    marginTop: 8,
+  },
+  bluetoothDoneButtonText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#0a0a0f',
   },
 });

@@ -22,6 +22,16 @@ export const mockFriendProfiles: FriendProfile[] = [
     mutualFriends: 8,
   },
   {
+    id: 'user-2',
+    displayName: 'Alex Chen',
+    avatarUrl: 'https://i.pravatar.cc/150?img=33',
+    bio: 'Professional DJ & Producer | House & Techno',
+    isOnline: true,
+    mutualFriends: 25,
+    isVerified: true,
+    verifiedCategory: 'PERFORMER',
+  },
+  {
     id: 'user-friend-3',
     displayName: 'Emma Rodriguez',
     avatarUrl: 'https://i.pravatar.cc/150?img=5',
@@ -78,6 +88,16 @@ export const mockFriendProfiles: FriendProfile[] = [
 ];
 
 export const mockSuggestedPeople: FriendProfile[] = [
+  {
+    id: 'user-2',
+    displayName: 'Alex Chen',
+    avatarUrl: 'https://i.pravatar.cc/150?img=33',
+    bio: 'Professional DJ & Producer | House & Techno',
+    isOnline: true,
+    mutualFriends: 25,
+    isVerified: true,
+    verifiedCategory: 'PERFORMER',
+  },
   {
     id: 'suggested-1',
     displayName: 'Chris Taylor',

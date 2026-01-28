@@ -1,0 +1,119 @@
+{
+  "cli": {
+    "version": ">= 7.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true,
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "env": {
+        "APP_ENV": "development",
+        "API_URL": "http://localhost:5000"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "APP_ENV": "staging",
+        "API_URL": "https://staging-api.rork.app"
+      }
+    },
+    "staging": {
+      "distribution": "internal",
+      "channel": "staging",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release",
+        "bundleIdentifier": "app.rork.nightlife.staging"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "APP_ENV": "staging",
+        "APP_NAME": "Rork Nightlife (Staging)",
+        "API_URL": "https://staging-api.rork.app",
+        "IOS_BUNDLE_ID": "app.rork.nightlife.staging",
+        "ANDROID_PACKAGE": "app.rork.nightlife.staging"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "channel": "production",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release",
+        "bundleIdentifier": "app.rork.nightlife"
+      },
+      "android": {
+        "buildType": "aab",
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "APP_NAME": "Rork Nightlife",
+        "API_URL": "https://api.rork.app",
+        "IOS_BUNDLE_ID": "app.rork.nightlife",
+        "ANDROID_PACKAGE": "app.rork.nightlife"
+      },
+      "autoIncrement": true
+    },
+    "production-ios": {
+      "extends": "production",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      }
+    },
+    "production-android": {
+      "extends": "production",
+      "android": {
+        "buildType": "aab"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "1234567890",
+        "appleTeamId": "ABCDE12345"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "production",
+        "releaseStatus": "completed"
+      }
+    },
+    "staging": {
+      "ios": {
+        "appleId": "your-apple-id@example.com",
+        "ascAppId": "1234567890",
+        "appleTeamId": "ABCDE12345"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
+    }
+  }
+}

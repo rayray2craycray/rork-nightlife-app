@@ -8,8 +8,8 @@ import { Platform, Alert } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { syncContacts } from './api';
 
-const USE_MOCK_DATA = process.env.NODE_ENV === 'development';
-const ENABLE_CONTACT_SYNC = process.env.ENABLE_CONTACT_SYNC === 'true';
+const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' || process.env.NODE_ENV === 'development';
+const ENABLE_CONTACT_SYNC = process.env.EXPO_PUBLIC_ENABLE_CONTACT_SYNC === 'true';
 
 export interface ContactMatch {
   contactId: string;

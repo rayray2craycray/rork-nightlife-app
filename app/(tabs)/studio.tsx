@@ -1,32 +1,209 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, Alert, Platform, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, Alert, Platform, Share, TextInput, PanResponder, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePerformer } from '@/contexts/PerformerContext';
 import { useAppState } from '@/contexts/AppStateContext';
-import { Camera, Upload, Play, Pause, RotateCw, Zap, ZapOff, Check, Type, Music2, Share2, Instagram, ExternalLink, Video, Scissors, Sparkles, Sticker, X } from 'lucide-react-native';
+import { useFeed } from '@/contexts/FeedContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUpload } from '@/hooks/useUpload';
+import { mockVenues } from '@/mocks/venues';
+import { Camera, Upload, Play, Pause, RotateCw, Zap, ZapOff, Check, Type, Music2, Share2, Instagram, ExternalLink, Video, Scissors, Sparkles, Sticker, X, MapPin } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { Video as ExpoVideo, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import * as Haptics from 'expo-haptics';
 
 // Import extracted components
-import {
-  StatsCard,
-  GigCard,
-  FilterSelector,
-  StickerSelector,
-  VideoTrimmer,
-  COLORS,
-  PromoStep,
-  SafeZoneType,
-  VibeFilter,
-  StickerType,
-} from './studio';
+import { StatsCard } from './studio-components/StatsCard';
+import { GigCard } from './studio-components/GigCard';
+import { FilterSelector } from './studio-components/FilterSelector';
+import { StickerSelector } from './studio-components/StickerSelector';
+import { VideoTrimmer } from './studio-components/VideoTrimmer';
+import { COLORS, PromoStep, SafeZoneType, VibeFilter, StickerType } from './studio-components/types';
+
+// Helper function to get filter preview styles
+function getFilterPreviewStyle(filter: VibeFilter) {
+  switch (filter) {
+    case 'neon-glitch':
+      return {
+        backgroundColor: 'rgba(255, 0, 128, 0.15)',
+      };
+    case 'afterhours-noir':
+      return {
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      };
+    case 'vhs-retro':
+      return {
+        backgroundColor: 'rgba(255, 200, 100, 0.2)',
+      };
+    case 'cyber-wave':
+      return {
+        backgroundColor: 'rgba(0, 255, 255, 0.15)',
+      };
+    case 'golden-hour':
+      return {
+        backgroundColor: 'rgba(255, 180, 0, 0.2)',
+      };
+    default:
+      return {};
+  }
+}
+
+// Helper function to render sticker preview
+function renderStickerPreview(sticker: StickerType) {
+  const stickerStyles = {
+    container: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 25,
+      borderWidth: 2,
+      borderColor: '#ff0080',
+    },
+    text: {
+      color: '#ffffff',
+      fontSize: 16,
+      fontWeight: '700' as const,
+      textAlign: 'center' as const,
+    },
+  };
+
+  let text = '';
+  switch (sticker) {
+    case 'get-tickets':
+      text = '🎫 Get Tickets';
+      break;
+    case 'join-lobby':
+      text = '💬 Join Lobby';
+      break;
+    case 'live-tonight':
+      text = '🔥 Live Tonight';
+      break;
+    case 'swipe-up':
+      text = '👆 Swipe Up';
+      break;
+    default:
+      return null;
+  }
+
+  return (
+    <View style={stickerStyles.container}>
+      <Text style={stickerStyles.text}>{text}</Text>
+    </View>
+  );
+}
+
+// Draggable Sticker Component
+interface DraggableStickerProps {
+  sticker: StickerType;
+  position: { x: number; y: number };
+  onPositionChange: (position: { x: number; y: number }) => void;
+  containerHeight: number;
+}
+
+function DraggableSticker({ sticker, position, onPositionChange, containerHeight }: DraggableStickerProps) {
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerOffset, setContainerOffset] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<View>(null);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gesture) => {
+        // Calculate position relative to container, accounting for offset
+        const touchX = gesture.moveX - containerOffset.x;
+        const touchY = gesture.moveY - containerOffset.y;
+
+        // Convert to percentage and clamp between 0-100
+        const newX = Math.max(0, Math.min(100, (touchX / containerWidth) * 100));
+        const newY = Math.max(0, Math.min(100, (touchY / containerHeight) * 100));
+
+        onPositionChange({ x: newX, y: newY });
+      },
+      onPanResponderRelease: () => {
+        // Position already updated during move
+      },
+    })
+  ).current;
+
+  let text = '';
+  switch (sticker) {
+    case 'get-tickets':
+      text = '🎫 Get Tickets';
+      break;
+    case 'join-lobby':
+      text = '💬 Join Lobby';
+      break;
+    case 'live-tonight':
+      text = '🔥 Live Tonight';
+      break;
+    case 'swipe-up':
+      text = '👆 Swipe Up';
+      break;
+    default:
+      return null;
+  }
+
+  return (
+    <View
+      ref={containerRef}
+      style={styles.draggableStickerContainer}
+      onLayout={(e) => {
+        setContainerWidth(e.nativeEvent.layout.width);
+        // Measure the container position after layout
+        if (containerRef.current) {
+          containerRef.current.measure((x, y, width, height, pageX, pageY) => {
+            setContainerOffset({ x: pageX, y: pageY });
+          });
+        }
+      }}
+    >
+      <View
+        style={[
+          styles.draggableSticker,
+          {
+            left: `${position.x}%`,
+            top: `${position.y}%`,
+          },
+        ]}
+      >
+        {/* Larger invisible hitbox for easier grabbing */}
+        <View
+          {...panResponder.panHandlers}
+          style={styles.draggableHitbox}
+        >
+          <View style={styles.draggableStickerBadge}>
+            <Text style={styles.draggableStickerText}>{text}</Text>
+          </View>
+          <Text style={styles.dragHintText}>Drag to reposition</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function StudioScreen() {
   const { profile } = useAppState();
+  const { accessToken } = useAuth();
   const { upcomingGigs, completedGigs, analytics, createPromoVideo } = usePerformer();
+  const { uploadVideo } = useFeed();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'create'>('upcoming');
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
+
+  // Upload hook for Cloudinary video uploads
+  const upload = useUpload({
+    onSuccess: (result) => {
+      setUploadedVideoUrl(result.url);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: (error) => {
+      Alert.alert('Upload Failed', error.message);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    },
+  });
   const [promoStep, setPromoStep] = useState<PromoStep>('SELECT_METHOD');
   const [cameraType, setCameraType] = useState<CameraType>('back');
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
@@ -44,11 +221,33 @@ export default function StudioScreen() {
   const [showTextOverlay, setShowTextOverlay] = useState(true);
   const [audioTrack, setAudioTrack] = useState<string | null>(null);
   const [audioName, setAudioName] = useState<string>('');
+  const [videoTitle, setVideoTitle] = useState<string>('');
+  const [selectedVenueId, setSelectedVenueId] = useState<string>(mockVenues[0]?.id || 'venue-1');
+  const [showVenueSelector, setShowVenueSelector] = useState(false);
+  const [stickerPosition, setStickerPosition] = useState({ x: 50, y: 15 }); // Default center top, percentage-based
+  const stickerPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const cameraRef = useRef<any>(null);
-  const videoRef = useRef<any>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [cameraPermission, requestCameraPermissions] = useCameraPermissions();
+
+  // Create video players for previews
+  const previewPlayer = useVideoPlayer(recordedVideo || '', (player) => {
+    player.loop = true;
+    player.muted = false;
+  });
+
+  const customizePlayer = useVideoPlayer(recordedVideo || '', (player) => {
+    player.loop = true;
+    player.muted = false;
+    player.play();
+  });
+
+  const sharePlayer = useVideoPlayer(recordedVideo || '', (player) => {
+    player.loop = true;
+    player.muted = false;
+    player.play();
+  });
 
   // Format helpers - memoized for performance
   const formatCurrency = useCallback((amount: number) => {
@@ -98,7 +297,6 @@ export default function StudioScreen() {
   const beginRecording = async () => {
     if (!cameraRef.current) return;
 
-    console.log('Starting video recording...');
     setIsRecording(true);
     setRecordingDuration(0);
 
@@ -118,7 +316,6 @@ export default function StudioScreen() {
         maxDuration: 15,
       });
 
-      console.log('Video recorded:', video.uri);
       setRecordedVideo(video.uri);
       setVideoDuration(15);
       setTrimStart(0);
@@ -146,7 +343,6 @@ export default function StudioScreen() {
   const handleStopRecording = async () => {
     if (!cameraRef.current || !isRecording) return;
 
-    console.log('Stopping video recording...');
     setIsRecording(false);
 
     if (recordingIntervalRef.current) {
@@ -171,7 +367,6 @@ export default function StudioScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        console.log('Video selected:', result.assets[0].uri);
         const duration = result.assets[0].duration ? result.assets[0].duration / 1000 : 15;
         setRecordedVideo(result.assets[0].uri);
         setVideoDuration(duration);
@@ -195,6 +390,73 @@ export default function StudioScreen() {
       });
     } catch (error) {
       console.error('Share error:', error);
+    }
+  };
+
+  const handlePostToFeed = async () => {
+    if (!recordedVideo) return;
+
+    if (!videoTitle.trim()) {
+      Alert.alert('Title Required', 'Please add a title for your video');
+      return;
+    }
+
+    if (!accessToken) {
+      Alert.alert('Authentication Required', 'Please sign in to upload videos');
+      return;
+    }
+
+    try {
+      // Step 1: Upload video to Cloudinary
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      const cloudinaryResult = await upload.uploadHighlightFromUri(recordedVideo);
+
+      if (!cloudinaryResult) {
+        throw new Error('Video upload to Cloudinary failed');
+      }
+
+      // Step 2: Post to feed with Cloudinary URL
+      await uploadVideo.mutateAsync({
+        videoUrl: cloudinaryResult.url,
+        venueId: selectedVenueId,
+        title: videoTitle,
+        duration: trimEnd - trimStart,
+        filter: selectedFilter,
+        sticker: selectedSticker,
+        stickerPosition: selectedSticker !== 'none' ? stickerPosition : undefined,
+      });
+
+      Alert.alert(
+        'Video Posted!',
+        'Your video has been uploaded and posted to the feed successfully.',
+        [
+          {
+            text: 'View Feed',
+            onPress: () => {
+              // Reset studio state
+              setPromoStep('SELECT_METHOD');
+              setRecordedVideo(null);
+              setVideoTitle('');
+              setUploadedVideoUrl(null);
+              // Navigate to feed tab
+              router.push('/(tabs)/feed');
+            },
+          },
+          {
+            text: 'Create Another',
+            onPress: () => {
+              setPromoStep('SELECT_METHOD');
+              setRecordedVideo(null);
+              setVideoTitle('');
+              setUploadedVideoUrl(null);
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Upload error:', error);
+      Alert.alert('Upload Failed', 'Failed to upload video. Please try again.');
     }
   };
 
@@ -322,18 +584,23 @@ export default function StudioScreen() {
         </View>
 
         <View style={styles.videoPreviewContainer}>
-          <ExpoVideo
-            ref={videoRef}
-            source={{ uri: recordedVideo }}
+          <VideoView
+            player={previewPlayer}
             style={styles.videoPreview}
-            resizeMode={ResizeMode.CONTAIN}
-            isLooping
-            shouldPlay={isPlaying}
+            contentFit="contain"
+            nativeControls={false}
           />
 
           <TouchableOpacity
             style={styles.playButton}
-            onPress={() => setIsPlaying(!isPlaying)}
+            onPress={() => {
+              if (isPlaying) {
+                previewPlayer.pause();
+              } else {
+                previewPlayer.play();
+              }
+              setIsPlaying(!isPlaying);
+            }}
           >
             {isPlaying ? (
               <Pause size={32} color={COLORS.text} />
@@ -372,13 +639,27 @@ export default function StudioScreen() {
 
         <ScrollView style={styles.customizeScroll}>
           <View style={styles.videoPreviewSmall}>
-            <ExpoVideo
-              source={{ uri: recordedVideo }}
+            <VideoView
+              player={customizePlayer}
               style={styles.videoPreviewSmallVideo}
-              resizeMode={ResizeMode.CONTAIN}
-              isLooping
-              shouldPlay
+              contentFit="contain"
+              nativeControls={false}
             />
+
+            {/* Filter Preview Overlay */}
+            {selectedFilter !== 'none' && (
+              <View style={[styles.filterPreviewOverlay, getFilterPreviewStyle(selectedFilter)]} />
+            )}
+
+            {/* Draggable Sticker Preview */}
+            {selectedSticker !== 'none' && (
+              <DraggableSticker
+                sticker={selectedSticker}
+                position={stickerPosition}
+                onPositionChange={setStickerPosition}
+                containerHeight={400}
+              />
+            )}
           </View>
 
           <FilterSelector
@@ -413,44 +694,174 @@ export default function StudioScreen() {
 
   // Share screen
   if (promoStep === 'SHARE' && recordedVideo) {
+    const selectedVenue = mockVenues.find(v => v.id === selectedVenueId);
+
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setPromoStep('CUSTOMIZE')}>
             <X size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Share</Text>
+          <Text style={styles.headerTitle}>Post Video</Text>
           <View style={{ width: 24 }} />
         </View>
 
-        <View style={styles.shareContainer}>
+        <ScrollView style={styles.shareContainer}>
           <View style={styles.videoPreviewFinal}>
-            <ExpoVideo
-              source={{ uri: recordedVideo }}
+            <VideoView
+              player={sharePlayer}
               style={styles.videoPreviewFinalVideo}
-              resizeMode={ResizeMode.CONTAIN}
-              isLooping
-              shouldPlay
+              contentFit="contain"
+              nativeControls={false}
             />
+
+            {/* Filter Preview Overlay */}
+            {selectedFilter !== 'none' && (
+              <View style={[styles.filterPreviewOverlay, getFilterPreviewStyle(selectedFilter)]} />
+            )}
+
+            {/* Sticker Preview (non-draggable on share screen) */}
+            {selectedSticker !== 'none' && (
+              <View style={[
+                styles.stickerPreviewContainerFinal,
+                {
+                  top: `${stickerPosition.y}%`,
+                  left: `${stickerPosition.x}%`,
+                }
+              ]}>
+                {renderStickerPreview(selectedSticker)}
+              </View>
+            )}
           </View>
 
-          <View style={styles.shareOptions}>
-            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-              <Instagram size={24} color={COLORS.text} />
-              <Text style={styles.shareButtonText}>Instagram Story</Text>
-            </TouchableOpacity>
+          {/* Video Title Input */}
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Title *</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Add a catchy title..."
+              placeholderTextColor="#666"
+              value={videoTitle}
+              onChangeText={setVideoTitle}
+              maxLength={100}
+            />
+            <Text style={styles.charCount}>{videoTitle.length}/100</Text>
+          </View>
 
-            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-              <Share2 size={24} color={COLORS.text} />
-              <Text style={styles.shareButtonText}>Share</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-              <ExternalLink size={24} color={COLORS.text} />
-              <Text style={styles.shareButtonText}>More Options</Text>
+          {/* Venue Selector */}
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Venue *</Text>
+            <TouchableOpacity
+              style={styles.venueSelector}
+              onPress={() => setShowVenueSelector(true)}
+            >
+              <MapPin size={20} color={COLORS.accent} />
+              <Text style={styles.venueSelectorText}>
+                {selectedVenue?.name || 'Select Venue'}
+              </Text>
+              <Text style={styles.venueSelectorArrow}>›</Text>
             </TouchableOpacity>
           </View>
-        </View>
+
+          {/* Post to Feed Button */}
+          <TouchableOpacity
+            style={[
+              styles.postToFeedButton,
+              (upload.isUploading || uploadVideo.isPending) && styles.postToFeedButtonDisabled
+            ]}
+            onPress={handlePostToFeed}
+            disabled={upload.isUploading || uploadVideo.isPending}
+          >
+            {upload.isUploading ? (
+              <>
+                <ActivityIndicator size="small" color={COLORS.text} />
+                <Text style={styles.postToFeedButtonText}>
+                  Uploading {upload.uploadProgress}%
+                </Text>
+              </>
+            ) : uploadVideo.isPending ? (
+              <>
+                <ActivityIndicator size="small" color={COLORS.text} />
+                <Text style={styles.postToFeedButtonText}>
+                  Posting to Feed...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Check size={20} color={COLORS.text} />
+                <Text style={styles.postToFeedButtonText}>
+                  Post to Feed
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Share Options */}
+          <View style={styles.shareOptionsContainer}>
+            <Text style={styles.shareOptionsTitle}>Or Share Externally</Text>
+            <View style={styles.shareOptions}>
+              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                <Instagram size={24} color={COLORS.text} />
+                <Text style={styles.shareButtonText}>Instagram Story</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                <Share2 size={24} color={COLORS.text} />
+                <Text style={styles.shareButtonText}>Share</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                <ExternalLink size={24} color={COLORS.text} />
+                <Text style={styles.shareButtonText}>More Options</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Venue Selector Modal */}
+        <Modal
+          visible={showVenueSelector}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowVenueSelector(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Venue</Text>
+                <TouchableOpacity onPress={() => setShowVenueSelector(false)}>
+                  <X size={24} color={COLORS.text} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView>
+                {mockVenues.map((venue) => (
+                  <TouchableOpacity
+                    key={venue.id}
+                    style={styles.venueOption}
+                    onPress={() => {
+                      setSelectedVenueId(venue.id);
+                      setShowVenueSelector(false);
+                    }}
+                  >
+                    <MapPin
+                      size={20}
+                      color={selectedVenueId === venue.id ? COLORS.accent : COLORS.textSecondary}
+                    />
+                    <Text style={[
+                      styles.venueOptionText,
+                      selectedVenueId === venue.id && styles.venueOptionTextActive
+                    ]}>
+                      {venue.name}
+                    </Text>
+                    {selectedVenueId === venue.id && (
+                      <Check size={20} color={COLORS.accent} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     );
   }
@@ -922,10 +1333,77 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 24,
+    position: 'relative',
   },
   videoPreviewSmallVideo: {
     width: '100%',
     height: '100%',
+  },
+  filterPreviewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+  },
+  stickerPreviewContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  draggableStickerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+  },
+  draggableSticker: {
+    position: 'absolute',
+    alignItems: 'center',
+    marginLeft: '-50%',
+    marginTop: '-50%',
+  },
+  draggableHitbox: {
+    padding: 30, // Larger hitbox area
+    marginTop: -30,
+    marginLeft: -30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  draggableStickerBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#ff0080',
+    shadowColor: '#ff0080',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  draggableStickerText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  dragHintText: {
+    color: '#ff0080',
+    fontSize: 10,
+    marginTop: 4,
+    fontWeight: '600',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   textOverlaySection: {
     marginTop: 24,
@@ -978,15 +1456,94 @@ const styles = StyleSheet.create({
   },
   videoPreviewFinal: {
     aspectRatio: 9 / 16,
-    maxHeight: 500,
+    maxHeight: 400,
     backgroundColor: COLORS.card,
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 24,
+    marginBottom: 20,
+    position: 'relative',
   },
   videoPreviewFinalVideo: {
     width: '100%',
     height: '100%',
+  },
+  stickerPreviewContainerFinal: {
+    position: 'absolute',
+    alignItems: 'center',
+    zIndex: 10,
+    marginLeft: '-50%',
+    marginTop: '-50%',
+  },
+  inputSection: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: COLORS.card,
+    color: COLORS.text,
+    fontSize: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  charCount: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  venueSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  venueSelectorText: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  venueSelectorArrow: {
+    fontSize: 24,
+    color: COLORS.textSecondary,
+  },
+  postToFeedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.accent,
+    padding: 18,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  postToFeedButtonDisabled: {
+    opacity: 0.6,
+  },
+  postToFeedButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  shareOptionsContainer: {
+    marginTop: 12,
+  },
+  shareOptionsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   shareOptions: {
     gap: 12,
@@ -1003,5 +1560,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  venueOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  venueOptionText: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  venueOptionTextActive: {
+    color: COLORS.accent,
+    fontWeight: '600',
   },
 });

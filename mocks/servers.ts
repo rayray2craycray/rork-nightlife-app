@@ -146,7 +146,7 @@ export const mockMessages: Message[] = [
   {
     id: 'msg-4',
     channelId: 'channel-1',
-    userId: 'performer-1',
+    userId: 'perf-1',
     userName: 'DJ Solaris',
     userBadge: 'PERFORMER',
     content: "Hey everyone! I'm dropping 3 unreleased tracks tonight. If you're in the VIP lounge, I'm taking requests at midnight 🎧",
