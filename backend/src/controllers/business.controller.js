@@ -527,3 +527,199 @@ exports.updateBusinessProfile = async (req, res) => {
     });
   }
 };
+
+/**
+ * Upload verification document
+ * POST /api/business/documents/upload
+ */
+exports.uploadDocument = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { documentType, documentUrl, fileName, fileSize, notes } = req.body;
+
+    logger.info('Document upload attempt', {
+      userId,
+      documentType,
+      fileName,
+    });
+
+    // Validate required fields
+    if (!documentType || !documentUrl || !fileName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'documentType, documentUrl, and fileName are required',
+      });
+    }
+
+    // Validate document type
+    const validTypes = ['BUSINESS_LICENSE', 'TAX_ID', 'PHOTO_ID', 'PROOF_OF_ADDRESS', 'OTHER'];
+    if (!validTypes.includes(documentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid document type',
+        message: `Document type must be one of: ${validTypes.join(', ')}`,
+      });
+    }
+
+    // Get business profile
+    const businessProfile = await BusinessProfile.findOne({ userId });
+
+    if (!businessProfile) {
+      return res.status(404).json({
+        success: false,
+        error: 'Business profile not found',
+      });
+    }
+
+    // Add document
+    const newDocument = {
+      type: documentType,
+      documentUrl,
+      fileName,
+      fileSize: fileSize || null,
+      uploadedAt: new Date(),
+      status: 'PENDING',
+      notes: notes || '',
+    };
+
+    businessProfile.documents.push(newDocument);
+    businessProfile.documentsSubmitted = true;
+    await businessProfile.save();
+
+    logger.info('Document uploaded successfully', {
+      userId,
+      businessProfileId: businessProfile._id.toString(),
+      documentType,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        document: newDocument,
+        totalDocuments: businessProfile.documents.length,
+      },
+      message: 'Document uploaded successfully',
+    });
+  } catch (error) {
+    logger.error('Document upload error', {
+      userId: req.user?.id,
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred during document upload',
+    });
+  }
+};
+
+/**
+ * Get all documents for business profile
+ * GET /api/business/documents
+ */
+exports.getDocuments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const businessProfile = await BusinessProfile.findOne({ userId }).select('documents');
+
+    if (!businessProfile) {
+      return res.status(404).json({
+        success: false,
+        error: 'Business profile not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        documents: businessProfile.documents,
+        totalDocuments: businessProfile.documents.length,
+        pendingCount: businessProfile.documents.filter((d) => d.status === 'PENDING').length,
+        approvedCount: businessProfile.documents.filter((d) => d.status === 'APPROVED').length,
+        rejectedCount: businessProfile.documents.filter((d) => d.status === 'REJECTED').length,
+      },
+    });
+  } catch (error) {
+    logger.error('Get documents error', {
+      userId: req.user?.id,
+      error: error.message,
+    });
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred while fetching documents',
+    });
+  }
+};
+
+/**
+ * Delete a document
+ * DELETE /api/business/documents/:documentId
+ */
+exports.deleteDocument = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { documentId } = req.params;
+
+    const businessProfile = await BusinessProfile.findOne({ userId });
+
+    if (!businessProfile) {
+      return res.status(404).json({
+        success: false,
+        error: 'Business profile not found',
+      });
+    }
+
+    // Find document
+    const documentIndex = businessProfile.documents.findIndex(
+      (doc) => doc._id.toString() === documentId
+    );
+
+    if (documentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Document not found',
+      });
+    }
+
+    // Only allow deleting documents that are pending or rejected
+    const document = businessProfile.documents[documentIndex];
+    if (document.status === 'APPROVED') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete approved documents',
+      });
+    }
+
+    // Remove document
+    businessProfile.documents.splice(documentIndex, 1);
+
+    // Update documentsSubmitted flag if no documents left
+    if (businessProfile.documents.length === 0) {
+      businessProfile.documentsSubmitted = false;
+    }
+
+    await businessProfile.save();
+
+    logger.info('Document deleted', {
+      userId,
+      documentId,
+      documentType: document.type,
+    });
+
+    res.json({
+      success: true,
+      message: 'Document deleted successfully',
+    });
+  } catch (error) {
+    logger.error('Delete document error', {
+      userId: req.user?.id,
+      error: error.message,
+    });
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred while deleting document',
+    });
+  }
+};

@@ -12,6 +12,7 @@ const {
   uploadHighlight,
   uploadMemoryPhoto,
   uploadVenuePhoto,
+  uploadBusinessDocument,
   deleteUpload,
 } = require('../controllers/upload.controller');
 
@@ -29,6 +30,31 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Only images and videos are allowed'));
+    }
+  },
+});
+
+// Configure multer for document uploads (PDFs, images)
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max for documents
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept PDFs and images
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/heic',
+      'image/heif',
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF and image files are allowed'));
     }
   },
 });
@@ -61,6 +87,10 @@ router.post('/memory', upload.single('image'), uploadMemoryPhoto);
 // Upload venue photo (for venue owners)
 // POST /api/upload/venue
 router.post('/venue', upload.single('image'), uploadVenuePhoto);
+
+// Upload business verification document (for business owners)
+// POST /api/upload/business-document
+router.post('/business-document', documentUpload.single('document'), uploadBusinessDocument);
 
 // Delete asset
 // DELETE /api/upload/:publicId

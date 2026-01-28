@@ -80,4 +80,25 @@ router.get('/profile', authMiddleware, businessController.getBusinessProfile);
  */
 router.patch('/profile', authMiddleware, businessController.updateBusinessProfile);
 
+/**
+ * POST /api/business/documents/upload
+ * Upload verification document
+ * Requires authentication
+ */
+router.post('/documents/upload', authMiddleware, businessController.uploadDocument);
+
+/**
+ * GET /api/business/documents
+ * Get all documents for business profile
+ * Requires authentication
+ */
+router.get('/documents', authMiddleware, businessController.getDocuments);
+
+/**
+ * DELETE /api/business/documents/:documentId
+ * Delete a document
+ * Requires authentication
+ */
+router.delete('/documents/:documentId', authMiddleware, businessController.deleteDocument);
+
 module.exports = router;

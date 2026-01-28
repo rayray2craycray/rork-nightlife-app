@@ -3,7 +3,7 @@
  * Handles file uploads to Cloudinary
  */
 
-const { uploadImage, uploadVideo, deleteAsset } = require('../config/cloudinary');
+const { uploadImage, uploadVideo, uploadDocument, deleteAsset } = require('../config/cloudinary');
 
 /**
  * Upload profile picture
@@ -249,6 +249,112 @@ const uploadVenuePhoto = async (req, res) => {
 };
 
 /**
+ * Upload business verification document
+ * POST /api/upload/business-document
+ */
+const uploadBusinessDocument = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+      });
+    }
+
+    const { documentType, notes } = req.body;
+
+    if (!documentType) {
+      return res.status(400).json({
+        success: false,
+        error: 'Document type required',
+        message: 'Please specify the document type',
+      });
+    }
+
+    // Validate document type
+    const validTypes = ['BUSINESS_LICENSE', 'TAX_ID', 'PHOTO_ID', 'PROOF_OF_ADDRESS', 'OTHER'];
+    if (!validTypes.includes(documentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid document type',
+        message: `Document type must be one of: ${validTypes.join(', ')}`,
+      });
+    }
+
+    // Check file size (max 10MB)
+    if (req.file.size > 10 * 1024 * 1024) {
+      return res.status(400).json({
+        success: false,
+        error: 'File too large (max 10MB)',
+      });
+    }
+
+    // Determine resource type based on mime type
+    let resourceType = 'image';
+    if (req.file.mimetype === 'application/pdf') {
+      resourceType = 'raw';
+    }
+
+    // Upload to Cloudinary
+    const uploadFunction = resourceType === 'image' ? uploadImage : uploadDocument;
+    const result = await uploadFunction(req.file.buffer, {
+      folder: 'rork-app/documents/verification',
+      publicId: `doc-${req.user.id}-${documentType}-${Date.now()}`,
+    });
+
+    // Now save to business profile using the business controller
+    const BusinessProfile = require('../models/BusinessProfile');
+    const businessProfile = await BusinessProfile.findOne({ userId: req.user.id });
+
+    if (!businessProfile) {
+      // Delete uploaded file if no business profile found
+      await deleteAsset(result.public_id, resourceType);
+
+      return res.status(404).json({
+        success: false,
+        error: 'Business profile not found',
+        message: 'Please create a business profile first',
+      });
+    }
+
+    // Add document to profile
+    const newDocument = {
+      type: documentType,
+      documentUrl: result.secure_url,
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      uploadedAt: new Date(),
+      status: 'PENDING',
+      notes: notes || '',
+    };
+
+    businessProfile.documents.push(newDocument);
+    businessProfile.documentsSubmitted = true;
+    await businessProfile.save();
+
+    res.json({
+      success: true,
+      data: {
+        url: result.secure_url,
+        publicId: result.public_id,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        documentType,
+        document: newDocument,
+      },
+      message: 'Document uploaded successfully',
+    });
+  } catch (error) {
+    console.error('Business document upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Upload failed',
+      message: error.message,
+    });
+  }
+};
+
+/**
  * Delete asset
  * DELETE /api/upload/:publicId
  */
@@ -286,5 +392,6 @@ module.exports = {
   uploadHighlight,
   uploadMemoryPhoto,
   uploadVenuePhoto,
+  uploadBusinessDocument,
   deleteUpload,
 };

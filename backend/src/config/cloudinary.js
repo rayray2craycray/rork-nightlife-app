@@ -94,6 +94,34 @@ const deleteAsset = async (publicId, resourceType = 'image') => {
 };
 
 /**
+ * Upload document to Cloudinary (PDFs, images, etc.)
+ * @param {Buffer} fileBuffer - Document file buffer
+ * @param {Object} options - Upload options
+ * @returns {Promise<Object>} Upload result
+ */
+const uploadDocument = async (fileBuffer, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: options.folder || 'rork-app/documents',
+        public_id: options.publicId,
+        resource_type: 'raw', // For PDFs and other non-image files
+        format: options.format,
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+
+    uploadStream.end(fileBuffer);
+  });
+};
+
+/**
  * Generate transformation URL
  * @param {string} publicId - Cloudinary public ID
  * @param {Array} transformation - Transformation options
@@ -112,6 +140,7 @@ module.exports = {
   cloudinary,
   uploadImage,
   uploadVideo,
+  uploadDocument,
   deleteAsset,
   generateTransformationUrl,
 };

@@ -90,6 +90,48 @@ const BusinessProfileSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    documents: [
+      {
+        type: {
+          type: String,
+          enum: ['BUSINESS_LICENSE', 'TAX_ID', 'PHOTO_ID', 'PROOF_OF_ADDRESS', 'OTHER'],
+          required: true,
+        },
+        documentUrl: {
+          type: String,
+          required: true,
+        },
+        fileName: {
+          type: String,
+          required: true,
+        },
+        fileSize: {
+          type: Number, // in bytes
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        status: {
+          type: String,
+          enum: ['PENDING', 'APPROVED', 'REJECTED'],
+          default: 'PENDING',
+        },
+        reviewedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        reviewedAt: {
+          type: Date,
+        },
+        rejectionReason: {
+          type: String,
+        },
+        notes: {
+          type: String,
+        },
+      },
+    ],
     rejectionReason: {
       type: String,
     },
