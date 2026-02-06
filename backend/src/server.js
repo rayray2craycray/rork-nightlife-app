@@ -66,6 +66,7 @@ const uploadRoutes = require('./routes/upload.routes');
 const businessRoutes = require('./routes/business.routes');
 const venueManagementRoutes = require('./routes/venue.routes');
 const adminRoutes = require('./routes/admin.routes');
+const posRoutes = require('./routes/pos.routes');
 
 // Initialize Express app
 const app = express();
@@ -206,6 +207,9 @@ app.use('/api/admin', adminRoutes);
 // Business profile and venue management routes
 app.use('/api/business', businessRoutes);
 app.use('/api/venues', venueManagementRoutes);
+
+// POS integration routes (Toast + Square)
+app.use('/api/pos', posRoutes);
 
 // Growth feature routes
 app.use('/api/growth', growthRoutes);
