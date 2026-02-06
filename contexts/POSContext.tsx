@@ -12,11 +12,8 @@ import {
   SyncResult,
   RevenueStats,
 } from '@/types';
-import {
-  mockPOSIntegration,
-  mockPOSLocations,
-  mockSpendRules,
-} from '@/mocks/pos';
+// Mock data imports removed - context now works with real API only
+// import { mockPOSIntegration, mockPOSLocations, mockSpendRules } from '@/mocks/pos';
 import { POS_CONFIG } from '@/constants/app';
 import { api } from '@/services/api';
 
@@ -40,10 +37,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
       if (stored) {
         return JSON.parse(stored) as POSIntegration;
       }
-      // Development mode: return mock data
-      if (process.env.NODE_ENV === 'development') {
-        return mockPOSIntegration;
-      }
+      // No mock data - start with null state
       return null;
     },
   });
@@ -56,10 +50,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
       if (stored) {
         return JSON.parse(stored) as SpendRule[];
       }
-      // Development mode: return mock data
-      if (process.env.NODE_ENV === 'development') {
-        return mockSpendRules;
-      }
+      // No mock data - start with empty array
       return [];
     },
   });
@@ -123,44 +114,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
       };
       setIntegration(connectingIntegration);
 
-      // Development mode: simulate connection
-      if (process.env.NODE_ENV === 'development') {
-        await new Promise(resolve => setTimeout(resolve, POS_CONFIG.MOCK_CONNECTION_DELAY_MS));
-
-        const connectedIntegration: POSIntegration = {
-          ...connectingIntegration,
-          id: 'pos-' + Date.now(),
-          status: 'CONNECTED',
-          metadata: {
-            locationName: provider === 'TOAST' ? 'Toast Restaurant' : 'Square Location',
-            merchantName: 'Demo Venue',
-            currency: 'USD',
-            timezone: 'America/New_York',
-          },
-          syncConfig: {
-            enabled: true,
-            interval: 300000,
-            lastSyncAt: new Date().toISOString(),
-            lastSyncStatus: 'SUCCESS',
-          },
-          connectedAt: new Date().toISOString(),
-          stats: {
-            transactionCount: 0,
-            totalRevenue: 0,
-            averageTransaction: 0,
-          },
-        };
-
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.POS_INTEGRATION,
-          JSON.stringify(connectedIntegration)
-        );
-
-        setAvailableLocations(mockPOSLocations.filter(loc => loc.provider === provider));
-        return connectedIntegration;
-      }
-
-      // Production: Call backend API to validate and store credentials
+      // Call backend API to validate and store credentials
       const response = await api.post('/pos/connect', {
         venueId,
         provider,
@@ -198,13 +152,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
       provider: POSProvider;
       credentials: POSCredentials;
     }) => {
-      // Development mode: always validate successfully
-      if (process.env.NODE_ENV === 'development') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return { valid: true, locationName: 'Demo Location' };
-      }
-
-      // Production: Call backend validation endpoint
+      // Call backend validation endpoint
       const response = await api.post('/pos/validate', {
         provider,
         credentials,
@@ -224,15 +172,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
         throw new Error('No POS integration to disconnect');
       }
 
-      // Development mode: just clear local storage
-      if (process.env.NODE_ENV === 'development') {
-        await AsyncStorage.removeItem(STORAGE_KEYS.POS_INTEGRATION);
-        await AsyncStorage.removeItem(STORAGE_KEYS.POS_TRANSACTIONS);
-        setAvailableLocations([]);
-        return null;
-      }
-
-      // Production: Call backend to delete integration
+      // Call backend to delete integration
       await api.post(`/pos/disconnect/${venueId}`);
 
       // Clear local storage
@@ -266,41 +206,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
         throw new Error('No POS integration connected');
       }
 
-      // Development mode: return mock sync result
-      if (process.env.NODE_ENV === 'development') {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const syncResult: SyncResult = {
-          transactionsSynced: 5,
-          newTransactions: 3,
-          duplicatesSkipped: 2,
-          rulesProcessed: 2,
-          tiersUnlocked: {
-            REGULAR: 1,
-            PLATINUM: 1,
-          },
-        };
-
-        // Update integration sync status
-        const updatedIntegration = {
-          ...integration,
-          syncConfig: {
-            ...integration.syncConfig,
-            lastSyncAt: new Date().toISOString(),
-            lastSyncStatus: 'SUCCESS' as const,
-          },
-        };
-
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.POS_INTEGRATION,
-          JSON.stringify(updatedIntegration)
-        );
-
-        setIntegration(updatedIntegration);
-        return syncResult;
-      }
-
-      // Production: Call backend sync endpoint
+      // Call backend sync endpoint
       const response = await api.post(`/pos/sync/${venueId}`, {
         fromDate,
         toDate,
@@ -320,12 +226,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
    */
   const getStatus = useMutation({
     mutationFn: async (venueId: string) => {
-      // Development mode: return current integration
-      if (process.env.NODE_ENV === 'development') {
-        return integration;
-      }
-
-      // Production: Fetch latest status from backend
+      // Fetch latest status from backend
       const response = await api.get(`/pos/status/${venueId}`);
       const updatedIntegration = response.data as POSIntegration;
 
@@ -349,24 +250,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
    */
   const createSpendRule = useMutation({
     mutationFn: async (rule: Omit<SpendRule, 'id'>) => {
-      // Development mode: store locally
-      if (process.env.NODE_ENV === 'development') {
-        const newRule: SpendRule = {
-          ...rule,
-          id: 'rule-' + Date.now(),
-          isActive: true,
-        };
-
-        const updatedRules = [...spendRules, newRule];
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.POS_SPEND_RULES,
-          JSON.stringify(updatedRules)
-        );
-
-        return updatedRules;
-      }
-
-      // Production: Call backend API
+      // Call backend API
       const response = await api.post(`/pos/rules/${rule.venueId}`, rule);
       return response.data as SpendRule[];
     },
@@ -380,19 +264,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
    */
   const updateSpendRule = useMutation({
     mutationFn: async (rule: SpendRule) => {
-      // Development mode: update locally
-      if (process.env.NODE_ENV === 'development') {
-        const updatedRules = spendRules.map(r => (r.id === rule.id ? rule : r));
-
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.POS_SPEND_RULES,
-          JSON.stringify(updatedRules)
-        );
-
-        return updatedRules;
-      }
-
-      // Production: Call backend API
+      // Call backend API
       const response = await api.patch(`/pos/rules/${rule.venueId}/${rule.id}`, rule);
       return response.data as SpendRule[];
     },
@@ -406,19 +278,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
    */
   const deleteSpendRule = useMutation({
     mutationFn: async ({ venueId, ruleId }: { venueId: string; ruleId: string }) => {
-      // Development mode: delete locally
-      if (process.env.NODE_ENV === 'development') {
-        const updatedRules = spendRules.filter(r => r.id !== ruleId);
-
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.POS_SPEND_RULES,
-          JSON.stringify(updatedRules)
-        );
-
-        return updatedRules;
-      }
-
-      // Production: Call backend API
+      // Call backend API
       const response = await api.delete(`/pos/rules/${venueId}/${ruleId}`);
       return response.data as SpendRule[];
     },
@@ -432,21 +292,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
    */
   const toggleSpendRule = useMutation({
     mutationFn: async ({ venueId, ruleId }: { venueId: string; ruleId: string }) => {
-      // Development mode: toggle locally
-      if (process.env.NODE_ENV === 'development') {
-        const updatedRules = spendRules.map(r =>
-          r.id === ruleId ? { ...r, isActive: !r.isActive } : r
-        );
-
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.POS_SPEND_RULES,
-          JSON.stringify(updatedRules)
-        );
-
-        return updatedRules;
-      }
-
-      // Production: Call backend API
+      // Call backend API
       const response = await api.post(`/pos/rules/${venueId}/${ruleId}/toggle`);
       return response.data as SpendRule[];
     },
@@ -466,24 +312,7 @@ export const [POSProvider, usePOS] = createContextHook(() => {
       venueId: string;
       period: 'day' | 'week' | 'month' | 'year' | 'all';
     }) => {
-      // Development mode: calculate from local transactions
-      if (process.env.NODE_ENV === 'development') {
-        const venueTransactions = transactions.filter(t => t.venueId === venueId);
-        const totalRevenue = venueTransactions.reduce((sum, t) => sum + t.amount.total, 0);
-        const averageTransaction =
-          venueTransactions.length > 0 ? totalRevenue / venueTransactions.length : 0;
-
-        const stats: RevenueStats = {
-          period,
-          totalRevenue,
-          totalTransactions: venueTransactions.length,
-          averageTransaction,
-        };
-
-        return stats;
-      }
-
-      // Production: Call backend API
+      // Call backend API
       const response = await api.get(`/pos/revenue/${venueId}`, {
         params: { period },
       });

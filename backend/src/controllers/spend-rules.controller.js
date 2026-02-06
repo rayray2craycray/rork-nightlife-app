@@ -265,5 +265,3 @@ exports.toggleRule = async (req, res) => {
     });
   }
 };
-
-module.exports = exports;

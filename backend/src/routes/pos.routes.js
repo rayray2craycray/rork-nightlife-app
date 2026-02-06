@@ -7,8 +7,8 @@ const express = require('express');
 const router = express.Router();
 const posController = require('../controllers/pos.controller');
 const spendRulesController = require('../controllers/spend-rules.controller');
-const authMiddleware = require('../middleware/auth.middleware');
-const adminMiddleware = require('../middleware/admin.middleware');
+const { authMiddleware } = require('../middleware/auth.middleware');
+const { adminMiddleware } = require('../middleware/admin.middleware');
 
 // ============================================================================
 // POS Integration Management
