@@ -16,8 +16,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { Award, Eye, EyeOff, Settings, CreditCard, Users, BarChart3, Edit, X, CheckCircle2, Shield, UserPlus, UserMinus, Share2, ChevronRight, DollarSign, Camera, Image as ImageIcon, Plus, MapPin, Building2 } from 'lucide-react-native';
+import { Award, Eye, EyeOff, Settings, CreditCard, Users, BarChart3, Edit, X, CheckCircle2, Shield, UserPlus, UserMinus, Share2, ChevronRight, DollarSign, Camera, Image as ImageIcon, Plus, MapPin, Building2, MoreVertical } from 'lucide-react-native';
 import { useAppState } from '@/contexts/AppStateContext';
+import UserActionMenu from '@/components/UserActionMenu';
 import { useSocial } from '@/contexts/SocialContext';
 import { useGrowth } from '@/contexts/GrowthContext';
 import { useRetention } from '@/contexts/RetentionContext';
@@ -68,6 +69,8 @@ export default function ProfileScreen() {
   const [uploadedMemoryImageUrl, setUploadedMemoryImageUrl] = useState<string | null>(null);
   const [detectedVenue, setDetectedVenue] = useState<{ id: string; name: string; distance: number } | null>(null);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [showReportMenu, setShowReportMenu] = useState(false);
+  const [selectedUserForAction, setSelectedUserForAction] = useState<{ id: string; username: string }>({ id: '', username: '' });
 
   // Upload hook for profile picture
   const upload = useUpload({
@@ -543,26 +546,38 @@ export default function ProfileScreen() {
                         )}
                       </View>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.followButton,
-                        isFollowing(userId) && styles.followingButton
-                      ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        if (isFollowing(userId)) {
-                          unfollowUser(userId);
-                        } else {
-                          followUser(userId);
-                        }
-                      }}
-                    >
-                      {isFollowing(userId) ? (
-                        <UserMinus size={18} color="#fff" />
-                      ) : (
-                        <UserPlus size={18} color="#000000" />
-                      )}
-                    </TouchableOpacity>
+                    <View style={styles.userCardActions}>
+                      <TouchableOpacity
+                        style={styles.moreButton}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSelectedUserForAction({ id: userId, username: userProfile.displayName });
+                          setShowReportMenu(true);
+                        }}
+                      >
+                        <MoreVertical size={20} color="#999" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.followButton,
+                          isFollowing(userId) && styles.followingButton
+                        ]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          if (isFollowing(userId)) {
+                            unfollowUser(userId);
+                          } else {
+                            followUser(userId);
+                          }
+                        }}
+                      >
+                        {isFollowing(userId) ? (
+                          <UserMinus size={18} color="#fff" />
+                        ) : (
+                          <UserPlus size={18} color="#000000" />
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </LinearGradient>
                 </View>
               );
@@ -595,15 +610,27 @@ export default function ProfileScreen() {
                         )}
                       </View>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.followingButton}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        unfollowUser(userId);
-                      }}
-                    >
-                      <UserMinus size={18} color="#fff" />
-                    </TouchableOpacity>
+                    <View style={styles.userCardActions}>
+                      <TouchableOpacity
+                        style={styles.moreButton}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSelectedUserForAction({ id: userId, username: userProfile.displayName });
+                          setShowReportMenu(true);
+                        }}
+                      >
+                        <MoreVertical size={20} color="#999" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.followingButton}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          unfollowUser(userId);
+                        }}
+                      >
+                        <UserMinus size={18} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
                   </LinearGradient>
                 </View>
               );
@@ -1338,6 +1365,13 @@ export default function ProfileScreen() {
         onClaimReward={claimReferralReward}
       />
 
+      <UserActionMenu
+        visible={showReportMenu}
+        onClose={() => setShowReportMenu(false)}
+        userId={selectedUserForAction.id}
+        username={selectedUserForAction.username}
+      />
+
       {/* Add Memory Modal */}
       <Modal
         visible={showAddMemoryModal}
@@ -1739,6 +1773,9 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#000000',
   },
+  modalContainer: {
+    flex: 1,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
@@ -1952,6 +1989,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
     borderColor: '#333',
+  },
+  userCardActions: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  moreButton: {
+    padding: 8,
+    marginRight: 4,
   },
   sectionSubtitle: {
     fontSize: 13,

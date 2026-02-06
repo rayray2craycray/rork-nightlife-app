@@ -13,8 +13,9 @@ import {
   Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Heart, MessageCircle, Share2, Music, UserPlus, MapPin } from 'lucide-react-native';
+import { Heart, MessageCircle, Share2, Music, UserPlus, MapPin, Flag } from 'lucide-react-native';
 import { Image } from 'expo-image';
+import UserActionMenu from '@/components/UserActionMenu';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { mockVenues } from '@/mocks/venues';
 import { mockPerformers } from '@/mocks/performers';
@@ -289,6 +290,7 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike, isFocus
   const { profile, updateProfile } = useAppState();
   const { shareToInstagram, generateStoryTemplate } = useGrowth();
   const [videoError, setVideoError] = useState(false);
+  const [showReportMenu, setShowReportMenu] = useState(false);
 
   const player = useVideoPlayer(video.videoUrl, (player) => {
     player.loop = true;
@@ -549,6 +551,17 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike, isFocus
           <Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setShowReportMenu(true);
+          }}
+        >
+          <Flag size={28} color="#fff" />
+          <Text style={styles.actionText}>Report</Text>
+        </TouchableOpacity>
+
         <View style={styles.musicIcon}>
           <Music size={24} color="#ff0080" />
         </View>
@@ -581,6 +594,15 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike, isFocus
           </Text>
         </TouchableOpacity>
       </View>
+
+      <UserActionMenu
+        visible={showReportMenu}
+        onClose={() => setShowReportMenu(false)}
+        userId={performer?.id || video.venueId}
+        username={performer?.stageName || venue?.name || 'user'}
+        contentId={video.id}
+        contentType="video"
+      />
     </View>
   );
 }
