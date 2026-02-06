@@ -67,6 +67,7 @@ const businessRoutes = require('./routes/business.routes');
 const venueManagementRoutes = require('./routes/venue.routes');
 const adminRoutes = require('./routes/admin.routes');
 const posRoutes = require('./routes/pos.routes');
+const moderationRoutes = require('./routes/moderation.routes');
 
 // Initialize Express app
 const app = express();
@@ -211,6 +212,9 @@ app.use('/api/venues', venueManagementRoutes);
 // POS integration routes (Toast + Square)
 app.use('/api/pos', posRoutes);
 
+// Content moderation routes (reports, blocking)
+app.use('/api/moderation', moderationRoutes);
+
 // Growth feature routes
 app.use('/api/growth', growthRoutes);
 app.use('/api/events', eventsRoutes);
@@ -236,6 +240,8 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       business: '/api/business',
       venueManagement: '/api/venues',
+      pos: '/api/pos',
+      moderation: '/api/moderation',
       growth: '/api/growth',
       events: '/api/events',
       content: '/api/content',

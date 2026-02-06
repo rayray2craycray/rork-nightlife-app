@@ -27,17 +27,15 @@ export interface ContactSyncResult {
 
 /**
  * Request permission to access contacts
+ * NOTE: This should only be called after user has explicitly opted in via ContactSyncModal
  */
 export async function requestContactsPermission(): Promise<boolean> {
   try {
     const { status } = await Contacts.requestPermissionsAsync();
 
     if (status !== 'granted') {
-      Alert.alert(
-        'Contacts Permission',
-        'Enable contacts access to find friends who are also on the app.',
-        [{ text: 'OK' }]
-      );
+      // User denied permission - don't show another alert
+      console.log('Contacts permission denied by user');
       return false;
     }
 

@@ -17,16 +17,17 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.rork.nox",
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
-        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone",
-        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
+        "NSCameraUsageDescription": "Rork needs camera access to let you capture and share videos of nightlife experiences, scan QR codes for venue check-in, and participate in live venue content.",
+        "NSMicrophoneUsageDescription": "Rork needs microphone access to record audio with your videos, enabling you to capture the full atmosphere of venues and events.",
+        "NSPhotoLibraryUsageDescription": "Rork needs photo library access to let you select photos and videos to share with your friends, and to save your captured nightlife memories.",
+        "NSContactsUsageDescription": "Rork uses your contacts to help you find and connect with friends on the app. Your contacts are securely hashed and never shared publicly.",
         "UIBackgroundModes": [
           "audio",
           "location"
         ],
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
-        "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
-        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Rork uses your location to show you nearby nightlife venues, track your check-ins at venues, and display live events in your area. Location is only used while you're actively using the app.",
+        "NSLocationAlwaysUsageDescription": "Rork uses your location to show you nearby nightlife venues and track your check-ins at venues. Location data is used to enhance your nightlife discovery experience.",
+        "NSLocationWhenInUseUsageDescription": "Rork uses your location to show you nearby nightlife venues, upcoming events in your area, and help you discover new places to go out. Location is only accessed while you're using the app."
       }
     },
     "android": {
@@ -63,30 +64,31 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "cameraPermission": "Rork needs camera access to let you capture and share videos of nightlife experiences, scan QR codes for venue check-in, and participate in live venue content.",
+          "microphonePermission": "Rork needs microphone access to record audio with your videos, enabling you to capture the full atmosphere of venues and events.",
           "recordAudioAndroid": true
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
+          "photosPermission": "Rork needs photo library access to let you select photos and videos to share with your friends, and to save your captured nightlife memories."
         }
       ],
       [
         "expo-av",
         {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
+          "microphonePermission": "Rork needs microphone access to record audio with your videos, enabling you to capture the full atmosphere of venues and events."
         }
       ],
       [
         "expo-location",
         {
           "isAndroidForegroundServiceEnabled": true,
-          "isAndroidBackgroundLocationEnabled": true,
-          "isIosBackgroundLocationEnabled": true,
-          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false,
+          "locationAlwaysAndWhenInUsePermission": "Rork uses your location to show you nearby nightlife venues and upcoming events in your area. Location is only accessed while you're using the app.",
+          "locationWhenInUsePermission": "Rork uses your location to show you nearby nightlife venues, upcoming events in your area, and help you discover new places to go out."
         }
       ]
     ],
