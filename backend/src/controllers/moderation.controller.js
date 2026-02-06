@@ -14,7 +14,7 @@ const logger = require('../utils/logger');
 exports.submitReport = async (req, res) => {
   try {
     const { contentType, contentId, reason, details, reportedUserId } = req.body;
-    const reporterId = req.user._id;
+    const reporterId = req.user.id;
 
     // Validate required fields
     if (!contentType || !contentId || !reason) {
@@ -91,7 +91,7 @@ exports.submitReport = async (req, res) => {
  */
 exports.getMyReports = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { limit = 20, offset = 0 } = req.query;
 
     const reports = await Report.find({ reporterId: userId })
@@ -127,7 +127,7 @@ exports.getMyReports = async (req, res) => {
 exports.blockUser = async (req, res) => {
   try {
     const { userId } = req.body;
-    const blockerId = req.user._id;
+    const blockerId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -195,7 +195,7 @@ exports.blockUser = async (req, res) => {
 exports.unblockUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const blockerId = req.user._id;
+    const blockerId = req.user.id;
 
     const block = await BlockedUser.findOneAndDelete({
       blockerId,
@@ -233,7 +233,7 @@ exports.unblockUser = async (req, res) => {
  */
 exports.getBlockedUsers = async (req, res) => {
   try {
-    const blockerId = req.user._id;
+    const blockerId = req.user.id;
     const { limit = 50, offset = 0 } = req.query;
 
     const blocks = await BlockedUser.find({ blockerId })
@@ -269,7 +269,7 @@ exports.getBlockedUsers = async (req, res) => {
 exports.checkIfBlocked = async (req, res) => {
   try {
     const { userId } = req.params;
-    const currentUserId = req.user._id;
+    const currentUserId = req.user.id;
 
     const isBlocked = await BlockedUser.isEitherBlocked(currentUserId, userId);
 
@@ -347,7 +347,7 @@ exports.updateReport = async (req, res) => {
   try {
     const { reportId } = req.params;
     const { status, moderationAction, moderatorNotes } = req.body;
-    const moderatorId = req.user._id;
+    const moderatorId = req.user.id;
 
     const report = await Report.findById(reportId);
 
