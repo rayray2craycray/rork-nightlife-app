@@ -533,11 +533,7 @@ export default function SettingsScreen() {
               style={styles.settingButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                Alert.alert(
-                  'Blocked Users',
-                  'You have no blocked users. Users you block will appear here.',
-                  [{ text: 'OK' }]
-                );
+                router.push('/blocked-users');
               }}
             >
               <UserX size={22} color="#fff" />
@@ -784,6 +780,21 @@ export default function SettingsScreen() {
               <View style={styles.settingButtonInfo}>
                 <Text style={styles.settingTitle}>Report a Bug</Text>
                 <Text style={styles.settingSubtitle}>Help us improve VibeLink</Text>
+              </View>
+              <ChevronRight size={20} color="#666" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push('/community-guidelines');
+              }}
+            >
+              <Shield size={22} color="#4ade80" />
+              <View style={styles.settingButtonInfo}>
+                <Text style={styles.settingTitle}>Community Guidelines</Text>
+                <Text style={styles.settingSubtitle}>Our community standards and policies</Text>
               </View>
               <ChevronRight size={20} color="#666" />
             </TouchableOpacity>
