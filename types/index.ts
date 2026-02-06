@@ -323,40 +323,204 @@ export interface FeedSettings {
   lastUpdated: string;
 }
 
-export interface ToastLocation {
+// ===== POS INTEGRATION (TOAST & SQUARE) =====
+
+/**
+ * POS Provider Types
+ */
+export type POSProvider = 'TOAST' | 'SQUARE';
+
+/**
+ * POS Integration Status
+ */
+export type POSStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR' | 'VALIDATING';
+
+/**
+ * POS Integration Credentials
+ */
+export interface POSCredentials {
+  apiKey: string; // Toast API key or Square access token
+  locationId: string; // Toast restaurant GUID or Square location ID
+  environment: 'PRODUCTION' | 'SANDBOX';
+}
+
+/**
+ * POS Location (generic for both providers)
+ */
+export interface POSLocation {
   id: string;
   name: string;
   address: string;
-  restaurantGuid: string;
+  provider: POSProvider;
+  metadata?: {
+    restaurantGuid?: string; // Toast-specific
+    merchantName?: string; // Square-specific
+    currency?: string;
+    timezone?: string;
+  };
 }
 
-export interface ToastIntegration {
+/**
+ * POS Integration
+ */
+export interface POSIntegration {
   id: string;
   venueId: string;
-  status: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR';
-  accessToken?: string;
-  refreshToken?: string;
-  selectedLocations: string[];
+  provider: POSProvider;
+  status: POSStatus;
+  metadata: {
+    locationName?: string;
+    merchantName?: string;
+    currency?: string;
+    timezone?: string;
+    webhookUrl?: string;
+  };
+  syncConfig: {
+    enabled: boolean;
+    interval: number; // in seconds
+    lastSyncAt?: string;
+    lastSyncStatus?: 'SUCCESS' | 'FAILED' | 'PENDING';
+    syncErrors?: string[];
+  };
+  webhooks?: {
+    enabled: boolean;
+    events?: string[];
+  };
   connectedAt?: string;
-  lastSyncAt?: string;
-  webhooksEnabled: boolean;
+  disconnectedAt?: string;
+  stats?: {
+    transactionCount: number;
+    totalRevenue: number;
+    averageTransaction: number;
+  };
 }
 
-export interface ToastSpendRule {
+/**
+ * Spend Rule (works for both Toast and Square)
+ */
+export interface SpendRule {
   id: string;
   venueId: string;
-  threshold: number;
+  threshold: number; // in dollars
   tierUnlocked: 'GUEST' | 'REGULAR' | 'PLATINUM' | 'WHALE';
   serverAccessLevel: 'PUBLIC_LOBBY' | 'INNER_CIRCLE';
   isLiveOnly: boolean;
   liveTimeWindow?: {
-    startTime: string;
-    endTime: string;
+    startTime: string; // HH:MM format
+    endTime: string; // HH:MM format
   };
   performerId?: string;
+  description?: string;
+  priority?: number;
   isActive: boolean;
+  stats?: {
+    timesTriggered: number;
+    lastTriggeredAt?: string;
+    usersUnlocked: number;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
+/**
+ * POS Transaction
+ */
+export interface POSTransaction {
+  id: string;
+  posIntegrationId: string;
+  venueId: string;
+  provider: POSProvider;
+  externalIds: {
+    transactionId: string; // Toast checkGuid or Square payment_id
+    orderId?: string; // Toast orderGuid or Square order_id
+    customerId?: string;
+  };
+  amount: {
+    total: number; // in cents
+    subtotal?: number;
+    tax?: number;
+    tip?: number;
+    discount?: number;
+  };
+  currency: string;
+  paymentMethod: {
+    type?: string; // CARD, CASH, MOBILE_PAYMENT
+    cardBrand?: string; // VISA, MASTERCARD, AMEX
+    lastFour?: string;
+    cardToken?: string;
+  };
+  userId?: string;
+  matchedAt?: string;
+  matchConfidence?: number; // 0-100
+  status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'REFUNDED';
+  timestamp: string;
+  items?: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  rulesProcessed?: Array<{
+    ruleId: string;
+    triggered: boolean;
+    tierUnlocked: string;
+    accessGranted: string;
+    processedAt: string;
+  }>;
+  createdAt?: string;
+}
+
+/**
+ * Sync Result
+ */
+export interface SyncResult {
+  transactionsSynced: number;
+  newTransactions: number;
+  duplicatesSkipped: number;
+  rulesProcessed?: number;
+  tiersUnlocked?: {
+    REGULAR?: number;
+    PLATINUM?: number;
+    WHALE?: number;
+  };
+  syncDuration?: number;
+}
+
+/**
+ * Revenue Stats
+ */
+export interface RevenueStats {
+  period: 'day' | 'week' | 'month' | 'year' | 'all';
+  totalRevenue: number; // in dollars
+  totalTransactions: number;
+  averageTransaction: number; // in dollars
+}
+
+// Legacy Toast types (for backward compatibility - deprecated)
+/**
+ * @deprecated Use POSLocation instead
+ */
+export interface ToastLocation extends POSLocation {
+  restaurantGuid: string;
+}
+
+/**
+ * @deprecated Use POSIntegration instead
+ */
+export interface ToastIntegration extends Omit<POSIntegration, 'provider'> {
+  accessToken?: string;
+  refreshToken?: string;
+  selectedLocations: string[];
+  webhooksEnabled: boolean;
+}
+
+/**
+ * @deprecated Use SpendRule instead
+ */
+export interface ToastSpendRule extends SpendRule {}
+
+/**
+ * @deprecated Use POSTransaction instead
+ */
 export interface ToastTransactionData {
   id: string;
   venueId: string;

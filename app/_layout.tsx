@@ -7,7 +7,7 @@ import { AppStateProvider, DiscoveryProvider } from "@/contexts/AppStateContext"
 import { PerformerProvider } from "@/contexts/PerformerContext";
 import { SocialProvider } from "@/contexts/SocialContext";
 import { FeedProvider } from "@/contexts/FeedContext";
-import { ToastProvider } from "@/contexts/ToastContext";
+import { POSProvider } from "@/contexts/POSContext";
 import { GlowProvider, useGlow } from "@/contexts/GlowContext";
 import { GrowthProvider } from "@/contexts/GrowthContext";
 import { EventsProvider } from "@/contexts/EventsContext";
@@ -65,7 +65,7 @@ export default function RootLayout() {
           <AuthProvider>
             <AppStateProvider>
               <GlowProvider>
-                <ToastProvider>
+                <POSProvider>
                   <SocialProvider>
                     <GrowthProvider>
                       <EventsProvider>
@@ -87,7 +87,7 @@ export default function RootLayout() {
                       </EventsProvider>
                     </GrowthProvider>
                   </SocialProvider>
-                </ToastProvider>
+                </POSProvider>
               </GlowProvider>
             </AppStateProvider>
           </AuthProvider>

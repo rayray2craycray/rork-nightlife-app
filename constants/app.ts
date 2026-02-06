@@ -57,13 +57,24 @@ export const VIDEO = {
 } as const;
 
 // ============================================================================
-// TOAST POS INTEGRATION
+// POS INTEGRATION (Toast & Square)
 // ============================================================================
 
-export const TOAST_POS = {
-  /** Simulated OAuth connection delay in development (2 seconds) */
+export const POS_CONFIG = {
+  /** Simulated connection delay in development (2 seconds) */
   MOCK_CONNECTION_DELAY_MS: 2 * TIME.SECOND,
+
+  /** Default sync interval for POS transactions (5 minutes) */
+  DEFAULT_SYNC_INTERVAL_MS: 5 * TIME.MINUTE,
+
+  /** Timeout for POS API validation requests (10 seconds) */
+  VALIDATION_TIMEOUT_MS: 10 * TIME.SECOND,
 } as const;
+
+/**
+ * @deprecated Use POS_CONFIG instead
+ */
+export const TOAST_POS = POS_CONFIG;
 
 // ============================================================================
 // USER TIERS AND ACCESS LEVELS

@@ -25,7 +25,7 @@ import {
 import { router } from 'expo-router';
 import { mockAnalytics } from '@/mocks/analytics';
 import { mockVenues } from '@/mocks/venues';
-import { useToast } from '@/contexts/ToastContext';
+import { usePOS } from '@/contexts/POSContext';
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +33,7 @@ export default function ManagementDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('today');
   const venue = mockVenues[0];
   const analytics = mockAnalytics;
-  const { isConnected: isToastConnected } = useToast();
+  const { isConnected: isPOSConnected } = usePOS();
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -47,10 +47,10 @@ export default function ManagementDashboard() {
                 {venue.isOpen ? 'Currently Open' : 'Closed'}
               </Text>
             </View>
-            {isToastConnected && (
+            {isPOSConnected && (
               <View style={styles.toastBadge}>
                 <Wifi size={14} color="#a855f7" />
-                <Text style={styles.toastBadgeText}>Toast Connected</Text>
+                <Text style={styles.toastBadgeText}>POS Connected</Text>
               </View>
             )}
           </View>
@@ -148,9 +148,9 @@ export default function ManagementDashboard() {
         <View style={styles.toolsGrid}>
           <ToolCard
             icon={<Wifi size={28} color="#a855f7" />}
-            title="Toast POS"
-            description="Connect & configure"
-            onPress={() => router.push('/management/toast-integration')}
+            title="POS Integration"
+            description="Toast & Square"
+            onPress={() => router.push('/management/pos-integration')}
           />
           <ToolCard
             icon={<Settings size={28} color="#ff0080" />}
