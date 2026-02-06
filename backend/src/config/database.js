@@ -8,8 +8,17 @@ const mongoose = require('mongoose');
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      // Connection pooling configuration
+      maxPoolSize: parseInt(process.env.DB_POOL_SIZE) || 10, // Max connections in pool
+      minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE) || 5, // Min connections to maintain
+
+      // Connection timeout settings
+      serverSelectionTimeoutMS: 5000, // Timeout for initial connection
+      socketTimeoutMS: 45000, // Socket timeout
+
+      // Retry settings
+      retryWrites: true, // Retry write operations
+      retryReads: true, // Retry read operations
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);

@@ -19,7 +19,12 @@
     "deploy:restart": "pm2 restart rork-api",
     "deploy:stop": "pm2 stop rork-api",
     "deploy:logs": "pm2 logs rork-api",
-    "deploy:status": "pm2 status"
+    "deploy:status": "pm2 status",
+    "backup": "node scripts/backup-database.js",
+    "backup:restore": "node scripts/restore-database.js",
+    "backup:setup-cron": "./scripts/setup-backup-cron.sh",
+    "backup:logs": "tail -f logs/backup-cron.log",
+    "test:email": "node test-email.js"
   },
   "keywords": [
     "nightlife",
@@ -35,9 +40,12 @@
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.9.0",
     "compression": "^1.7.4",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "csurf": "^1.11.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.5.1",
     "express-validator": "^7.3.1",
     "helmet": "^7.1.0",

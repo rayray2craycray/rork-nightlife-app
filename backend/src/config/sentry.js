@@ -6,6 +6,9 @@
 const Sentry = require('@sentry/node');
 const { nodeProfilingIntegration } = require('@sentry/profiling-node');
 
+// Track if Sentry is initialized
+let sentryInitialized = false;
+
 /**
  * Initialize Sentry
  * MUST be called before any other code
@@ -14,11 +17,13 @@ function initSentry() {
   // Only enable in production or if explicitly set
   if (process.env.NODE_ENV !== 'production' && !process.env.SENTRY_DSN) {
     console.log('ℹ️  Sentry disabled (not in production mode)');
+    sentryInitialized = false;
     return;
   }
 
   if (!process.env.SENTRY_DSN) {
     console.warn('⚠️  SENTRY_DSN not set - error tracking disabled');
+    sentryInitialized = false;
     return;
   }
 
@@ -58,6 +63,8 @@ function initSentry() {
     },
   });
 
+  sentryInitialized = true;
+
   console.log('✅ Sentry error tracking enabled');
   console.log(`   Environment: ${process.env.NODE_ENV}`);
   console.log(`   Server: ${process.env.RENDER_SERVICE_NAME || 'local'}`);
@@ -68,7 +75,7 @@ function initSentry() {
  * Captures errors and sends to Sentry before responding
  */
 function sentryErrorHandler() {
-  if (!Sentry.Handlers) {
+  if (!sentryInitialized || !Sentry.Handlers) {
     return (err, req, res, next) => next(err);
   }
   return Sentry.Handlers.errorHandler({
@@ -93,7 +100,7 @@ function sentryErrorHandler() {
  * Tracks request context
  */
 function sentryRequestHandler() {
-  if (!Sentry.Handlers) {
+  if (!sentryInitialized || !Sentry.Handlers) {
     return (req, res, next) => next();
   }
   return Sentry.Handlers.requestHandler({
@@ -106,7 +113,7 @@ function sentryRequestHandler() {
  * Tracks performance
  */
 function sentryTracingHandler() {
-  if (!Sentry.Handlers) {
+  if (!sentryInitialized || !Sentry.Handlers) {
     return (req, res, next) => next();
   }
   return Sentry.Handlers.tracingHandler();
@@ -116,6 +123,7 @@ function sentryTracingHandler() {
  * Manually capture an exception
  */
 function captureException(error, context = {}) {
+  if (!sentryInitialized) return;
   Sentry.captureException(error, {
     extra: context,
   });
@@ -125,6 +133,7 @@ function captureException(error, context = {}) {
  * Manually capture a message
  */
 function captureMessage(message, level = 'info', context = {}) {
+  if (!sentryInitialized) return;
   Sentry.captureMessage(message, {
     level,
     extra: context,
@@ -135,6 +144,7 @@ function captureMessage(message, level = 'info', context = {}) {
  * Add user context to error reports
  */
 function setUser(user) {
+  if (!sentryInitialized) return;
   if (user) {
     Sentry.setUser({
       id: user._id?.toString(),

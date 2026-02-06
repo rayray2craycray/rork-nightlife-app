@@ -22,6 +22,8 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const cookieParser = require('cookie-parser');
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'APP_URL'];
@@ -63,6 +65,7 @@ const retentionRoutes = require('./routes/retention.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const businessRoutes = require('./routes/business.routes');
 const venueManagementRoutes = require('./routes/venue.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 // Initialize Express app
 const app = express();
@@ -105,6 +108,21 @@ app.use('/api/upload', express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api', express.json({ limit: '1mb' }));
 app.use('/api', express.urlencoded({ extended: true, limit: '1mb' }));
 
+// Cookie parsing
+app.use(cookieParser());
+
+// NoSQL injection prevention - sanitize user input
+app.use(mongoSanitize({
+  replaceWith: '_',
+  onSanitize: ({ req, key }) => {
+    logger.warn('Potential NoSQL injection attempt detected', {
+      ip: req.ip,
+      key,
+      path: req.path,
+    });
+  },
+}));
+
 // Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -123,6 +141,13 @@ const limiter = rateLimit({
 
 // Apply rate limiting to all routes
 app.use('/api', limiter);
+
+// CSRF protection - generate tokens for safe requests
+const { csrfTokenGenerator, getCsrfToken } = require('./middleware/csrf.middleware');
+app.use(csrfTokenGenerator);
+
+// CSRF token endpoint (for clients that need explicit token retrieval)
+app.get('/api/csrf-token', getCsrfToken);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -168,10 +193,15 @@ app.get('/health', async (req, res) => {
 });
 
 // API routes
+// Note: users and venues use /v1 prefix for legacy compatibility
+// (route definitions include /users and /venues paths)
 app.use('/api/v1', usersRoutes);
 app.use('/api/v1', venuesRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/auth', authRoutes);
+
+// Admin routes (requires authentication + admin role)
+app.use('/api/admin', adminRoutes);
 
 // Business profile and venue management routes
 app.use('/api/business', businessRoutes);
@@ -193,6 +223,7 @@ app.get('/', (req, res) => {
     name: 'Rork Nightlife API',
     version: '2.0.0',
     description: 'Backend API with complete growth features: events, ticketing, social, content, and retention',
+    versioning: 'Legacy routes use /v1 prefix, newer features are unversioned',
     endpoints: {
       health: '/health',
       users: '/api/v1/users',

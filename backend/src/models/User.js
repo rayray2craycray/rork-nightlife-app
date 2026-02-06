@@ -110,6 +110,13 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
 
+  // Role and permissions
+  role: {
+    type: String,
+    enum: ['USER', 'ADMIN', 'SUPER_ADMIN'],
+    default: 'USER',
+  },
+
   // Metadata
   createdAt: {
     type: Date,

@@ -48,7 +48,6 @@ const VenueSchema = new Schema(
         type: {
           type: String,
           enum: ['Point'],
-          default: 'Point',
         },
         coordinates: {
           type: [Number], // [longitude, latitude]
@@ -160,8 +159,16 @@ VenueSchema.index({ status: 1 });
 
 // Set coordinates from latitude/longitude before save
 VenueSchema.pre('save', function (next) {
-  if (this.location && this.location.latitude && this.location.longitude) {
-    if (!this.location.coordinates) {
+  if (
+    this.location &&
+    this.location.latitude !== undefined &&
+    this.location.longitude !== undefined
+  ) {
+    // Only set coordinates if they're not 0,0 (missing coordinates)
+    if (
+      (this.location.latitude !== 0 || this.location.longitude !== 0) &&
+      !this.location.coordinates
+    ) {
       this.location.coordinates = {
         type: 'Point',
         coordinates: [this.location.longitude, this.location.latitude],
