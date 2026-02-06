@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Mail, RefreshCw, CheckCircle2, Clock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useVenueManagement } from '@/contexts/VenueManagementContext';
 
 const COLORS = {
   background: '#000000',
@@ -29,6 +30,7 @@ const COLORS = {
 };
 
 export default function VerificationPendingScreen() {
+  const { resendVerificationEmail } = useVenueManagement();
   const [isResending, setIsResending] = useState(false);
 
   const handleResendEmail = async () => {
@@ -36,15 +38,12 @@ export default function VerificationPendingScreen() {
     setIsResending(true);
 
     try {
-      // TODO: Replace with actual API call
-      // await businessApi.resendVerificationEmail();
-
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
+      await resendVerificationEmail();
       Alert.alert('Email Sent!', 'A new verification email has been sent to your inbox.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Resend email error:', error);
-      Alert.alert('Error', 'Unable to resend email. Please try again later.');
+      const errorMessage = error?.message || 'Unable to resend email. Please try again later.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsResending(false);
     }

@@ -155,6 +155,23 @@ class ApiClient {
     throw lastError || new ApiError('Max retries exceeded');
   }
 
+  /**
+   * Extract error message from API response
+   */
+  private async extractErrorMessage(response: Response, defaultMessage: string): Promise<string> {
+    try {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        return errorData.error || errorData.message || defaultMessage;
+      }
+      const text = await response.text();
+      return text || defaultMessage;
+    } catch {
+      return defaultMessage;
+    }
+  }
+
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers: HeadersInit = {
@@ -204,11 +221,11 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new ApiError(
-        `POST ${endpoint} failed: ${response.statusText}`,
-        response.status,
-        response
+      const errorMessage = await this.extractErrorMessage(
+        response.clone(),
+        `POST ${endpoint} failed: ${response.statusText}`
       );
+      throw new ApiError(errorMessage, response.status, response);
     }
 
     return response.json();
@@ -234,11 +251,11 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new ApiError(
-        `PUT ${endpoint} failed: ${response.statusText}`,
-        response.status,
-        response
+      const errorMessage = await this.extractErrorMessage(
+        response.clone(),
+        `PUT ${endpoint} failed: ${response.statusText}`
       );
+      throw new ApiError(errorMessage, response.status, response);
     }
 
     return response.json();
@@ -264,11 +281,11 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new ApiError(
-        `PATCH ${endpoint} failed: ${response.statusText}`,
-        response.status,
-        response
+      const errorMessage = await this.extractErrorMessage(
+        response.clone(),
+        `PATCH ${endpoint} failed: ${response.statusText}`
       );
+      throw new ApiError(errorMessage, response.status, response);
     }
 
     return response.json();

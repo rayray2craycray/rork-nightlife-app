@@ -237,7 +237,7 @@ export const zipCodeSchema = z
 export const businessRegistrationStep1Schema = z.object({
   venueName: venueNameSchema,
   businessEmail: businessEmailSchema,
-  businessType: z.enum(['BAR', 'NIGHTCLUB', 'LOUNGE', 'RESTAURANT', 'OTHER'], {
+  businessType: z.enum(['BAR', 'CLUB', 'LOUNGE', 'RESTAURANT', 'OTHER'], {
     errorMap: () => ({ message: 'Please select a business type' }),
   }),
 });
