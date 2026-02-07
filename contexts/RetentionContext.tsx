@@ -2,15 +2,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Streak, Memory } from '@/types';
-import {
-  mockStreaks,
-  mockMemories,
-  getUserStreaks,
-  getActiveStreaks,
-  getUserMemories,
-  getMemoriesByVenue,
-  getMemoryTimeline,
-} from '@/mocks/retention';
+// Mock data imports removed - using empty defaults when API unavailable
 import { retentionApi } from '@/services/api';
 import * as Haptics from 'expo-haptics';
 import { Alert } from 'react-native';
@@ -29,8 +21,9 @@ export const [RetentionProvider, useRetention] = createContextHook(() => {
         const response = await retentionApi.getUserStreaks(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch user streaks:', error);
-        return mockStreaks;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Retention] Endpoint not implemented: user streaks');
+        return [];
       }
     },
   });
@@ -43,8 +36,9 @@ export const [RetentionProvider, useRetention] = createContextHook(() => {
         const response = await retentionApi.getUserMemories(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch memories:', error);
-        return mockMemories;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Retention] Endpoint not implemented: memories');
+        return [];
       }
     },
   });

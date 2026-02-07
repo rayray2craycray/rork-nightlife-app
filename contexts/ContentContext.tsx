@@ -9,17 +9,7 @@ import {
   Event,
   CalendarFilter,
 } from '@/types';
-import {
-  mockPerformers,
-  mockPerformerPosts,
-  mockHighlightVideos,
-  getPerformerById,
-  getPerformerPosts,
-  getFeedPosts,
-  getActiveHighlights,
-  getVenueHighlights,
-} from '@/mocks/content';
-import { mockEvents } from '@/mocks/events';
+// Mock data imports removed - using empty defaults when API unavailable
 import { contentApi } from '@/services/api';
 import * as Haptics from 'expo-haptics';
 import { Alert } from 'react-native';
@@ -44,10 +34,8 @@ export const [ContentProvider, useContent] = createContextHook(() => {
       if (stored) {
         return JSON.parse(stored) as string[]; // Array of performer IDs
       }
-      // Default: follow the first 2 performers
-      const defaultFollows = [mockPerformers[0].id, mockPerformers[1].id];
-      await AsyncStorage.setItem(STORAGE_KEYS.PERFORMER_FOLLOWS, JSON.stringify(defaultFollows));
-      return defaultFollows;
+      // No default follows when API unavailable
+      return [];
     },
   });
 
@@ -59,8 +47,9 @@ export const [ContentProvider, useContent] = createContextHook(() => {
         const response = await contentApi.getPerformerFeed(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch performer posts:', error);
-        return mockPerformerPosts;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Content] Endpoint not implemented: performer posts');
+        return [];
       }
     },
   });
@@ -72,8 +61,9 @@ export const [ContentProvider, useContent] = createContextHook(() => {
         const response = await contentApi.getActiveHighlights();
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch highlight videos:', error);
-        return mockHighlightVideos;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Content] Endpoint not implemented: highlight videos');
+        return [];
       }
     },
   });
@@ -137,7 +127,8 @@ export const [ContentProvider, useContent] = createContextHook(() => {
   const postLikes = useMemo(() => postLikesQuery.data || [], [postLikesQuery.data]);
 
   const followedPerformers = useMemo(() => {
-    return mockPerformers.filter(p => performerFollows.includes(p.id));
+    // TODO: Fetch performer details from API when available
+    return [];
   }, [performerFollows]);
 
   const feedPosts = useMemo(() => {
@@ -341,7 +332,8 @@ export const [ContentProvider, useContent] = createContextHook(() => {
 
   // ===== CALENDAR FUNCTIONS =====
   const getFilteredEvents = useCallback((filter: CalendarFilter) => {
-    let filtered = [...mockEvents];
+    // TODO: Fetch events from API when available
+    let filtered: any[] = [];
 
     // Filter by venue
     if (filter.venueIds && filter.venueIds.length > 0) {
@@ -385,17 +377,18 @@ export const [ContentProvider, useContent] = createContextHook(() => {
   }, []);
 
   const getUpcomingEvents = useCallback((limit?: number) => {
-    const now = new Date();
-    const upcoming = mockEvents
-      .filter(event => new Date(event.date) >= now)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // TODO: Fetch events from API when available
+    return [];
+  }, []);
 
-    return limit ? upcoming.slice(0, limit) : upcoming;
+  const getPerformerById = useCallback((id: string) => {
+    // TODO: Fetch from API when available
+    return null;
   }, []);
 
   return {
     // Performers
-    performers: mockPerformers,
+    performers: [], // TODO: Fetch from API when available
     followedPerformers,
     followPerformer,
     unfollowPerformer,

@@ -11,19 +11,7 @@ import {
   GuestListEntry,
   CheckInRecord,
 } from '@/types';
-import {
-  mockEvents,
-  mockTickets,
-  mockTicketTiers,
-  mockTicketTransfers,
-  mockGuestListEntries,
-  mockCheckInRecords,
-  getUpcomingEvents,
-  getEventsByVenue,
-  getTicketTiersForEvent,
-  getUserTickets,
-  getGuestList,
-} from '@/mocks/events';
+// Mock data imports removed - using empty defaults when API unavailable
 import { eventsApi } from '@/services/api';
 import { useAuth } from './AuthContext';
 
@@ -91,8 +79,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         const response = await eventsApi.getUpcomingEvents();
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch events:', error);
-        return mockEvents;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Events] Endpoint not implemented: events', error);
+        return [];
       }
     },
   });
@@ -106,8 +95,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         const response = await eventsApi.getUserTickets(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch tickets:', error);
-        return mockTickets;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Events] Endpoint not implemented: tickets', error);
+        return [];
       }
     },
   });
@@ -118,9 +108,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEYS.TICKET_TIERS);
-        return stored ? JSON.parse(stored) : mockTicketTiers;
+        return stored ? JSON.parse(stored) : [];
       } catch {
-        return mockTicketTiers;
+        return [];
       }
     },
   });
@@ -131,9 +121,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEYS.TICKET_TRANSFERS);
-        return stored ? JSON.parse(stored) : mockTicketTransfers;
+        return stored ? JSON.parse(stored) : [];
       } catch {
-        return mockTicketTransfers;
+        return [];
       }
     },
   });
@@ -143,12 +133,12 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     queryKey: ['guestList'],
     queryFn: async () => {
       try {
-        // Note: In real implementation, you'd fetch by specific venue
-        // For now, we'll use mock data as guest list is venue-specific
-        return mockGuestListEntries;
+        // TODO: Fetch guest list from API when available (venue-specific)
+        return [];
       } catch (error) {
-        console.error('Failed to fetch guest list:', error);
-        return mockGuestListEntries;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Events] Endpoint not implemented: guest list', error);
+        return [];
       }
     },
   });
@@ -159,9 +149,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEYS.CHECK_IN_RECORDS);
-        return stored ? JSON.parse(stored) : mockCheckInRecords;
+        return stored ? JSON.parse(stored) : [];
       } catch {
-        return mockCheckInRecords;
+        return [];
       }
     },
   });

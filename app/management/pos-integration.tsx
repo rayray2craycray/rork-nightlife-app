@@ -25,7 +25,7 @@ import {
 } from 'lucide-react-native';
 import { usePOS } from '@/contexts/POSContext';
 import { useGlow } from '@/contexts/GlowContext';
-import { POSProvider, POSCredentials, SpendRule } from '@/types';
+import { POSProviderType, POSCredentials, SpendRule } from '@/types';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -45,7 +45,7 @@ export default function POSIntegrationScreen() {
   const { triggerGlow } = useGlow();
 
   // Provider selection
-  const [selectedProvider, setSelectedProvider] = useState<POSProvider>('TOAST');
+  const [selectedProvider, setSelectedProvider] = useState<POSProviderType>('TOAST');
   const [showProviderPicker, setShowProviderPicker] = useState(false);
 
   // API key input state

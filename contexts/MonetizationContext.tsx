@@ -2,13 +2,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DynamicPricing, PriceAlert } from '@/types';
-import {
-  mockDynamicPricing,
-  mockPriceAlerts,
-  getActivePricingForVenue,
-  getAllActivePricing,
-  getUserPriceAlerts,
-} from '@/mocks/pricing';
+// Mock data imports removed - using empty defaults when API unavailable
 import { pricingApi } from '@/services/api';
 import * as Haptics from 'expo-haptics';
 import { Alert } from 'react-native';
@@ -26,8 +20,9 @@ export const [MonetizationProvider, useMonetization] = createContextHook(() => {
         const response = await pricingApi.getAllActivePricing();
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch active pricing:', error);
-        return mockDynamicPricing;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Monetization] Endpoint not implemented: active pricing');
+        return [];
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - pricing changes frequently
@@ -41,8 +36,9 @@ export const [MonetizationProvider, useMonetization] = createContextHook(() => {
         const response = await pricingApi.getUserPriceAlerts(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch price alerts:', error);
-        return mockPriceAlerts;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Monetization] Endpoint not implemented: price alerts');
+        return [];
       }
     },
   });

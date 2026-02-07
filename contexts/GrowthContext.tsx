@@ -11,15 +11,7 @@ import {
   StoryTemplate,
   ShareableContent,
 } from '@/types';
-import {
-  mockGroupPurchases,
-  mockGroupPurchaseInvites,
-  mockReferrals,
-  mockReferralRewards,
-  mockUserReferralStats,
-  mockStoryTemplates,
-  mockShareableContent,
-} from '@/mocks/growth';
+// Mock data imports removed - using empty defaults when API unavailable
 import { growthApi } from '@/services/api';
 import * as Haptics from 'expo-haptics';
 import { Alert } from 'react-native';
@@ -49,9 +41,9 @@ export const [GrowthProvider, useGrowth] = createContextHook(() => {
         const response = await growthApi.getGroupPurchasesByUser(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch group purchases:', error);
-        // Fallback to mock data if API fails
-        return mockGroupPurchases;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Growth] Endpoint not implemented: group purchases');
+        return [];
       }
     },
   });
@@ -60,7 +52,7 @@ export const [GrowthProvider, useGrowth] = createContextHook(() => {
     queryKey: ['groupPurchaseInvites'],
     queryFn: async () => {
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.GROUP_PURCHASE_INVITES);
-      return stored ? JSON.parse(stored) : mockGroupPurchaseInvites;
+      return stored ? JSON.parse(stored) : [];
     },
   });
 
@@ -168,8 +160,9 @@ export const [GrowthProvider, useGrowth] = createContextHook(() => {
         const response = await growthApi.getReferralStats(userId);
         return response.data?.referrals || [];
       } catch (error) {
-        console.error('Failed to fetch referrals:', error);
-        return mockReferrals;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Growth] Endpoint not implemented: referrals');
+        return [];
       }
     },
   });
@@ -182,8 +175,9 @@ export const [GrowthProvider, useGrowth] = createContextHook(() => {
         const response = await growthApi.getReferralStats(userId);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch referral stats:', error);
-        return mockUserReferralStats;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Growth] Endpoint not implemented: referral stats');
+        return null;
       }
     },
   });
@@ -196,8 +190,9 @@ export const [GrowthProvider, useGrowth] = createContextHook(() => {
         const response = await growthApi.getReferralRewards(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch referral rewards:', error);
-        return mockReferralRewards;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Growth] Endpoint not implemented: referral rewards');
+        return [];
       }
     },
   });
@@ -265,14 +260,14 @@ export const [GrowthProvider, useGrowth] = createContextHook(() => {
 
   const storyTemplatesQuery = useQuery({
     queryKey: ['storyTemplates'],
-    queryFn: async () => mockStoryTemplates,
+    queryFn: async () => [],
   });
 
   const shareableContentQuery = useQuery({
     queryKey: ['shareableContent'],
     queryFn: async () => {
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.SHAREABLE_CONTENT);
-      return stored ? JSON.parse(stored) : mockShareableContent;
+      return stored ? JSON.parse(stored) : [];
     },
   });
 
