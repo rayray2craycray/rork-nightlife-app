@@ -10,6 +10,7 @@
     "test": "jest --coverage",
     "lint": "eslint src/",
     "seed": "node src/utils/seedData.js",
+    "seed:all": "node src/utils/seedGrowthFeatures.js",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
