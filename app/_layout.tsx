@@ -12,7 +12,7 @@ import { POSProvider } from "@/contexts/POSContext";
 import { GlowProvider, useGlow } from "@/contexts/GlowContext";
 import { GrowthProvider } from "@/contexts/GrowthContext";
 import { EventsProvider } from "@/contexts/EventsContext";
-import { ContentProvider } from "@/contexts/ContentProvider";
+import { ContentProvider } from "@/contexts/ContentContext";
 import { MonetizationProvider } from "@/contexts/MonetizationContext";
 import { RetentionProvider } from "@/contexts/RetentionContext";
 import { AuthProvider } from "@/contexts/AuthContext";
