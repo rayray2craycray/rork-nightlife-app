@@ -16,19 +16,7 @@ import {
   ChallengeReward,
   VenueSocialProof,
 } from '@/types';
-import { mockFollows, mockFriendLocations, mockFriendProfiles, mockSuggestedPeople } from '@/mocks/friends';
-import {
-  mockCrews,
-  mockCrewInvites,
-  mockCrewNightPlans,
-  mockChallenges,
-  mockChallengeProgress,
-  mockChallengeRewards,
-  mockVenueSocialProof,
-  getActiveChallenges,
-  getChallengesForVenue,
-  getVenueSocialProof,
-} from '@/mocks/social-extended';
+// Mock data imports removed - using empty defaults when API unavailable
 import {
   getPersonalizedSuggestions,
   getSuggestionSourceLabel,
@@ -61,9 +49,9 @@ const defaultLocationSettings: LocationSettings = {
 export const [SocialProvider, useSocial] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { userId } = useAuth();
-  const [follows, setFollows] = useState<Follow[]>(mockFollows);
+  const [follows, setFollows] = useState<Follow[]>([]);
   const [locationSettings, setLocationSettings] = useState<LocationSettings>(defaultLocationSettings);
-  const [friendLocations, setFriendLocations] = useState<FriendLocation[]>(mockFriendLocations);
+  const [friendLocations, setFriendLocations] = useState<FriendLocation[]>([]);
 
   const followsQuery = useQuery({
     queryKey: ['follows'],
@@ -72,8 +60,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
       if (stored) {
         return JSON.parse(stored) as Follow[];
       }
-      await AsyncStorage.setItem(STORAGE_KEYS.FOLLOWS, JSON.stringify(mockFollows));
-      return mockFollows;
+      return [];
     },
   });
 
@@ -199,8 +186,8 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
   const suggestionsQuery = useQuery({
     queryKey: ['friend-suggestions', following, follows],
     queryFn: async () => {
-      // Convert mockSuggestedPeople (FriendProfile[]) to be used as mutual friend suggestions
-      const mutualFriendSuggestions = mockSuggestedPeople;
+      // TODO: Fetch mutual friend suggestions from API when available
+      const mutualFriendSuggestions: FriendProfile[] = [];
 
       // Include both accepted and pending follows to filter them out from suggestions
       const allFollowingIds = follows
@@ -228,8 +215,9 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
         const response = await socialApi.getUserCrews(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch crews:', error);
-        return mockCrews;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Social] Endpoint not implemented: crews');
+        return [];
       }
     },
   });
@@ -241,8 +229,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
       if (stored) {
         return JSON.parse(stored) as CrewInvite[];
       }
-      await AsyncStorage.setItem(STORAGE_KEYS.CREW_INVITES, JSON.stringify(mockCrewInvites));
-      return mockCrewInvites;
+      return [];
     },
   });
 
@@ -253,8 +240,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
       if (stored) {
         return JSON.parse(stored) as CrewNightPlan[];
       }
-      await AsyncStorage.setItem(STORAGE_KEYS.CREW_PLANS, JSON.stringify(mockCrewNightPlans));
-      return mockCrewNightPlans;
+      return [];
     },
   });
 
@@ -267,8 +253,9 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
         const response = await socialApi.getUserChallenges(userId);
         return response.data || [];
       } catch (error) {
-        console.error('Failed to fetch challenge progress:', error);
-        return mockChallengeProgress;
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Social] Endpoint not implemented: challenge progress');
+        return [];
       }
     },
   });
@@ -280,8 +267,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
       if (stored) {
         return JSON.parse(stored) as ChallengeReward[];
       }
-      await AsyncStorage.setItem(STORAGE_KEYS.CHALLENGE_REWARDS, JSON.stringify(mockChallengeRewards));
-      return mockChallengeRewards;
+      return [];
     },
   });
 
@@ -449,23 +435,13 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
   }, [visibleFriendLocations]);
 
   const searchFriends = useCallback((query: string) => {
-    const lowerQuery = query.toLowerCase();
-    return mockFriendProfiles.filter(profile => 
-      profile.displayName.toLowerCase().includes(lowerQuery) ||
-      (profile.bio && profile.bio.toLowerCase().includes(lowerQuery))
-    );
+    // TODO: Implement friend search via API when available
+    return [];
   }, []);
 
   const getFriendProfile = useCallback((userId: string): FriendProfile | undefined => {
-    // Check in regular friend profiles first
-    let profile = mockFriendProfiles.find(p => p.id === userId);
-
-    // If not found, check in suggested people (for newly followed users)
-    if (!profile) {
-      profile = mockSuggestedPeople.find(p => p.id === userId);
-    }
-
-    return profile;
+    // TODO: Fetch friend profile from API when available
+    return undefined;
   }, []);
 
   const suggestedPeople = useMemo(() => {
