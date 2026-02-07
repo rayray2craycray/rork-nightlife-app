@@ -25,14 +25,14 @@ const getApiUrl = () => {
   if (__DEV__) {
     // For iOS simulator
     if (Constants.platform?.ios) {
-      return 'http://localhost:5000';
+      return 'http://localhost:3000';
     }
     // For Android emulator (10.0.2.2 maps to host machine's localhost)
     if (Constants.platform?.android) {
-      return 'http://10.0.2.2:5000';
+      return 'http://10.0.2.2:3000';
     }
     // Fallback
-    return 'http://localhost:5000';
+    return 'http://localhost:3000';
   }
 
   // Production fallback
