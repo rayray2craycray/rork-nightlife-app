@@ -66,11 +66,6 @@ function RootLayoutNav() {
         <Stack.Screen name="community-guidelines" options={{ headerShown: false }} />
         <Stack.Screen name="blocked-users" options={{ headerShown: false }} />
         <Stack.Screen name="management" options={{ headerShown: false }} />
-        <Stack.Screen name="crews" options={{ headerShown: false }} />
-        <Stack.Screen name="challenges" options={{ headerShown: false }} />
-        <Stack.Screen name="calendar" options={{ headerShown: false }} />
-        <Stack.Screen name="events" options={{ headerShown: false }} />
-        <Stack.Screen name="tickets" options={{ headerShown: false }} />
       </Stack>
       <GlowOverlay />
       <AgeVerificationGate
