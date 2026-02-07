@@ -328,7 +328,7 @@ export interface FeedSettings {
 /**
  * POS Provider Types
  */
-export type POSProvider = 'TOAST' | 'SQUARE';
+export type POSProviderType = 'TOAST' | 'SQUARE';
 
 /**
  * POS Integration Status
@@ -351,7 +351,7 @@ export interface POSLocation {
   id: string;
   name: string;
   address: string;
-  provider: POSProvider;
+  provider: POSProviderType;
   metadata?: {
     restaurantGuid?: string; // Toast-specific
     merchantName?: string; // Square-specific
@@ -366,7 +366,7 @@ export interface POSLocation {
 export interface POSIntegration {
   id: string;
   venueId: string;
-  provider: POSProvider;
+  provider: POSProviderType;
   status: POSStatus;
   metadata: {
     locationName?: string;
@@ -429,7 +429,7 @@ export interface POSTransaction {
   id: string;
   posIntegrationId: string;
   venueId: string;
-  provider: POSProvider;
+  provider: POSProviderType;
   externalIds: {
     transactionId: string; // Toast checkGuid or Square payment_id
     orderId?: string; // Toast orderGuid or Square order_id

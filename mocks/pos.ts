@@ -1,4 +1,4 @@
-import { POSLocation, POSIntegration, SpendRule, POSProvider } from '@/types';
+import { POSLocation, POSIntegration, SpendRule, POSProviderType } from '@/types';
 
 /**
  * Mock POS locations for both Toast and Square providers
@@ -242,7 +242,7 @@ export const mockSpendRules: SpendRule[] = [
 /**
  * Helper to get mock locations by provider
  */
-export function getMockLocationsByProvider(provider: POSProvider): POSLocation[] {
+export function getMockLocationsByProvider(provider: POSProviderType): POSLocation[] {
   return mockPOSLocations.filter(loc => loc.provider === provider);
 }
 
