@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
 
 export interface IUser extends Document {
-  _id: string;
+  // _id is inherited from Document and is of type ObjectId
   email: string;
   password: string;
   displayName: string;

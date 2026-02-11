@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { LinkedCard } from '@/types';
 import {
   View,
   StyleSheet,
@@ -50,7 +51,7 @@ interface Transaction {
 }
 
 export default function SettingsScreen() {
-  const { profile, toggleIncognito, setUserRole, linkedCards, removeLinkedCard } = useAppState();
+  const { profile, toggleIncognito, setUserRole, linkedCards, addLinkedCard, removeLinkedCard } = useAppState();
   const { locationSettings, updateLocationSettings, toggleGhostMode } = useSocial();
   const [transactions] = useState<Transaction[]>([
     {
@@ -85,14 +86,14 @@ export default function SettingsScreen() {
   const handleAddCard = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (cardNumber.length >= 4) {
-      const newCard: LinkedCard = {
-        id: Date.now().toString(),
+      const newCard = {
         last4: cardNumber.slice(-4),
         brand: 'Visa',
+        expiryMonth: 12,
+        expiryYear: 2025,
         cardholderName: profile.displayName,
-        isDefault: linkedCards.length === 0,
       };
-      setLinkedCards([...linkedCards, newCard]);
+      addLinkedCard(newCard);
       setCardNumber('');
       setIsAddCardModalVisible(false);
     }

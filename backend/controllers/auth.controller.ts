@@ -383,7 +383,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     // Update fields
     if (displayName !== undefined) user.displayName = displayName;
     if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
-    if (dateOfBirth !== undefined) user.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    if (dateOfBirth !== undefined) user.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : undefined;
     if (profileImageUrl !== undefined) user.profileImageUrl = profileImageUrl;
 
     await user.save();
