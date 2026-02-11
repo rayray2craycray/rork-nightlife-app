@@ -184,8 +184,6 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
 
     if (__DEV__) {
       console.log('[AppState] Joined servers calculated:', allServers.length);
-      console.log('[AppState] Mock servers matched:', matchedMockServers.length);
-      console.log('[AppState] Dynamic servers created:', dynamicServers.length);
       console.log('[AppState] Profile badges:', profile.badges.map(b => b.venueId));
     }
     return allServers;

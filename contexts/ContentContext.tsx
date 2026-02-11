@@ -42,6 +42,7 @@ export const [ContentProvider, useContent] = createContextHook(() => {
   const performerPostsQuery = useQuery({
     queryKey: ['performer-posts'],
     queryFn: async () => {
+      if (!userId) return [];
       try {
         // Use userId from auth context
         const response = await contentApi.getPerformerFeed(userId);
@@ -155,6 +156,7 @@ export const [ContentProvider, useContent] = createContextHook(() => {
   // ===== PERFORMER FUNCTIONS =====
   const followPerformerMutation = useMutation({
     mutationFn: async (performerId: string) => {
+      if (!userId) throw new Error('User not authenticated');
       try {
         // Use userId from auth context
         const response = await contentApi.followPerformer(userId, performerId);
@@ -177,6 +179,7 @@ export const [ContentProvider, useContent] = createContextHook(() => {
 
   const unfollowPerformerMutation = useMutation({
     mutationFn: async (performerId: string) => {
+      if (!userId) throw new Error('User not authenticated');
       try {
         // Use userId from auth context
         const response = await contentApi.unfollowPerformer(userId, performerId);
@@ -213,6 +216,7 @@ export const [ContentProvider, useContent] = createContextHook(() => {
   // ===== POST FUNCTIONS =====
   const likePostMutation = useMutation({
     mutationFn: async (postId: string) => {
+      if (!userId) throw new Error('User not authenticated');
       try {
         // Use userId from auth context
         const response = await contentApi.likePost(postId, userId);
@@ -234,6 +238,7 @@ export const [ContentProvider, useContent] = createContextHook(() => {
 
   const unlikePostMutation = useMutation({
     mutationFn: async (postId: string) => {
+      if (!userId) throw new Error('User not authenticated');
       try {
         // Use userId from auth context
         const response = await contentApi.unlikePost(postId, userId);
