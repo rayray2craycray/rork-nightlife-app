@@ -389,6 +389,7 @@ export interface POSIntegration {
     currency?: string;
     timezone?: string;
     webhookUrl?: string;
+    environment?: 'SANDBOX' | 'PRODUCTION'; // Added for environment tracking
   };
   syncConfig: {
     enabled: boolean;
@@ -526,6 +527,7 @@ export interface ToastIntegration extends Omit<POSIntegration, 'provider'> {
   refreshToken?: string;
   selectedLocations: string[];
   webhooksEnabled: boolean;
+  lastSyncAt?: string; // Added for sync tracking
 }
 
 /**
@@ -553,6 +555,16 @@ export interface CardTokenMapping {
   cardToken: string;
   lastUsed: string;
   provider: 'STRIPE' | 'PLAID';
+}
+
+export interface LinkedCard {
+  id: string;
+  last4: string;
+  brand: string;
+  expiryMonth: number;
+  expiryYear: number;
+  isDefault: boolean;
+  cardholderName?: string;
 }
 
 // ===== GROWTH FEATURES: VIRAL LOOP =====
@@ -786,6 +798,7 @@ export interface CrewNightPlan {
 // Challenges & Rewards
 export interface Challenge {
   id: string;
+  challengeId: string; // Added for backward compatibility - same as id
   venueId?: string;
   type: 'VISIT_COUNT' | 'SPEND_AMOUNT' | 'STREAK' | 'SOCIAL' | 'EVENT_ATTENDANCE';
   title: string;
@@ -803,6 +816,7 @@ export interface Challenge {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  status: 'ACTIVE' | 'COMPLETED' | 'EXPIRED'; // Added for status tracking
   difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY';
   participantCount: number;
   completedCount: number;
@@ -1071,6 +1085,7 @@ export interface VenueEditRequest {
 export interface BusinessRegistrationData {
   venueName: string;
   businessEmail: string;
+  description?: string; // Added for business description
   location: {
     address: string;
     city: string;
