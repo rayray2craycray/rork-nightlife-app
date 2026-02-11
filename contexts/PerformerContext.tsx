@@ -3,7 +3,8 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Gig, PerformerAnalytics } from '@/types';
-import { mockGigs, mockPromoVideos } from '@/mocks/gigs';
+// TODO: Import content API for performer data
+// import { contentApi } from '@/services/api';
 
 const STORAGE_KEYS = {
   PERFORMER_MODE: 'vibelink_performer_mode',
@@ -43,18 +44,25 @@ export const [PerformerProvider, usePerformer] = createContextHook(() => {
 
   const { mutate: togglePerformerMode } = togglePerformerModeMutation;
 
+  // TODO: Fetch performer's gigs from API
+  // Note: In the backend, "gigs" are Events where performer is performing
+  // Should call: contentApi.getPerformerDetails(performerId) or eventsApi.getByPerformer(performerId)
   const gigsQuery = useQuery({
     queryKey: ['gigs', performerId],
     queryFn: async () => {
-      return mockGigs.filter(gig => gig.performerId === performerId);
+      // Return empty array for now - UI will show empty state
+      return [];
     },
     enabled: isPerformerMode,
   });
 
+  // TODO: Fetch performer's promo videos from API
+  // Should call: contentApi.getUserHighlights(performerId) or similar
   const videosQuery = useQuery({
     queryKey: ['promoVideos', performerId],
     queryFn: async () => {
-      return mockPromoVideos.filter(video => video.performerId === performerId);
+      // Return empty array for now - UI will show empty state
+      return [];
     },
     enabled: isPerformerMode,
   });
@@ -119,7 +127,9 @@ export const [PerformerProvider, usePerformer] = createContextHook(() => {
     setSelectedGig(gig);
   }, []);
 
-  const bookTalent = useCallback((booking: {
+  // TODO: Implement bookTalent with API call
+  // Should call: eventsApi.createEvent() with performer details
+  const bookTalent = useCallback(async (booking: {
     talentId: string;
     talentName: string;
     venueId: string;
@@ -131,7 +141,21 @@ export const [PerformerProvider, usePerformer] = createContextHook(() => {
     fee: number;
     genre: string;
   }) => {
-    const newGig: Gig = {
+    // TODO: Make API call to create event
+    // const response = await eventsApi.createEvent({
+    //   venueId: booking.venueId,
+    //   performerIds: [booking.talentId],
+    //   date: booking.date,
+    //   startTime: booking.startTime,
+    //   endTime: booking.endTime,
+    //   ...
+    // });
+
+    // For now, just refetch (will return empty array)
+    gigsQuery.refetch();
+
+    // Return placeholder
+    return {
       id: `gig-${Date.now()}`,
       performerId: booking.talentId,
       venueId: booking.venueId,
@@ -142,17 +166,9 @@ export const [PerformerProvider, usePerformer] = createContextHook(() => {
       startTime: booking.startTime,
       endTime: booking.endTime,
       fee: booking.fee,
-      status: 'UPCOMING',
+      status: 'UPCOMING' as const,
       genre: booking.genre,
     };
-
-    // Add the new gig to the list
-    mockGigs.push(newGig);
-
-    // Refetch to update the UI
-    gigsQuery.refetch();
-
-    return newGig;
   }, [gigsQuery]);
 
   return {

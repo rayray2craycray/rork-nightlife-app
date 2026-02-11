@@ -8,12 +8,18 @@ import {
   ToastSpendRule,
   ToastTransactionData,
 } from '@/types';
-import {
-  mockToastIntegration,
-  mockToastLocations,
-  mockToastSpendRules,
-} from '@/mocks/toast';
 import { TOAST_POS } from '@/constants/app';
+
+// TODO: Implement Toast POS API integration
+// For now, use default disconnected state
+
+const defaultToastIntegration: ToastIntegration = {
+  isConnected: false,
+  locationId: null,
+  locationName: null,
+  autoSyncEnabled: false,
+  lastSyncedAt: null,
+};
 import { getSecureItem, setSecureItem, deleteSecureItem, SECURE_KEYS } from '@/utils/secureStorage';
 
 const STORAGE_KEYS = {
@@ -23,7 +29,7 @@ const STORAGE_KEYS = {
 };
 
 export const [ToastProvider, useToast] = createContextHook(() => {
-  const [integration, setIntegration] = useState<ToastIntegration>(mockToastIntegration);
+  const [integration, setIntegration] = useState<ToastIntegration>(defaultToastIntegration);
   const [spendRules, setSpendRules] = useState<ToastSpendRule[]>([]);
   const [transactions, setTransactions] = useState<ToastTransactionData[]>([]);
   const [availableLocations, setAvailableLocations] = useState<ToastLocation[]>([]);
@@ -31,22 +37,24 @@ export const [ToastProvider, useToast] = createContextHook(() => {
   const integrationQuery = useQuery({
     queryKey: ['toast-integration'],
     queryFn: async () => {
+      // TODO: Fetch Toast POS integration status from API
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.TOAST_INTEGRATION);
       if (stored) {
         return JSON.parse(stored) as ToastIntegration;
       }
-      return mockToastIntegration;
+      return defaultToastIntegration;
     },
   });
 
   const spendRulesQuery = useQuery({
     queryKey: ['toast-spend-rules'],
     queryFn: async () => {
+      // TODO: Fetch Toast POS spend rules from API
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.TOAST_SPEND_RULES);
       if (stored) {
         return JSON.parse(stored) as ToastSpendRule[];
       }
-      return mockToastSpendRules;
+      return [];
     },
   });
 
@@ -117,7 +125,8 @@ export const [ToastProvider, useToast] = createContextHook(() => {
           JSON.stringify(connectedIntegration)
         );
 
-        setAvailableLocations(mockToastLocations);
+        // TODO: Fetch available locations from Toast POS API
+        setAvailableLocations([]);
         return connectedIntegration;
       }
 

@@ -3,9 +3,6 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FeedFilter, FeedSettings, VibeVideo } from '@/types';
-import { mockVideos } from '@/mocks/videos';
-import { mockVenues } from '@/mocks/venues';
-import { mockPerformers } from '@/mocks/performers';
 import { useAppState } from './AppStateContext';
 import { useSocial } from './SocialContext';
 import { contentApi } from '@/services/api';
@@ -21,20 +18,6 @@ const defaultFeedSettings: FeedSettings = {
   selectedFilter: 'NEARBY',
   lastUpdated: new Date().toISOString(),
 };
-
-const NEARBY_RADIUS_MILES = 25;
-
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 3959;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
 
 export const [FeedProvider, useFeed] = createContextHook(() => {
   const queryClient = useQueryClient();
@@ -106,8 +89,8 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
     queryKey: ['highlights', userId],
     queryFn: async () => {
       if (!userId || !accessToken) {
-        if (__DEV__) console.log('[Feed] No userId or token, using mock data');
-        return mockVideos;
+        if (__DEV__) console.log('[Feed] No userId or token, returning empty array');
+        return [];
       }
 
       try {
@@ -116,11 +99,11 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
           if (__DEV__) console.log('[Feed] Fetched highlights from API:', response.data.length);
           return response.data as VibeVideo[];
         }
-        if (__DEV__) console.log('[Feed] API returned no data, using mock');
-        return mockVideos;
+        if (__DEV__) console.log('[Feed] API returned no data');
+        return [];
       } catch (error) {
         console.error('[Feed] Failed to fetch highlights:', error);
-        return mockVideos;
+        return [];
       }
     },
     enabled: !!userId,
@@ -212,52 +195,21 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
   }, [userVideos, highlightsQuery.data]);
 
   const nearbyVideos = useMemo(() => {
-    // If no user location, return all videos
-    if (!userLocation) {
-      return allVideos
-        .map(video => ({
-          video,
-          score: Date.now() - new Date(video.timestamp).getTime(), // Sort by recency
-        }))
-        .sort((a, b) => a.score - b.score)
-        .map(item => item.video);
-    }
+    // TODO: Backend should handle distance filtering and return videos with venue data
+    // For now, sort by recency and vibe score only
 
     const videosWithScores = allVideos.map(video => {
-      // Try to find venue in mock venues (for backward compatibility)
-      const venue = mockVenues.find(v => v.id === video.venueId);
-
-      // If venue data not available, we can't filter by distance
-      // In production, the backend should handle this filtering
-      if (!venue || !venue.location) {
-        // Include the video but with lower score
-        const ageMs = Date.now() - new Date(video.timestamp).getTime();
-        const ageHours = ageMs / (1000 * 60 * 60);
-        const recencyScore = Math.max(0, 100 - ageHours * 5);
-        return { video, score: recencyScore };
-      }
-
-      const distance = calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
-        venue.location.latitude,
-        venue.location.longitude
-      );
-
-      if (distance > NEARBY_RADIUS_MILES) return null;
-
       const ageMs = Date.now() - new Date(video.timestamp).getTime();
       const ageHours = ageMs / (1000 * 60 * 60);
       const isLive = ageHours < 6;
       const recencyScore = isLive ? 100 : Math.max(0, 100 - ageHours * 5);
 
-      const distanceScore = Math.max(0, 100 - (distance / NEARBY_RADIUS_MILES) * 100);
-
-      const venueVibe = getVenueVibe(venue.id);
+      // Check if user has badges at this venue for boost
+      const venueVibe = getVenueVibe(video.venueId);
       let vibeBoost = 0;
       if (venueVibe) {
         const hasWhales = profile.badges.some(b =>
-          b.venueId === venue.id && (b.badgeType === 'WHALE' || b.badgeType === 'PLATINUM')
+          b.venueId === video.venueId && (b.badgeType === 'WHALE' || b.badgeType === 'PLATINUM')
         );
         const vibeScore = (venueVibe.musicScore + venueVibe.densityScore) / 2;
         if (vibeScore >= 4 || hasWhales) {
@@ -265,21 +217,22 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
         }
       }
 
-      // Use calculated vibe from user feedback, fallback to static value
-      const vibeLevel = calculateVibePercentage(venue.id) ?? venue.currentVibeLevel;
-      const totalScore = (recencyScore * 0.5) + (distanceScore * 0.3) + (vibeLevel * 0.2) + vibeBoost;
+      // Calculate vibe percentage for this venue
+      const vibeLevel = calculateVibePercentage(video.venueId) ?? 50; // Default to 50 if unknown
+
+      // Score based on recency and vibe (no distance since we don't have venue locations)
+      const totalScore = (recencyScore * 0.7) + (vibeLevel * 0.3) + vibeBoost;
 
       return {
         video,
         score: totalScore,
-        distance,
       };
-    }).filter(item => item !== null);
+    });
 
     return videosWithScores
-      .sort((a, b) => b!.score - a!.score)
-      .map(item => item!.video);
-  }, [allVideos, profile.badges, getVenueVibe, calculateVibePercentage]);
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.video);
+  }, [allVideos, profile.badges, getVenueVibe, calculateVibePercentage, userLocation]);
 
   const followingVideos = useMemo(() => {
     const followedPerformerIds = profile.followedPerformers;
@@ -319,34 +272,36 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
 
   const isEmpty = currentVideos.length === 0;
 
+  // TODO: Implement suggested performers from API
+  // Should call contentApi.getTrendingPerformers() or contentApi.searchPerformers()
   const suggestedPerformers = useMemo(() => {
     if (feedSettings.selectedFilter !== 'FOLLOWING' || !isEmpty) return [];
-    
-    const nearbyPerformerIds = new Set<string>();
-    nearbyVideos.forEach(video => {
-      if (video.performerId && !profile.followedPerformers.includes(video.performerId)) {
-        nearbyPerformerIds.add(video.performerId);
-      }
-    });
 
-    return Array.from(nearbyPerformerIds)
-      .map(id => mockPerformers.find(p => p.id === id))
-      .filter(p => p !== undefined)
-      .slice(0, 5);
+    // Extract unique performer IDs from nearby videos
+    const nearbyPerformerIds = Array.from(new Set(
+      nearbyVideos
+        .filter(video => video.performerId && !profile.followedPerformers.includes(video.performerId))
+        .map(video => video.performerId)
+    )).slice(0, 5);
+
+    // TODO: Fetch performer details from API using these IDs
+    // For now, return empty array - UI will handle empty state
+    return [];
   }, [feedSettings.selectedFilter, isEmpty, nearbyVideos, profile.followedPerformers]);
 
+  // TODO: Implement suggested venues from API
+  // Should call venuesApi or similar to get venue details
   const suggestedVenues = useMemo(() => {
     if (feedSettings.selectedFilter !== 'FOLLOWING' || !isEmpty) return [];
 
-    const nearbyVenueIds = new Set<string>();
-    nearbyVideos.forEach(video => {
-      nearbyVenueIds.add(video.venueId);
-    });
+    // Extract unique venue IDs from nearby videos
+    const nearbyVenueIds = Array.from(new Set(
+      nearbyVideos.map(video => video.venueId)
+    )).slice(0, 5);
 
-    return Array.from(nearbyVenueIds)
-      .map(id => mockVenues.find(v => v.id === id))
-      .filter(v => v !== undefined)
-      .slice(0, 5);
+    // TODO: Fetch venue details from API using these IDs
+    // For now, return empty array - UI will handle empty state
+    return [];
   }, [feedSettings.selectedFilter, isEmpty, nearbyVideos]);
 
   return {

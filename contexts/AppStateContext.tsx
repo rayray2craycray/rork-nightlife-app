@@ -3,7 +3,6 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserProfile, UserRole, VibeCheckVote, VenueVibeData, UserVibeCooldown, VibeEnergyLevel, WaitTimeRange } from '@/types';
-import { mockServers } from '@/mocks/servers';
 import { VIBE_CHECK } from '@/constants/app';
 import { getSecureItem, setSecureItem, deleteSecureItem, SECURE_KEYS, migrateToSecureStorage } from '@/utils/secureStorage';
 
@@ -165,31 +164,23 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
   }, [profile.followedPerformers]);
 
   const joinedServers = useMemo(() => {
-    // First, try to match with mock servers
-    const matchedMockServers = mockServers.filter(server =>
-      profile.badges.some(badge => badge.venueId === server.venueId)
-    );
-
-    // For badges that don't match mock servers, create dynamic server entries
-    const dynamicServers = profile.badges
-      .filter(badge => !mockServers.some(server => server.venueId === badge.venueId))
-      .map(badge => ({
-        venueId: badge.venueId,
-        venueName: badge.venueName,
-        memberCount: 1, // Default value
-        lastActivity: badge.unlockedAt,
-        channels: [
-          {
-            id: `${badge.venueId}-general`,
-            name: 'general',
-            type: 'PUBLIC_LOBBY' as const,
-            isLocked: false,
-            unreadCount: 0,
-          }
-        ]
-      }));
-
-    const allServers = [...matchedMockServers, ...dynamicServers];
+    // TODO: Fetch server/channel data from API based on badges
+    // For now, create dynamic server entries from user badges
+    const allServers = profile.badges.map(badge => ({
+      venueId: badge.venueId,
+      venueName: badge.venueName,
+      memberCount: 1, // TODO: Get from API
+      lastActivity: badge.unlockedAt,
+      channels: [
+        {
+          id: `${badge.venueId}-general`,
+          name: 'general',
+          type: 'PUBLIC_LOBBY' as const,
+          isLocked: false,
+          unreadCount: 0, // TODO: Get from chat API
+        }
+      ]
+    }));
 
     if (__DEV__) {
       console.log('[AppState] Joined servers calculated:', allServers.length);

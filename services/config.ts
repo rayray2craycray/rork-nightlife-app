@@ -122,6 +122,33 @@ export const API_ENDPOINTS = {
     PROFILE: '/upload/profile',
   },
 
+  // Content - Performers & Highlights
+  content: {
+    performers: {
+      search: '/content/performers/search',
+      genre: (genre: string) => `/content/performers/genre/${genre}`,
+      trending: '/content/performers/trending',
+      detail: (id: string) => `/content/performers/${id}`,
+      follow: (id: string) => `/content/performers/${id}/follow`,
+      unfollow: (id: string) => `/content/performers/${id}/unfollow`,
+      posts: (id: string) => `/content/performers/${id}/posts`,
+      feed: (userId: string) => `/content/performers/feed/${userId}`,
+      likePost: (performerId: string, postId: string) => `/content/performers/${performerId}/posts/${postId}/like`,
+      rate: (id: string) => `/content/performers/${id}/rate`,
+    },
+    highlights: {
+      upload: '/content/highlights',
+      venue: (venueId: string) => `/content/highlights/venue/${venueId}`,
+      event: (eventId: string) => `/content/highlights/event/${eventId}`,
+      user: (userId: string) => `/content/highlights/user/${userId}`,
+      trending: '/content/highlights/trending',
+      feed: (userId: string) => `/content/highlights/feed/${userId}`,
+      view: (id: string) => `/content/highlights/${id}/view`,
+      like: (id: string) => `/content/highlights/${id}/like`,
+      unlike: (id: string) => `/content/highlights/${id}/unlike`,
+    },
+  },
+
   // Growth Features
   growth: {
     groupPurchases: {
