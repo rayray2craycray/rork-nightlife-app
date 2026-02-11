@@ -388,7 +388,7 @@ export const [ContentProvider, useContent] = createContextHook(() => {
 
   return {
     // Performers
-    performers: [], // TODO: Fetch from API when available
+    performers: [] as Performer[], // TODO: Fetch from API when available
     followedPerformers,
     followPerformer,
     unfollowPerformer,

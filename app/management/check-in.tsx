@@ -35,7 +35,7 @@ export default function CheckInScreen() {
 
     try {
       // Validate QR code first
-      const validation = validateQRCode(qrCode);
+      const validation = await validateQRCode(qrCode);
 
       if (!validation.valid) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

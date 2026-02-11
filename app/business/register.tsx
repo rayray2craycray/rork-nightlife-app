@@ -193,7 +193,7 @@ export default function BusinessRegisterScreen() {
         [
           {
             text: 'OK',
-            onPress: () => router.push('/auth/login'),
+            onPress: () => router.push('/auth/sign-in'),
           },
         ]
       );

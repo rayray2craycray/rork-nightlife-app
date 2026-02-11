@@ -61,7 +61,7 @@ export default function VenueEditScreen() {
     updateVenueDisplay,
   } = useVenueManagement();
 
-  const { uploadImage, isUploading } = useUpload();
+  const { uploadVenueFromGallery, isUploading } = useUpload();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -146,9 +146,17 @@ export default function VenueEditScreen() {
         imageUrl: venueData.imageUrl || '',
         description: '', // Add to Venue type if needed
         address: venueData.location.address,
-        coverCharge: venueData.coverCharge,
+        coverCharge: venueData.coverCharge || 0,
         tags: venueData.tags || [],
-        hours: venueData.hours,
+        hours: venueData.hours || {
+          monday: '',
+          tuesday: '',
+          wednesday: '',
+          thursday: '',
+          friday: '',
+          saturday: '',
+          sunday: '',
+        },
       });
     } catch (error) {
       console.error('Load venue error:', error);

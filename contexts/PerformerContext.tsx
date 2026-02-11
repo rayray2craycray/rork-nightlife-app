@@ -47,9 +47,9 @@ export const [PerformerProvider, usePerformer] = createContextHook(() => {
   // TODO: Fetch performer's gigs from API
   // Note: In the backend, "gigs" are Events where performer is performing
   // Should call: contentApi.getPerformerDetails(performerId) or eventsApi.getByPerformer(performerId)
-  const gigsQuery = useQuery({
+  const gigsQuery = useQuery<Gig[]>({
     queryKey: ['gigs', performerId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Gig[]> => {
       // Return empty array for now - UI will show empty state
       return [];
     },
@@ -58,9 +58,9 @@ export const [PerformerProvider, usePerformer] = createContextHook(() => {
 
   // TODO: Fetch performer's promo videos from API
   // Should call: contentApi.getUserHighlights(performerId) or similar
-  const videosQuery = useQuery({
+  const videosQuery = useQuery<any[]>({
     queryKey: ['promoVideos', performerId],
-    queryFn: async () => {
+    queryFn: async (): Promise<any[]> => {
       // Return empty array for now - UI will show empty state
       return [];
     },
