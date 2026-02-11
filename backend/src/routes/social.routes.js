@@ -224,7 +224,81 @@ router.post(
   }
 );
 
-// Get crew by ID
+// Search crews (MUST be before /crews/:id)
+router.get(
+  '/crews/search',
+  [
+    query('q').isString().notEmpty(),
+    query('limit').optional().isInt({ min: 1, max: 50 }),
+    validate,
+  ],
+  async (req, res) => {
+    try {
+      const { q, limit = 20 } = req.query;
+
+      const crews = await Crew.searchCrews(q, parseInt(limit));
+
+      res.json({
+        success: true,
+        data: crews,
+        count: crews.length,
+      });
+    } catch (error) {
+      console.error('Search crews error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get active crews (MUST be before /crews/:id)
+router.get('/crews/discover/active', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const crews = await Crew.getActiveCrews(limit);
+
+    res.json({
+      success: true,
+      data: crews,
+      count: crews.length,
+    });
+  } catch (error) {
+    console.error('Get active crews error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Get user's crews (specific route before :id)
+router.get(
+  '/crews/user/:userId',
+  [param('userId').isMongoId(), validate],
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      const crews = await Crew.getUserCrews(userId);
+
+      res.json({
+        success: true,
+        data: crews,
+        count: crews.length,
+      });
+    } catch (error) {
+      console.error('Get user crews error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get crew by ID (parameterized route comes last)
 router.get(
   '/crews/:id',
   [param('id').isMongoId(), validate],
@@ -256,80 +330,6 @@ router.get(
     }
   }
 );
-
-// Get user's crews
-router.get(
-  '/crews/user/:userId',
-  [param('userId').isMongoId(), validate],
-  async (req, res) => {
-    try {
-      const { userId } = req.params;
-
-      const crews = await Crew.getUserCrews(userId);
-
-      res.json({
-        success: true,
-        data: crews,
-        count: crews.length,
-      });
-    } catch (error) {
-      console.error('Get user crews error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-      });
-    }
-  }
-);
-
-// Search crews
-router.get(
-  '/crews/search',
-  [
-    query('q').isString().notEmpty(),
-    query('limit').optional().isInt({ min: 1, max: 50 }),
-    validate,
-  ],
-  async (req, res) => {
-    try {
-      const { q, limit = 20 } = req.query;
-
-      const crews = await Crew.searchCrews(q, parseInt(limit));
-
-      res.json({
-        success: true,
-        data: crews,
-        count: crews.length,
-      });
-    } catch (error) {
-      console.error('Search crews error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-      });
-    }
-  }
-);
-
-// Get active crews
-router.get('/crews/discover/active', async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 20;
-    const crews = await Crew.getActiveCrews(limit);
-
-    res.json({
-      success: true,
-      data: crews,
-      count: crews.length,
-    });
-  } catch (error) {
-    console.error('Get active crews error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-});
 
 // Add member to crew
 router.post(

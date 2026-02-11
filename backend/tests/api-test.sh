@@ -34,8 +34,8 @@ test_endpoint() {
         response=$(curl -s -w "\n%{http_code}" -X "$method" -H "Content-Type: application/json" -d "$data" "$url")
     fi
 
-    http_code=$(echo "$response" | tail -n 1)
-    body=$(echo "$response" | head -n -1)
+    http_code=$(echo "$response" | tail -1)
+    body=$(echo "$response" | sed '$d')
 
     if [ "$http_code" -eq "$expected_status" ]; then
         echo -e "${GREEN}✓ PASS${NC} ($http_code)"
@@ -69,8 +69,9 @@ test_endpoint "Get active crews" "GET" "$BASE_URL/api/social/crews/discover/acti
 test_endpoint "Search crews (no results)" "GET" "$BASE_URL/api/social/crews/search?q=test"
 echo ""
 
-echo "=== Chat Endpoints (if available) ==="
-test_endpoint "Get conversations (401 expected)" "GET" "$BASE_URL/api/chat/conversations" "" 401
+echo "=== Chat Endpoints ==="
+test_endpoint "Get channel messages" "GET" "$BASE_URL/api/chat/channels/test-channel/messages"
+test_endpoint "Send message (401 expected - auth required)" "POST" "$BASE_URL/api/chat/channels/test-channel/messages" '{"content":"test"}' 401
 echo ""
 
 echo "=================================="
