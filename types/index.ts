@@ -5,10 +5,24 @@ export interface Venue {
     latitude: number;
     longitude: number;
     address: string;
+    city?: string;
+    state?: string;
+    country?: string;
   };
+  type?: 'BAR' | 'CLUB' | 'LOUNGE' | 'RESTAURANT';
+  rating?: number;
+  priceLevel?: number;
+  hours?: Record<string, string>;
+  tags?: string[];
+  capacity?: number;
+  features?: string[];
+  distance?: number;
+  description?: string;
+  phoneNumber?: string;
+  website?: string;
   isOpen: boolean;
   currentVibeLevel: number;
-  coverCharge: number;
+  coverCharge?: number;
   genres: string[];
   imageUrl: string;
   hasPublicLobby: boolean;
@@ -102,6 +116,7 @@ export interface UserTransaction {
 export interface UserProfile {
   id: string;
   displayName: string;
+  profileImageUrl?: string;
   bio?: string;
   totalSpend: number;
   badges: UserBadge[];

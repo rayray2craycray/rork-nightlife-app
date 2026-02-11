@@ -17,6 +17,7 @@ const {
 initSentry();
 
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -24,6 +25,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const cookieParser = require('cookie-parser');
+const { initializeSocket } = require('./config/socket');
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'APP_URL'];
@@ -68,6 +70,7 @@ const venueManagementRoutes = require('./routes/venue.routes');
 const adminRoutes = require('./routes/admin.routes');
 const posRoutes = require('./routes/pos.routes');
 const moderationRoutes = require('./routes/moderation.routes');
+const chatRoutes = require('./routes/chat.routes');
 
 // Initialize Express app
 const app = express();
@@ -215,6 +218,9 @@ app.use('/api/pos', posRoutes);
 // Content moderation routes (reports, blocking)
 app.use('/api/moderation', moderationRoutes);
 
+// Chat routes (REST API + Socket.io for real-time)
+app.use('/api/chat', chatRoutes);
+
 // Growth feature routes
 app.use('/api/growth', growthRoutes);
 app.use('/api/events', eventsRoutes);
@@ -242,6 +248,7 @@ app.get('/', (req, res) => {
       venueManagement: '/api/venues',
       pos: '/api/pos',
       moderation: '/api/moderation',
+      chat: '/api/chat',
       growth: '/api/growth',
       events: '/api/events',
       content: '/api/content',
@@ -299,9 +306,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// Create HTTP server and initialize Socket.io
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
+const httpServer = http.createServer(app);
+const io = initializeSocket(httpServer);
+
+// Make io available to routes if needed
+app.set('io', io);
+
+// Start server
+const server = httpServer.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
@@ -316,6 +330,7 @@ const server = app.listen(PORT, () => {
 ║   - Venues & Vibe Checks      /api/v1/venues              ║
 ║   - Social & Sync             /api/social                 ║
 ║   - File Uploads              /api/upload                 ║
+║   - Real-time Chat            Socket.io + /api/chat       ║
 ║                                                            ║
 ║   🎉 Growth Features:                                     ║
 ║   - Group Purchases           /api/growth                 ║

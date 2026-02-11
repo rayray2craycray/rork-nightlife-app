@@ -743,4 +743,63 @@ router.post('/challenges/maintenance/deactivate-expired', async (req, res) => {
   }
 });
 
+// ===== FRIENDS ROUTES =====
+
+const { authMiddleware } = require('../middleware/auth.middleware');
+const friendsController = require('../controllers/friends.controller');
+const crewsController = require('../controllers/crews.controller');
+const challengesController = require('../controllers/challenges.controller');
+
+// Send friend request
+router.post('/friends/request', authMiddleware, friendsController.sendFriendRequest);
+
+// Accept friend request
+router.post('/friends/accept/:friendshipId', authMiddleware, friendsController.acceptFriendRequest);
+
+// Reject friend request
+router.post('/friends/reject/:friendshipId', authMiddleware, friendsController.rejectFriendRequest);
+
+// Remove friend
+router.delete('/friends/:friendshipId', authMiddleware, friendsController.removeFriend);
+
+// Get user's friends
+router.get('/friends', authMiddleware, friendsController.getFriends);
+
+// Get pending friend requests
+router.get('/friends/requests/pending', authMiddleware, friendsController.getPendingRequests);
+
+// ===== NEW CREWS ROUTES (authenticated) =====
+
+// Join crew (with invite code for private crews)
+router.post('/crews/:crewId/join', authMiddleware, crewsController.joinCrew);
+
+// Leave crew
+router.post('/crews/:crewId/leave', authMiddleware, crewsController.leaveCrew);
+
+// Update crew (owner only)
+router.patch('/crews/:crewId', authMiddleware, crewsController.updateCrew);
+
+// Delete crew (owner only)
+router.delete('/crews/:crewId', authMiddleware, crewsController.deleteCrew);
+
+// Get invite code (members only)
+router.get('/crews/:crewId/invite', authMiddleware, crewsController.getInviteCode);
+
+// ===== NEW CHALLENGES ROUTES (authenticated) =====
+
+// Join challenge
+router.post('/challenges/:challengeId/join', authMiddleware, challengesController.joinChallenge);
+
+// Get user's challenge progress
+router.get('/challenges/progress', authMiddleware, challengesController.getUserChallengeProgress);
+
+// Update challenge progress
+router.post('/challenges/:challengeId/progress', authMiddleware, challengesController.updateChallengeProgress);
+
+// Claim reward
+router.post('/challenges/:challengeId/claim', authMiddleware, challengesController.claimReward);
+
+// Create challenge (admin/venue owner)
+router.post('/challenges/create', authMiddleware, challengesController.createChallenge);
+
 module.exports = router;

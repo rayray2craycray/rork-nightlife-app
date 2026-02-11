@@ -1,13 +1,16 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FeedFilter, FeedSettings, VibeVideo } from '@/types';
 import { mockVideos } from '@/mocks/videos';
 import { mockVenues } from '@/mocks/venues';
 import { mockPerformers } from '@/mocks/performers';
 import { useAppState } from './AppStateContext';
 import { useSocial } from './SocialContext';
+import { contentApi } from '@/services/api';
+import { useAuth } from './AuthContext';
+import * as Location from 'expo-location';
 
 const STORAGE_KEYS = {
   FEED_SETTINGS: 'vibelink_feed_settings',
@@ -17,11 +20,6 @@ const STORAGE_KEYS = {
 const defaultFeedSettings: FeedSettings = {
   selectedFilter: 'NEARBY',
   lastUpdated: new Date().toISOString(),
-};
-
-const USER_LOCATION = {
-  latitude: 40.7489,
-  longitude: -73.9680,
 };
 
 const NEARBY_RADIUS_MILES = 25;
@@ -39,10 +37,35 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export const [FeedProvider, useFeed] = createContextHook(() => {
+  const queryClient = useQueryClient();
   const [feedSettings, setFeedSettings] = useState<FeedSettings>(defaultFeedSettings);
   const [userVideos, setUserVideos] = useState<VibeVideo[]>([]);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [useMockData, setUseMockData] = useState(false);
   const { profile, getVenueVibe, calculateVibePercentage } = useAppState();
   const { friendLocations } = useSocial();
+  const { userId, accessToken } = useAuth();
+
+  // Get user location
+  useEffect(() => {
+    const getUserLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          });
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to get user location:', error);
+      }
+    };
+    getUserLocation();
+  }, []);
 
   const feedSettingsQuery = useQuery({
     queryKey: ['feed-settings'],
@@ -78,6 +101,32 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
     }
   }, [userVideosQuery.data]);
 
+  // Fetch highlights from API
+  const highlightsQuery = useQuery({
+    queryKey: ['highlights', userId],
+    queryFn: async () => {
+      if (!userId || !accessToken) {
+        if (__DEV__) console.log('[Feed] No userId or token, using mock data');
+        return mockVideos;
+      }
+
+      try {
+        const response = await contentApi.getHighlightsFeed(userId);
+        if (response.success && response.data) {
+          if (__DEV__) console.log('[Feed] Fetched highlights from API:', response.data.length);
+          return response.data as VibeVideo[];
+        }
+        if (__DEV__) console.log('[Feed] API returned no data, using mock');
+        return mockVideos;
+      } catch (error) {
+        console.error('[Feed] Failed to fetch highlights:', error);
+        return mockVideos;
+      }
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   const updateFeedSettingsMutation = useMutation({
     mutationFn: async (updates: Partial<FeedSettings>) => {
       const updated = { ...feedSettings, ...updates, lastUpdated: new Date().toISOString() };
@@ -105,41 +154,92 @@ export const [FeedProvider, useFeed] = createContextHook(() => {
       sticker?: string;
       stickerPosition?: { x: number; y: number };
     }) => {
-      const newVideo: VibeVideo = {
-        id: `user-video-${Date.now()}`,
-        venueId: videoData.venueId,
-        performerId: profile.role === 'TALENT' ? profile.id : undefined,
-        videoUrl: videoData.videoUrl,
-        thumbnailUrl: videoData.videoUrl, // Use video URL as thumbnail for now
-        duration: videoData.duration,
-        title: videoData.title,
-        views: 0,
-        likes: 0,
-        timestamp: new Date().toISOString(),
-        filter: videoData.filter as any,
-        sticker: videoData.sticker as any,
-        stickerPosition: videoData.stickerPosition,
-      };
+      if (!userId || !accessToken) {
+        throw new Error('Authentication required');
+      }
 
-      const updatedVideos = [newVideo, ...userVideos];
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_VIDEOS, JSON.stringify(updatedVideos));
-      return updatedVideos;
+      // Upload to API
+      try {
+        const response = await contentApi.uploadHighlight({
+          videoUrl: videoData.videoUrl,
+          thumbnailUrl: videoData.videoUrl, // Use video URL as thumbnail
+          venueId: videoData.venueId,
+          userId: userId,
+          duration: videoData.duration,
+        });
+
+        if (response.success && response.data) {
+          // Also store locally for immediate display
+          const newVideo: VibeVideo = {
+            id: response.data.id,
+            venueId: videoData.venueId,
+            performerId: profile.role === 'TALENT' ? profile.id : undefined,
+            videoUrl: videoData.videoUrl,
+            thumbnailUrl: videoData.videoUrl,
+            duration: videoData.duration,
+            title: videoData.title,
+            views: 0,
+            likes: 0,
+            timestamp: new Date().toISOString(),
+            filter: videoData.filter as any,
+            sticker: videoData.sticker as any,
+            stickerPosition: videoData.stickerPosition,
+          };
+
+          const updatedVideos = [newVideo, ...userVideos];
+          await AsyncStorage.setItem(STORAGE_KEYS.USER_VIDEOS, JSON.stringify(updatedVideos));
+          return updatedVideos;
+        }
+        throw new Error('Upload failed');
+      } catch (error) {
+        console.error('[Feed] Upload error:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       setUserVideos(data);
+      // Invalidate highlights query to refetch
+      queryClient.invalidateQueries({ queryKey: ['highlights'] });
     },
   });
 
-  const allVideos = useMemo(() => [...userVideos, ...mockVideos], [userVideos]);
+  const allVideos = useMemo(() => {
+    const apiHighlights = highlightsQuery.data || [];
+    // Combine user videos with API highlights, avoiding duplicates
+    const userVideoIds = new Set(userVideos.map(v => v.id));
+    const uniqueApiHighlights = apiHighlights.filter(v => !userVideoIds.has(v.id));
+    return [...userVideos, ...uniqueApiHighlights];
+  }, [userVideos, highlightsQuery.data]);
 
   const nearbyVideos = useMemo(() => {
+    // If no user location, return all videos
+    if (!userLocation) {
+      return allVideos
+        .map(video => ({
+          video,
+          score: Date.now() - new Date(video.timestamp).getTime(), // Sort by recency
+        }))
+        .sort((a, b) => a.score - b.score)
+        .map(item => item.video);
+    }
+
     const videosWithScores = allVideos.map(video => {
+      // Try to find venue in mock venues (for backward compatibility)
       const venue = mockVenues.find(v => v.id === video.venueId);
-      if (!venue) return null;
+
+      // If venue data not available, we can't filter by distance
+      // In production, the backend should handle this filtering
+      if (!venue || !venue.location) {
+        // Include the video but with lower score
+        const ageMs = Date.now() - new Date(video.timestamp).getTime();
+        const ageHours = ageMs / (1000 * 60 * 60);
+        const recencyScore = Math.max(0, 100 - ageHours * 5);
+        return { video, score: recencyScore };
+      }
 
       const distance = calculateDistance(
-        USER_LOCATION.latitude,
-        USER_LOCATION.longitude,
+        userLocation.latitude,
+        userLocation.longitude,
         venue.location.latitude,
         venue.location.longitude
       );

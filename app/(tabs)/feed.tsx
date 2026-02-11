@@ -437,7 +437,10 @@ function VideoCard({ video, venue, performer, isActive, isLiked, onLike, isFocus
                 });
 
                 // Share to Instagram
-                await shareToInstagram(result.template.id);
+                if (result && typeof result === 'object' && 'template' in result) {
+                  const resultWithTemplate = result as { template: { id: string } };
+                  await shareToInstagram(resultWithTemplate.template.id);
+                }
 
                 Alert.alert(
                   'Success!',

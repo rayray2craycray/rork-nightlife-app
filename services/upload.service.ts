@@ -4,10 +4,13 @@
  */
 
 import * as ImagePicker from 'expo-image-picker';
-import { Image } from 'react-native-compressor';
-import { Video } from 'react-native-compressor';
 import { Platform } from 'react-native';
 import { API_BASE_URL } from './config';
+
+// Note: react-native-compressor requires native build (not available in Expo Go)
+// Compression is disabled for now - will return original URIs
+// import { Image } from 'react-native-compressor';
+// import { Video } from 'react-native-compressor';
 
 /**
  * Upload result interface
@@ -171,6 +174,14 @@ export const compressImage = async (
     quality?: number;
   }
 ): Promise<string> => {
+  // TODO: Re-enable compression when react-native-compressor is properly installed
+  // For now, return original URI (compression disabled)
+  if (__DEV__) {
+    console.log('[Upload] Image compression disabled - returning original URI');
+  }
+  return uri;
+
+  /* Original compression code - commented out until react-native-compressor is installed
   try {
     const compressedUri = await Image.compress(uri, {
       compressionMethod: 'auto',
@@ -184,6 +195,7 @@ export const compressImage = async (
     // Return original URI if compression fails
     return uri;
   }
+  */
 };
 
 /**
@@ -195,6 +207,14 @@ export const compressVideo = async (
     maxSize?: number;
   }
 ): Promise<string> => {
+  // TODO: Re-enable compression when react-native-compressor is properly installed
+  // For now, return original URI (compression disabled)
+  if (__DEV__) {
+    console.log('[Upload] Video compression disabled - returning original URI');
+  }
+  return uri;
+
+  /* Original compression code - commented out until react-native-compressor is installed
   try {
     const compressedUri = await Video.compress(uri, {
       compressionMethod: 'auto',
@@ -207,6 +227,7 @@ export const compressVideo = async (
     // Return original URI if compression fails
     return uri;
   }
+  */
 };
 
 /**

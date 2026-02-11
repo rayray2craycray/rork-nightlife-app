@@ -180,19 +180,29 @@ export default function ProfileScreen() {
       setIsDetectingLocation(false);
 
       // Step 4: Check if user is close enough to a venue (within 500 meters)
-      if (!nearestVenue || nearestVenue.distance > 0.5) {
+      if (!nearestVenue) {
         Alert.alert(
           'Not at a Venue',
-          nearestVenue
-            ? `You're ${(nearestVenue.distance * 1000).toFixed(0)}m away from ${nearestVenue.name}. Get closer to capture this memory!`
-            : 'No venues found nearby. Make sure you\'re at a nightlife venue to capture memories.',
+          'No venues found nearby. Make sure you\'re at a nightlife venue to capture memories.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Type assertion to help TypeScript
+      const venue = nearestVenue as { id: string; name: string; distance: number };
+
+      if (venue.distance > 0.5) {
+        Alert.alert(
+          'Not at a Venue',
+          `You're ${(venue.distance * 1000).toFixed(0)}m away from ${venue.name}. Get closer to capture this memory!`,
           [{ text: 'OK' }]
         );
         return;
       }
 
       // Step 5: Set detected venue and open modal
-      setDetectedVenue(nearestVenue);
+      setDetectedVenue(venue);
       setShowAddMemoryModal(true);
 
       // Step 6: Open camera to take live photo
@@ -305,7 +315,7 @@ export default function ProfileScreen() {
 
   const handleSelectCard = async (card: { last4: string; brand: string; cardholderName: string }) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await addLinkedCard(card);
+    await addLinkedCard({ ...card, isDefault: false });
     setShowWalletModal(false);
     router.push('/settings');
   };
@@ -665,18 +675,19 @@ export default function ProfileScreen() {
               <View style={styles.badgeList}>
                 {profile.badges.map((badge) => {
                   const venue = mockVenues.find(v => v.id === badge.venueId);
+                  // Use fallback image if venue not found in mock data
+                  const venueImage = venue?.imageUrl || 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2';
+
                   return (
                     <View key={badge.id} style={styles.badgeCard}>
                       <LinearGradient
                         colors={['#1a1a2e', '#1a1a1a']}
                         style={styles.badgeGradient}
                       >
-                        {venue && (
-                          <Image
-                            source={{ uri: venue.imageUrl }}
-                            style={styles.badgeImage}
-                          />
-                        )}
+                        <Image
+                          source={{ uri: venueImage }}
+                          style={styles.badgeImage}
+                        />
                         <View style={styles.badgeInfo}>
                           <Text style={styles.badgeName}>{badge.venueName}</Text>
                           <View style={styles.badgeTypeTag}>
@@ -709,18 +720,19 @@ export default function ProfileScreen() {
             ) : (
               profile.badges.slice(0, 3).map((badge) => {
                 const venue = mockVenues.find(v => v.id === badge.venueId);
+                // Use fallback image if venue not found in mock data
+                const venueImage = venue?.imageUrl || 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2';
+
                 return (
                   <View key={badge.id} style={styles.badgeCard}>
                     <LinearGradient
                       colors={['#1a1a2e', '#1a1a1a']}
                       style={styles.badgeGradient}
                     >
-                      {venue && (
-                        <Image
-                          source={{ uri: venue.imageUrl }}
-                          style={styles.badgeImage}
-                        />
-                      )}
+                      <Image
+                        source={{ uri: venueImage }}
+                        style={styles.badgeImage}
+                      />
                       <View style={styles.badgeInfo}>
                         <Text style={styles.badgeName}>{badge.venueName}</Text>
                         <View style={styles.badgeTypeTag}>

@@ -16,10 +16,18 @@ import { ContentProvider } from "@/contexts/ContentContext";
 import { MonetizationProvider } from "@/contexts/MonetizationContext";
 import { RetentionProvider } from "@/contexts/RetentionContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ChatProvider } from "@/contexts/ChatContext";
 import { VenueManagementProvider } from "@/contexts/VenueManagementContext";
 import { ModerationProvider } from "@/contexts/ModerationContext";
+import { ToastProvider } from "@/contexts/ToastNotificationContext";
+import { NetworkProvider } from "@/contexts/NetworkContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
+import { initSentry, captureException } from "@/config/sentry";
+
+// Initialize Sentry error tracking
+initSentry();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -68,6 +76,7 @@ function RootLayoutNav() {
         <Stack.Screen name="management" options={{ headerShown: false }} />
       </Stack>
       <GlowOverlay />
+      <OfflineBanner />
       <AgeVerificationGate
         visible={showAgeGate}
         onVerified={handleAgeVerified}
@@ -82,7 +91,11 @@ export default function RootLayout() {
   }, []);
 
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
-    // TODO: Send error to tracking service (Sentry, Bugsnag, etc.)
+    // Send error to Sentry
+    captureException(error, {
+      errorInfo: errorInfo.componentStack,
+      errorBoundary: 'GlobalErrorBoundary',
+    });
     console.error('Global error caught:', error, errorInfo);
   };
 
@@ -91,35 +104,41 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <AuthProvider>
-            <AppStateProvider>
-              <GlowProvider>
-                <POSProvider>
-                  <ModerationProvider>
-                    <SocialProvider>
-                      <GrowthProvider>
-                        <EventsProvider>
-                          <ContentProvider>
-                            <MonetizationProvider>
-                              <RetentionProvider>
-                                <VenueManagementProvider>
-                                  <FeedProvider>
-                                    <DiscoveryProvider>
-                                      <PerformerProvider>
-                                        <RootLayoutNav />
-                                      </PerformerProvider>
-                                    </DiscoveryProvider>
-                                  </FeedProvider>
-                                </VenueManagementProvider>
-                              </RetentionProvider>
-                            </MonetizationProvider>
-                          </ContentProvider>
-                        </EventsProvider>
-                      </GrowthProvider>
-                    </SocialProvider>
-                  </ModerationProvider>
-                </POSProvider>
-              </GlowProvider>
-            </AppStateProvider>
+            <ChatProvider>
+              <ToastProvider>
+                <NetworkProvider>
+                  <AppStateProvider>
+                <GlowProvider>
+                  <POSProvider>
+                    <ModerationProvider>
+                      <SocialProvider>
+                        <GrowthProvider>
+                          <EventsProvider>
+                            <ContentProvider>
+                              <MonetizationProvider>
+                                <RetentionProvider>
+                                  <VenueManagementProvider>
+                                    <FeedProvider>
+                                      <DiscoveryProvider>
+                                        <PerformerProvider>
+                                          <RootLayoutNav />
+                                        </PerformerProvider>
+                                      </DiscoveryProvider>
+                                    </FeedProvider>
+                                  </VenueManagementProvider>
+                                </RetentionProvider>
+                              </MonetizationProvider>
+                            </ContentProvider>
+                          </EventsProvider>
+                        </GrowthProvider>
+                      </SocialProvider>
+                    </ModerationProvider>
+                  </POSProvider>
+                </GlowProvider>
+                  </AppStateProvider>
+                </NetworkProvider>
+              </ToastProvider>
+            </ChatProvider>
           </AuthProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>

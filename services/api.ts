@@ -691,6 +691,17 @@ export const socialApi = {
     return apiClient.get<ApiResponse<any>>(API_ENDPOINTS.social.challenges.progress(id));
   },
 
+  updateChallengeProgress: async (
+    challengeId: string,
+    userId: string,
+    incrementBy: number
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(
+      API_ENDPOINTS.social.challenges.userProgress(challengeId, userId),
+      { incrementBy }
+    );
+  },
+
   claimChallengeReward: async (
     id: string,
     userId: string
@@ -788,6 +799,29 @@ export const contentApi = {
     );
   },
 
+  // Alias for ContentContext compatibility
+  likePost: async (
+    postId: string,
+    userId: string
+  ): Promise<ApiResponse<any>> => {
+    // This is a simplified version - in real usage, performerId should be passed
+    // For now, we'll let the context handle the performerId lookup
+    return apiClient.post<ApiResponse<any>>(
+      `/api/content/posts/${postId}/like`,
+      { userId }
+    );
+  },
+
+  unlikePost: async (
+    postId: string,
+    userId: string
+  ): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(
+      `/api/content/posts/${postId}/unlike`,
+      { userId }
+    );
+  },
+
   // Highlights
   uploadHighlight: async (data: {
     videoUrl: string;
@@ -861,6 +895,11 @@ export const contentApi = {
     return apiClient.get<ApiResponse<HighlightVideo[]>>(
       API_ENDPOINTS.content.highlights.trending // Use trending endpoint or create new one
     );
+  },
+
+  // Alias for viewHighlight - used by ContentContext as incrementHighlightViews
+  incrementHighlightViews: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.post<ApiResponse<any>>(API_ENDPOINTS.content.highlights.view(id));
   },
 };
 
@@ -1068,6 +1107,30 @@ export const retentionApi = {
   getUserMemories: async (userId: string): Promise<ApiResponse<Memory[]>> => {
     return apiClient.get<ApiResponse<Memory[]>>(
       API_ENDPOINTS.retention.memories.timeline(userId)
+    );
+  },
+
+  // Simplified alias for claimStreakMilestone - used by RetentionContext
+  claimStreakReward: async (
+    streakId: string,
+    userId: string
+  ): Promise<ApiResponse<Streak>> => {
+    // For now, we'll call the backend with a generic milestone claim
+    // The backend should determine which milestone to claim based on current progress
+    return apiClient.post<ApiResponse<Streak>>(
+      `/api/retention/streaks/${streakId}/claim`,
+      { userId }
+    );
+  },
+
+  // Update memory privacy setting
+  updateMemoryPrivacy: async (
+    memoryId: string,
+    isPrivate: boolean
+  ): Promise<ApiResponse<Memory>> => {
+    return apiClient.patch<ApiResponse<Memory>>(
+      `/api/retention/memories/${memoryId}`,
+      { isPrivate }
     );
   },
 };

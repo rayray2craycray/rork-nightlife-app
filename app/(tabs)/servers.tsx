@@ -17,6 +17,7 @@ import { VenueServer, ServerChannel, Message, VibeEnergyLevel, WaitTimeRange } f
 import * as Haptics from 'expo-haptics';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useSocial } from '@/contexts/SocialContext';
+import { useChat } from '@/contexts/ChatContext';
 import { mockBookings } from '@/mocks/analytics';
 import { PerformerBooking } from '@/types';
 import UserProfileModal from '@/components/UserProfileModal';
@@ -27,6 +28,7 @@ type TabType = 'servers' | 'messages';
 
 export default function ServersScreen() {
   const params = useLocalSearchParams();
+  const { profile, joinedServers } = useAppState();
   const [activeTab, setActiveTab] = useState<TabType>('servers');
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
@@ -34,6 +36,26 @@ export default function ServersScreen() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
+
+  // Debug: Log when screen mounts/updates and check AsyncStorage directly
+  useEffect(() => {
+    if (__DEV__) {
+      console.log('[Servers] ServersScreen mounted/updated');
+      console.log('[Servers] Profile badges:', profile.badges.length);
+      console.log('[Servers] Joined servers:', joinedServers.length);
+
+      // Check AsyncStorage directly to see what's stored
+      import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
+        AsyncStorage.getItem('vibelink_profile').then((stored) => {
+          if (stored) {
+            const storedProfile = JSON.parse(stored);
+            console.log('[Servers] AsyncStorage profile badges:', storedProfile.badges?.length || 0);
+            console.log('[Servers] AsyncStorage badge venueIds:', storedProfile.badges?.map((b: any) => b.venueId) || []);
+          }
+        });
+      });
+    }
+  }, [profile.badges, joinedServers]);
 
   // Handle deep link to open DM with specific user
   useEffect(() => {
@@ -92,8 +114,14 @@ export default function ServersScreen() {
     );
   }
 
-  const server = mockServers.find(s => s.venueId === selectedServer);
-  if (!server) return null;
+  const server = joinedServers.find(s => s.venueId === selectedServer);
+  if (!server) {
+    if (__DEV__) {
+      console.log('[Servers] Server not found for venueId:', selectedServer);
+      console.log('[Servers] Available servers:', joinedServers.map(s => s.venueId));
+    }
+    return null;
+  }
 
   if (!selectedChannel) {
     return (
@@ -530,7 +558,7 @@ function DirectMessageChat({ conversationId, onBack, onOpenUserProfile }: Direct
         transparent
         onRequestClose={() => setShowBookingModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.bookingModalOverlay}>
           <TouchableOpacity
             style={{ flex: 1 }}
             activeOpacity={1}
@@ -649,7 +677,17 @@ interface ServerListProps {
 }
 
 function ServerList({ onSelectServer }: ServerListProps) {
-  const { joinedServers } = useAppState();
+  const { joinedServers, profile } = useAppState();
+
+  // Debug logging
+  React.useEffect(() => {
+    if (__DEV__) {
+      console.log('[Servers] ServerList rendered');
+      console.log('[Servers] joinedServers:', joinedServers.length);
+      console.log('[Servers] profile.badges:', profile.badges.length);
+      console.log('[Servers] Badge venueIds:', profile.badges.map(b => b.venueId));
+    }
+  }, [joinedServers, profile.badges]);
 
   return (
     <>
@@ -802,12 +840,35 @@ interface ChatViewProps {
 
 function ChatView({ server, channelId, onBack, onOpenUserProfile }: ChatViewProps) {
   const { getBroadcastMessagesForChannel } = useAppState();
+  const {
+    messages: chatMessages,
+    sendMessage: sendChatMessage,
+    joinChannel,
+    leaveChannel,
+    loadMessages,
+    isLoadingMessages,
+    isConnected,
+    typingUsers,
+    startTyping,
+    stopTyping,
+  } = useChat();
   const [message, setMessage] = useState<string>('');
   const [showVibeCheck, setShowVibeCheck] = useState<boolean>(false);
-  const [channelMessages, setChannelMessages] = useState(mockMessages.filter(m => m.channelId === channelId));
 
-  // Get regular messages
-  const regularMessages = channelMessages;
+  // Join channel and load messages on mount
+  useEffect(() => {
+    if (__DEV__) console.log('[ChatView] Joining channel:', channelId);
+    joinChannel(channelId);
+    loadMessages(channelId);
+
+    return () => {
+      if (__DEV__) console.log('[ChatView] Leaving channel:', channelId);
+      leaveChannel(channelId);
+    };
+  }, [channelId]);
+
+  // Get chat messages for this channel
+  const channelChatMessages = chatMessages.filter((m) => m.channelId === channelId);
 
   // Get broadcast messages and convert to Message format
   const channelName = server.channels.find(c => c.id === channelId)?.name || 'general';
@@ -824,7 +885,7 @@ function ChatView({ server, channelId, onBack, onOpenUserProfile }: ChatViewProp
   }));
 
   // Merge and sort messages by timestamp
-  const messages = [...regularMessages, ...broadcastMessages].sort((a, b) =>
+  const messages = [...channelChatMessages, ...broadcastMessages].sort((a, b) =>
     new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
@@ -836,20 +897,19 @@ function ChatView({ server, channelId, onBack, onOpenUserProfile }: ChatViewProp
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Add new message to the chat
-    const newMessage = {
-      id: `msg-${Date.now()}`,
-      channelId: channelId,
-      userId: 'user-me',
-      userName: 'You',
-      userBadge: 'GUEST' as const,
-      content: message,
-      timestamp: new Date().toISOString(),
-      isOwn: true,
-    };
-
-    setChannelMessages([...channelMessages, newMessage]);
+    // Send via Socket.io
+    sendChatMessage(channelId, message);
     setMessage('');
+    stopTyping(channelId);
+  };
+
+  const handleTextChange = (text: string) => {
+    setMessage(text);
+    if (text.length > 0) {
+      startTyping(channelId);
+    } else {
+      stopTyping(channelId);
+    }
   };
 
   return (
@@ -885,7 +945,30 @@ function ChatView({ server, channelId, onBack, onOpenUserProfile }: ChatViewProp
           )}
           style={styles.messageList}
           contentContainerStyle={styles.messageListContent}
+          ListHeaderComponent={
+            isLoadingMessages ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading messages...</Text>
+              </View>
+            ) : null
+          }
         />
+
+        {/* Typing indicator */}
+        {typingUsers.length > 0 && (
+          <View style={styles.typingIndicator}>
+            <Text style={styles.typingText}>
+              {typingUsers.map((u) => u.userName).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+            </Text>
+          </View>
+        )}
+
+        {/* Connection status */}
+        {!isConnected && (
+          <View style={styles.connectionStatus}>
+            <Text style={styles.connectionStatusText}>⚠️ Reconnecting...</Text>
+          </View>
+        )}
 
         <View style={styles.inputContainer}>
           <TextInput
@@ -893,10 +976,15 @@ function ChatView({ server, channelId, onBack, onOpenUserProfile }: ChatViewProp
             placeholder="Type a message..."
             placeholderTextColor="#666"
             value={message}
-            onChangeText={setMessage}
+            onChangeText={handleTextChange}
+            editable={isConnected}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-            <Send size={20} color="#000000" />
+          <TouchableOpacity
+            style={[styles.sendButton, !isConnected && styles.sendButtonDisabled]}
+            onPress={handleSendMessage}
+            disabled={!isConnected}
+          >
+            <Send size={20} color={isConnected ? "#000000" : "#666"} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -2377,7 +2465,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
   },
-  modalOverlay: {
+  bookingModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'flex-end',
@@ -2451,5 +2539,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#000',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  typingIndicator: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 0, 128, 0.1)',
+  },
+  typingText: {
+    color: '#ff0080',
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  connectionStatus: {
+    backgroundColor: 'rgba(255, 165, 0, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  connectionStatusText: {
+    color: '#ffa500',
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
   },
 });

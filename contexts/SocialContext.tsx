@@ -271,6 +271,20 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     },
   });
 
+  const activeChallengesQuery = useQuery({
+    queryKey: ['active-challenges'],
+    queryFn: async () => {
+      try {
+        const response = await socialApi.getActiveChallenges();
+        return response.data || [];
+      } catch (error) {
+        // Silently handle missing endpoint
+        if (__DEV__) console.log('[Social] Endpoint not implemented: active challenges');
+        return [];
+      }
+    },
+  });
+
   // ===== CREW MUTATIONS =====
   const updateCrewsMutation = useMutation({
     mutationFn: async (newCrews: Crew[]) => {
@@ -474,8 +488,8 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
   const challengeRewards = useMemo(() => challengeRewardsQuery.data || [], [challengeRewardsQuery.data]);
 
   const activeChallenges = useMemo(() => {
-    return getActiveChallenges();
-  }, []);
+    return activeChallengesQuery.data || [];
+  }, [activeChallengesQuery.data]);
 
   const userChallengeProgress = useMemo(() => {
     return challengeProgress.filter(progress => progress.userId === userId);
@@ -690,6 +704,43 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     );
   }, [challengeProgress]);
 
+  const getChallengesForVenue = useCallback((venueId: string): Challenge[] => {
+    return activeChallenges.filter(challenge => challenge.venueId === venueId);
+  }, [activeChallenges]);
+
+  const getVenueSocialProof = useCallback((venueId: string): Omit<VenueSocialProof, 'friendsPresent'> | undefined => {
+    // Calculate social proof data for a venue
+    const friendsHere = getFriendsByVenue(venueId);
+    const venueChallenges = getChallengesForVenue(venueId);
+
+    // Build hype factors based on available data
+    const hypeFactors: VenueSocialProof['hypeFactors'] = [];
+
+    if (friendsHere.length > 0) {
+      hypeFactors.push({
+        type: 'FRIENDS_HERE',
+        label: `${friendsHere.length} friend${friendsHere.length > 1 ? 's' : ''} here`,
+      });
+    }
+
+    if (venueChallenges.length > 0) {
+      hypeFactors.push({
+        type: 'CHALLENGE_ACTIVE',
+        label: `${venueChallenges.length} active challenge${venueChallenges.length > 1 ? 's' : ''}`,
+      });
+    }
+
+    // Calculate trending score (simplified - based on friends present)
+    const trendingScore = Math.min(100, friendsHere.length * 20);
+
+    return {
+      venueId,
+      trendingScore,
+      recentCheckIns: friendsHere.length, // Simplified
+      hypeFactors,
+    };
+  }, [getFriendsByVenue, getChallengesForVenue]);
+
   const getVenueSocialProofData = useCallback((venueId: string): VenueSocialProof | undefined => {
     const socialProof = getVenueSocialProof(venueId);
     if (!socialProof) return undefined;
@@ -701,7 +752,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
       ...socialProof,
       friendsPresent: friendsHere,
     };
-  }, [getFriendsByVenue]);
+  }, [getVenueSocialProof, getFriendsByVenue]);
 
   return {
     // Original social features

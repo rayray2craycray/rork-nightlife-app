@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, Alert, Platform, Share, TextInput, PanResponder, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePerformer } from '@/contexts/PerformerContext';
@@ -6,8 +6,9 @@ import { useAppState } from '@/contexts/AppStateContext';
 import { useFeed } from '@/contexts/FeedContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUpload } from '@/hooks/useUpload';
+import { useNearbyVenues } from '@/hooks/useNearbyVenues';
 import { mockVenues } from '@/mocks/venues';
-import { Camera, Upload, Play, Pause, RotateCw, Zap, ZapOff, Check, Type, Music2, Share2, Instagram, ExternalLink, Video, Scissors, Sparkles, Sticker, X, MapPin } from 'lucide-react-native';
+import { Camera, Upload, Play, Pause, RotateCw, Zap, ZapOff, Check, Type, Music2, Share2, Instagram, ExternalLink, Video, Scissors, Sparkles, Sticker, X, MapPin, Search } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from 'expo-camera';
@@ -222,14 +223,40 @@ export default function StudioScreen() {
   const [audioTrack, setAudioTrack] = useState<string | null>(null);
   const [audioName, setAudioName] = useState<string>('');
   const [videoTitle, setVideoTitle] = useState<string>('');
-  const [selectedVenueId, setSelectedVenueId] = useState<string>(mockVenues[0]?.id || 'venue-1');
+  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
+  const [selectedVenueName, setSelectedVenueName] = useState<string>('');
+  const [selectedVenueAddress, setSelectedVenueAddress] = useState<string>('');
   const [showVenueSelector, setShowVenueSelector] = useState(false);
+  const [venueSearchQuery, setVenueSearchQuery] = useState<string>('');
   const [stickerPosition, setStickerPosition] = useState({ x: 50, y: 15 }); // Default center top, percentage-based
   const stickerPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const cameraRef = useRef<any>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [cameraPermission, requestCameraPermissions] = useCameraPermissions();
+
+  // Venue search using Google Places API
+  const {
+    venues: searchedVenues,
+    isLoading: isLoadingVenues,
+    searchVenuesByQuery,
+    userLocation,
+  } = useNearbyVenues({
+    radiusMiles: 50,
+    maxResults: 50,
+    autoFetch: false, // Don't auto-fetch, only search when user types
+  });
+
+  // Handle venue search with debounce
+  useEffect(() => {
+    if (venueSearchQuery.trim().length >= 2) {
+      const timeoutId = setTimeout(() => {
+        searchVenuesByQuery(venueSearchQuery);
+      }, 500); // Debounce 500ms
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [venueSearchQuery]);
 
   // Create video players for previews
   const previewPlayer = useVideoPlayer(recordedVideo || '', (player) => {
@@ -261,7 +288,7 @@ export default function StudioScreen() {
 
   // Permission handling
   const handleRequestPermissions = async () => {
-    const cameraStatus = await requestCameraPermission();
+    const cameraStatus = await requestCameraPermissions();
 
     if (!cameraStatus.granted) {
       Alert.alert(
@@ -694,8 +721,6 @@ export default function StudioScreen() {
 
   // Share screen
   if (promoStep === 'SHARE' && recordedVideo) {
-    const selectedVenue = mockVenues.find(v => v.id === selectedVenueId);
-
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
@@ -756,9 +781,16 @@ export default function StudioScreen() {
               onPress={() => setShowVenueSelector(true)}
             >
               <MapPin size={20} color={COLORS.accent} />
-              <Text style={styles.venueSelectorText}>
-                {selectedVenue?.name || 'Select Venue'}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.venueSelectorText}>
+                  {selectedVenueName || 'Search for a venue'}
+                </Text>
+                {selectedVenueAddress && (
+                  <Text style={styles.venueAddressSubtext}>
+                    {selectedVenueAddress}
+                  </Text>
+                )}
+              </View>
               <Text style={styles.venueSelectorArrow}>›</Text>
             </TouchableOpacity>
           </View>
@@ -823,41 +855,110 @@ export default function StudioScreen() {
           visible={showVenueSelector}
           transparent
           animationType="slide"
-          onRequestClose={() => setShowVenueSelector(false)}
+          onRequestClose={() => {
+            setShowVenueSelector(false);
+            setVenueSearchQuery('');
+          }}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Select Venue</Text>
-                <TouchableOpacity onPress={() => setShowVenueSelector(false)}>
+                <TouchableOpacity onPress={() => {
+                  setShowVenueSelector(false);
+                  setVenueSearchQuery('');
+                }}>
                   <X size={24} color={COLORS.text} />
                 </TouchableOpacity>
               </View>
-              <ScrollView>
-                {mockVenues.map((venue) => (
-                  <TouchableOpacity
-                    key={venue.id}
-                    style={styles.venueOption}
-                    onPress={() => {
-                      setSelectedVenueId(venue.id);
-                      setShowVenueSelector(false);
-                    }}
-                  >
-                    <MapPin
-                      size={20}
-                      color={selectedVenueId === venue.id ? COLORS.accent : COLORS.textSecondary}
-                    />
-                    <Text style={[
-                      styles.venueOptionText,
-                      selectedVenueId === venue.id && styles.venueOptionTextActive
-                    ]}>
-                      {venue.name}
-                    </Text>
-                    {selectedVenueId === venue.id && (
-                      <Check size={20} color={COLORS.accent} />
-                    )}
+
+              {/* Search Input */}
+              <View style={styles.searchInputContainer}>
+                <Search size={20} color={COLORS.textSecondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search venues by name..."
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={venueSearchQuery}
+                  onChangeText={setVenueSearchQuery}
+                  autoFocus
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {venueSearchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setVenueSearchQuery('')}>
+                    <X size={20} color={COLORS.textSecondary} />
                   </TouchableOpacity>
-                ))}
+                )}
+              </View>
+
+              {/* Loading Indicator */}
+              {isLoadingVenues && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={COLORS.accent} />
+                  <Text style={styles.loadingText}>Searching venues...</Text>
+                </View>
+              )}
+
+              {/* Results */}
+              <ScrollView style={styles.venueResultsScroll}>
+                {venueSearchQuery.trim().length < 2 ? (
+                  <View style={styles.searchPromptContainer}>
+                    <Search size={48} color={COLORS.textSecondary} />
+                    <Text style={styles.searchPromptText}>
+                      Type at least 2 characters to search for venues
+                    </Text>
+                  </View>
+                ) : searchedVenues.length === 0 && !isLoadingVenues ? (
+                  <View style={styles.noResultsContainer}>
+                    <MapPin size={48} color={COLORS.textSecondary} />
+                    <Text style={styles.noResultsText}>
+                      No venues found for "{venueSearchQuery}"
+                    </Text>
+                    <Text style={styles.noResultsSubtext}>
+                      Try a different search term or check your spelling
+                    </Text>
+                  </View>
+                ) : (
+                  searchedVenues.map((venue) => (
+                    <TouchableOpacity
+                      key={venue.id}
+                      style={styles.venueOption}
+                      onPress={() => {
+                        setSelectedVenueId(venue.id);
+                        setSelectedVenueName(venue.name);
+                        setSelectedVenueAddress(venue.location.address);
+                        setShowVenueSelector(false);
+                        setVenueSearchQuery('');
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <MapPin
+                        size={20}
+                        color={selectedVenueId === venue.id ? COLORS.accent : COLORS.textSecondary}
+                      />
+                      <View style={styles.venueInfo}>
+                        <Text style={[
+                          styles.venueOptionText,
+                          selectedVenueId === venue.id && styles.venueOptionTextActive
+                        ]}>
+                          {venue.name}
+                        </Text>
+                        <Text style={styles.venueAddressText}>
+                          {venue.location.address}
+                        </Text>
+                        {venue.distance && (
+                          <Text style={styles.venueDistanceText}>
+                            {venue.distance.toFixed(1)} miles away
+                          </Text>
+                        )}
+                      </View>
+                      {selectedVenueId === venue.id && (
+                        <Check size={20} color={COLORS.accent} />
+                      )}
+                    </TouchableOpacity>
+                  ))
+                )}
               </ScrollView>
             </View>
           </View>
@@ -1594,12 +1695,91 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   venueOptionText: {
-    flex: 1,
     fontSize: 16,
     color: COLORS.text,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   venueOptionTextActive: {
     color: COLORS.accent,
+    fontWeight: '700',
+  },
+  venueInfo: {
+    flex: 1,
+  },
+  venueAddressText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  venueDistanceText: {
+    fontSize: 12,
+    color: COLORS.accent,
+    fontWeight: '500',
+  },
+  venueAddressSubtext: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.background,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.text,
+    padding: 0,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  venueResultsScroll: {
+    maxHeight: 400,
+  },
+  searchPromptContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  searchPromptText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginTop: 16,
     fontWeight: '600',
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

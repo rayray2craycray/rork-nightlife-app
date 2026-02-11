@@ -13,7 +13,7 @@ import {
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { X, MapPin, Users, DollarSign, Navigation, Ghost, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react-native';
+import { X, MapPin, Users, DollarSign, Navigation, Ghost, ChevronUp, ChevronDown, RefreshCw, Info } from 'lucide-react-native';
 import { mockVenues } from '@/mocks/venues';
 import { Venue, FriendLocation, GroupPurchase } from '@/types';
 import { useDiscovery, useAppState } from '@/contexts/AppStateContext';
@@ -27,6 +27,7 @@ import * as Location from 'expo-location';
 import UserProfileModal from '@/components/UserProfileModal';
 import { GroupPurchaseCard } from '@/components/GroupPurchaseCard';
 import { GroupPurchaseModal } from '@/components/modals/GroupPurchaseModal';
+import VenueDetailsModal from '@/components/VenueDetailsModal';
 import { useNearbyVenues } from '@/hooks/useNearbyVenues';
 import { DiscoveredVenue } from '@/services/places.service';
 
@@ -51,6 +52,7 @@ export default function DiscoveryScreen() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showGroupPurchaseModal, setShowGroupPurchaseModal] = useState(false);
+  const [showVenueDetails, setShowVenueDetails] = useState(false);
   const [useMockData, setUseMockData] = useState(false); // Toggle for development
   const mapRef = useRef<MapView>(null);
 
@@ -141,6 +143,13 @@ export default function DiscoveryScreen() {
       features: [],
       isOpen: venue.isOpen || false,
       distance: venue.distance,
+      // Add required fields for venue joining
+      hasPublicLobby: true, // All real venues have public lobby access
+      vipThreshold: 0, // No VIP threshold for public venues
+      currentVibeLevel: 75, // Default vibe level
+      description: '', // No description from Google Places
+      phoneNumber: '', // Would need separate API call to get this
+      website: '', // Would need separate API call to get this
     }));
   }, [discoveredVenues]);
 
@@ -352,6 +361,7 @@ export default function DiscoveryScreen() {
           onClose={() => setSelectedVenueId(null)}
           onCreateGroupPurchase={() => setShowGroupPurchaseModal(true)}
           onJoinGroupPurchase={(groupPurchaseId) => joinGroupPurchase({ groupPurchaseId, userId: 'user-me' })}
+          onViewDetails={() => setShowVenueDetails(true)}
         />
       )}
 
@@ -371,6 +381,13 @@ export default function DiscoveryScreen() {
           createGroupPurchase(purchase);
           setShowGroupPurchaseModal(false);
         }}
+      />
+
+      <VenueDetailsModal
+        visible={showVenueDetails}
+        placeId={selectedVenue?.id || null}
+        venueName={selectedVenue?.name}
+        onClose={() => setShowVenueDetails(false)}
       />
     </View>
   );
@@ -455,10 +472,11 @@ interface VenueBottomSheetProps {
   onClose: () => void;
   onCreateGroupPurchase: () => void;
   onJoinGroupPurchase: (groupPurchaseId: string) => void;
+  onViewDetails: () => void;
 }
 
-function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCreateGroupPurchase, onJoinGroupPurchase }: VenueBottomSheetProps) {
-  const { profile, updateProfile, canRejoinVenue, calculateVibePercentage } = useAppState();
+function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCreateGroupPurchase, onJoinGroupPurchase, onViewDetails }: VenueBottomSheetProps) {
+  const { profile, updateProfile, updateProfileAsync, canRejoinVenue, calculateVibePercentage } = useAppState();
   const { triggerGlow } = useGlow();
   const { getDynamicPricing } = useMonetization();
 
@@ -493,12 +511,20 @@ function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCr
     });
   };
 
-  const handleJoinLobby = () => {
+  const handleJoinLobby = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
+    if (__DEV__) {
+      console.log('[Discovery] handleJoinLobby called');
+      console.log('[Discovery] venue.id:', venue.id);
+      console.log('[Discovery] venue.name:', venue.name);
+      console.log('[Discovery] Current badges:', profile.badges.map(b => b.venueId));
+    }
+
     const alreadyJoined = profile.badges.some(badge => badge.venueId === venue.id);
-    
+
     if (alreadyJoined) {
+      if (__DEV__) console.log('[Discovery] Already joined, navigating to servers');
       router.push('/(tabs)/servers');
       return;
     }
@@ -528,9 +554,9 @@ function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCr
           ? `You can re-enter ${venue.name}'s public lobby anytime.`
           : `Your Toast spend history meets ${venue.name}'s VIP requirements. Welcome back to the Inner Circle!`,
         [
-          { 
-            text: 'Join', 
-            onPress: () => {
+          {
+            text: 'Join',
+            onPress: async () => {
               const newBadge = {
                 id: `badge-${Date.now()}`,
                 venueId: venue.id,
@@ -538,11 +564,11 @@ function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCr
                 badgeType: 'GUEST' as const,
                 unlockedAt: new Date().toISOString(),
               };
-              
-              updateProfile({
+
+              await updateProfileAsync({
                 badges: [...profile.badges, newBadge],
               });
-              
+
               triggerGlow({ color: 'purple', intensity: 0.6, duration: 1000 });
               router.push('/(tabs)/servers');
             }
@@ -558,28 +584,45 @@ function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCr
         badgeType: 'GUEST' as const,
         unlockedAt: new Date().toISOString(),
       };
-      
+
       const newTransaction = {
         id: `tx-${Date.now()}`,
         venueId: venue.id,
         amount: 0,
         timestamp: new Date().toISOString(),
       };
-      
-      updateProfile({
-        badges: [...profile.badges, newBadge],
-        transactionHistory: [...profile.transactionHistory, newTransaction],
-      });
-      
-      triggerGlow({ color: 'purple', intensity: 0.6, duration: 1000 });
-      
-      Alert.alert(
-        'Joined!',
-        `You've joined ${venue.name}'s public lobby. Check the Servers tab to chat.`,
-        [
-          { text: 'OK', onPress: () => router.push('/(tabs)/servers') },
-        ]
-      );
+
+      if (__DEV__) {
+        console.log('[Discovery] Adding new badge:', newBadge);
+        console.log('[Discovery] Current badges before update:', profile.badges.length);
+      }
+
+      // Wait for profile update to complete before navigating
+      try {
+        await updateProfileAsync({
+          badges: [...profile.badges, newBadge],
+          transactionHistory: [...profile.transactionHistory, newTransaction],
+        });
+
+        if (__DEV__) {
+          console.log('[Discovery] Profile update completed successfully');
+        }
+
+        triggerGlow({ color: 'purple', intensity: 0.6, duration: 1000 });
+
+        Alert.alert(
+          'Joined!',
+          `You've joined ${venue.name}'s public lobby. Check the Servers tab to chat.`,
+          [
+            { text: 'OK', onPress: () => router.push('/(tabs)/servers') },
+          ]
+        );
+      } catch (error) {
+        if (__DEV__) {
+          console.error('[Discovery] Error updating profile:', error);
+        }
+        Alert.alert('Error', 'Failed to join server. Please try again.');
+      }
     }
   };
   return (
@@ -753,6 +796,17 @@ function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCr
             <Text style={styles.joinButtonText}>
               {profile.badges.some(b => b.venueId === venue.id) ? 'Go to Server' : 'Join Public Lobby'}
             </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.detailsButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onViewDetails();
+            }}
+          >
+            <Info size={18} color="#ff0080" />
+            <Text style={styles.detailsButtonText}>View Full Details</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.directionsButton} onPress={handleGetDirections}>
@@ -1044,6 +1098,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: '#000000',
+  },
+  detailsButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 14,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 0, 128, 0.1)',
+    borderWidth: 1,
+    borderColor: '#ff0080',
+    marginBottom: 12,
+    gap: 8,
+  },
+  detailsButtonText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#ff0080',
   },
   directionsButton: {
     paddingVertical: 16,

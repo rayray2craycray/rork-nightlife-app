@@ -86,6 +86,45 @@ export interface DiscoveredVenue {
 }
 
 /**
+ * Detailed venue information from Places Details API
+ */
+export interface VenueDetails {
+  placeId: string;
+  name: string;
+  formattedAddress: string;
+  phoneNumber?: string;
+  internationalPhoneNumber?: string;
+  website?: string;
+  rating?: number;
+  totalRatings?: number;
+  priceLevel?: number;
+  openingHours?: {
+    openNow?: boolean;
+    weekdayText?: string[];
+    periods?: Array<{
+      open: { day: number; time: string };
+      close?: { day: number; time: string };
+    }>;
+  };
+  photos?: Array<{
+    photoReference: string;
+    url: string;
+    width: number;
+    height: number;
+  }>;
+  reviews?: Array<{
+    authorName: string;
+    rating: number;
+    text: string;
+    time: number;
+    relativeTime: string;
+  }>;
+  businessStatus?: string;
+  types?: string[];
+  utcOffset?: number;
+}
+
+/**
  * Request location permissions
  */
 export const requestLocationPermission = async (): Promise<boolean> => {
@@ -325,25 +364,102 @@ export const fetchNearbyVenues = async (
 /**
  * Get venue details from Google Places API
  */
-export const getVenueDetails = async (placeId: string): Promise<any> => {
+export const getVenueDetails = async (placeId: string): Promise<VenueDetails | null> => {
   try {
     if (!GOOGLE_MAPS_API_KEY) {
-      throw new Error('Google Maps API key not configured');
+      console.error('Google Maps API key not configured');
+      return null;
     }
 
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,formatted_phone_number,website,opening_hours,rating,user_ratings_total,price_level,photos,reviews&key=${GOOGLE_MAPS_API_KEY}`;
+    // Request comprehensive venue details
+    const fields = [
+      'place_id',
+      'name',
+      'formatted_address',
+      'formatted_phone_number',
+      'international_phone_number',
+      'website',
+      'rating',
+      'user_ratings_total',
+      'price_level',
+      'opening_hours',
+      'photos',
+      'reviews',
+      'business_status',
+      'types',
+      'utc_offset',
+    ].join(',');
+
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${GOOGLE_MAPS_API_KEY}`;
+
+    if (__DEV__) console.log('[Places] Fetching venue details for:', placeId);
 
     const response = await fetch(url);
     const data = await response.json();
 
     if (data.status === 'OK' && data.result) {
-      return data.result;
-    }
+      const result = data.result;
 
-    throw new Error(`Failed to get venue details: ${data.status}`);
+      // Parse opening hours
+      const openingHours = result.opening_hours
+        ? {
+            openNow: result.opening_hours.open_now,
+            weekdayText: result.opening_hours.weekday_text,
+            periods: result.opening_hours.periods,
+          }
+        : undefined;
+
+      // Parse photos
+      const photos = result.photos
+        ? result.photos.slice(0, 10).map((photo: any) => ({
+            photoReference: photo.photo_reference,
+            url: getPhotoUrl(photo.photo_reference, 800),
+            width: photo.width,
+            height: photo.height,
+          }))
+        : undefined;
+
+      // Parse reviews
+      const reviews = result.reviews
+        ? result.reviews.slice(0, 5).map((review: any) => ({
+            authorName: review.author_name,
+            rating: review.rating,
+            text: review.text,
+            time: review.time,
+            relativeTime: review.relative_time_description,
+          }))
+        : undefined;
+
+      const venueDetails: VenueDetails = {
+        placeId: result.place_id,
+        name: result.name,
+        formattedAddress: result.formatted_address,
+        phoneNumber: result.formatted_phone_number,
+        internationalPhoneNumber: result.international_phone_number,
+        website: result.website,
+        rating: result.rating,
+        totalRatings: result.user_ratings_total,
+        priceLevel: result.price_level,
+        openingHours,
+        photos,
+        reviews,
+        businessStatus: result.business_status,
+        types: result.types,
+        utcOffset: result.utc_offset,
+      };
+
+      if (__DEV__) console.log('[Places] Venue details fetched successfully');
+      return venueDetails;
+    } else if (data.status === 'REQUEST_DENIED') {
+      console.error('Google Places API request denied:', data.error_message);
+      throw new Error(`Google Places API error: ${data.error_message}`);
+    } else {
+      console.error('Failed to get venue details:', data.status);
+      return null;
+    }
   } catch (error) {
     console.error('Error getting venue details:', error);
-    throw error;
+    return null;
   }
 };
 

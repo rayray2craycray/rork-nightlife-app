@@ -1,7 +1,7 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserProfile, UserRole, VibeCheckVote, VenueVibeData, UserVibeCooldown, VibeEnergyLevel, WaitTimeRange } from '@/types';
 import { mockServers } from '@/mocks/servers';
 import { VIBE_CHECK } from '@/constants/app';
@@ -40,6 +40,7 @@ export interface LinkedCard {
 }
 
 export const [AppStateProvider, useAppState] = createContextHook(() => {
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [vibeCooldowns, setVibeCooldowns] = useState<UserVibeCooldown[]>([]);
   const [venueVibeData, setVenueVibeData] = useState<VenueVibeData[]>([]);
@@ -122,16 +123,30 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (updates: Partial<UserProfile>) => {
-      const updated = { ...profile, ...updates };
+      if (__DEV__) {
+        console.log('[AppState] updateProfile called with:', updates);
+      }
+      // Read current profile from storage to avoid stale closure issues
+      const currentProfile = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE);
+      const profileData = currentProfile ? JSON.parse(currentProfile) : defaultProfile;
+      const updated = { ...profileData, ...updates };
       await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(updated));
+      if (__DEV__) {
+        console.log('[AppState] Profile updated, badges:', updated.badges.map((b: any) => b.venueId));
+      }
       return updated;
     },
     onSuccess: (data) => {
+      if (__DEV__) {
+        console.log('[AppState] updateProfile onSuccess, setting profile state');
+      }
       setProfile(data);
+      // Invalidate profile query to ensure React Query cache is updated
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
   });
 
-  const { mutate: updateProfile } = updateProfileMutation;
+  const { mutate: updateProfile, mutateAsync: updateProfileAsync } = updateProfileMutation;
 
   const toggleIncognito = useCallback(() => {
     const newIncognito = !profile.isIncognito;
@@ -150,9 +165,39 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
   }, [profile.followedPerformers]);
 
   const joinedServers = useMemo(() => {
-    return mockServers.filter(server => 
+    // First, try to match with mock servers
+    const matchedMockServers = mockServers.filter(server =>
       profile.badges.some(badge => badge.venueId === server.venueId)
     );
+
+    // For badges that don't match mock servers, create dynamic server entries
+    const dynamicServers = profile.badges
+      .filter(badge => !mockServers.some(server => server.venueId === badge.venueId))
+      .map(badge => ({
+        venueId: badge.venueId,
+        venueName: badge.venueName,
+        memberCount: 1, // Default value
+        lastActivity: badge.unlockedAt,
+        channels: [
+          {
+            id: `${badge.venueId}-general`,
+            name: 'general',
+            type: 'PUBLIC_LOBBY' as const,
+            isLocked: false,
+            unreadCount: 0,
+          }
+        ]
+      }));
+
+    const allServers = [...matchedMockServers, ...dynamicServers];
+
+    if (__DEV__) {
+      console.log('[AppState] Joined servers calculated:', allServers.length);
+      console.log('[AppState] Mock servers matched:', matchedMockServers.length);
+      console.log('[AppState] Dynamic servers created:', dynamicServers.length);
+      console.log('[AppState] Profile badges:', profile.badges.map(b => b.venueId));
+    }
+    return allServers;
   }, [profile.badges]);
 
   const setUserRole = useCallback((role: UserRole) => {
@@ -364,6 +409,7 @@ export const [AppStateProvider, useAppState] = createContextHook(() => {
     setUserRole,
     updateProfileDetails,
     updateProfile,
+    updateProfileAsync,
     leaveServer,
     canRejoinVenue,
     canVoteVibeCheck,
