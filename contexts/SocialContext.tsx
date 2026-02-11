@@ -797,6 +797,7 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     // Challenge features
     activeChallenges,
     userChallengeProgress,
+    isChallengesLoading: activeChallengesQuery.isLoading,
     availableRewards,
     joinChallenge,
     updateChallengeProgress,

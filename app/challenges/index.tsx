@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ export default function ChallengesScreen() {
     userChallengeProgress,
     joinChallenge,
     getChallengeProgressForChallenge,
+    isChallengesLoading,
   } = useSocial();
 
   const [filter, setFilter] = useState<'all' | 'joined' | 'available'>('all');
@@ -29,14 +31,19 @@ export default function ChallengesScreen() {
     router.back();
   };
 
-  const joinedChallengeIds = userChallengeProgress.map((p) => p.challengeId);
+  const joinedChallengeIds = useMemo(
+    () => userChallengeProgress.map((p) => p.challengeId),
+    [userChallengeProgress]
+  );
 
-  const filteredChallenges = activeChallenges.filter((challenge) => {
-    const isJoined = joinedChallengeIds.includes(challenge.id);
-    if (filter === 'joined') return isJoined;
-    if (filter === 'available') return !isJoined;
-    return true;
-  });
+  const filteredChallenges = useMemo(() => {
+    return activeChallenges.filter((challenge) => {
+      const isJoined = joinedChallengeIds.includes(challenge.id);
+      if (filter === 'joined') return isJoined;
+      if (filter === 'available') return !isJoined;
+      return true;
+    });
+  }, [activeChallenges, joinedChallengeIds, filter]);
 
   const handleChallengePress = (challengeId: string) => {
     const progress = getChallengeProgressForChallenge(challengeId);
@@ -181,7 +188,12 @@ export default function ChallengesScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {filteredChallenges.length === 0 ? (
+        {isChallengesLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#ff0080" />
+            <Text style={styles.loadingText}>Loading challenges...</Text>
+          </View>
+        ) : filteredChallenges.length === 0 ? (
           <View style={styles.emptyState}>
             <Trophy size={48} color="#666" />
             <Text style={styles.emptyStateText}>No challenges found</Text>
@@ -303,6 +315,17 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 100,
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#999',
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',

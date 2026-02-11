@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Users, Crown, TrendingUp } from 'lucide-react-native';
 import { Crew } from '@/types';
@@ -28,7 +29,11 @@ export function CrewCard({ crew, onPress, isOwner = false }: CrewCardProps) {
         {/* Header with Image */}
         <View style={styles.header}>
           {crew.imageUrl ? (
-            <Image source={{ uri: crew.imageUrl }} style={styles.crewImage} />
+            <Image
+              source={{ uri: crew.imageUrl }}
+              style={styles.crewImage}
+              contentFit="cover"
+            />
           ) : (
             <View style={styles.placeholderImage}>
               <Users size={32} color="#fff" />

@@ -28,6 +28,7 @@ import UserProfileModal from '@/components/UserProfileModal';
 import { GroupPurchaseCard } from '@/components/GroupPurchaseCard';
 import { GroupPurchaseModal } from '@/components/modals/GroupPurchaseModal';
 import VenueDetailsModal from '@/components/VenueDetailsModal';
+import { PricingBadge } from '@/components/PricingBadge';
 import { useNearbyVenues } from '@/hooks/useNearbyVenues';
 import { DiscoveredVenue } from '@/services/places.service';
 
@@ -47,6 +48,7 @@ export default function DiscoveryScreen() {
   const { selectedVenueId, setSelectedVenueId } = useDiscovery();
   const { friendLocations, getFriendsByVenue, locationSettings, toggleGhostMode, getLargestFriendCluster, getVenueSocialProofData } = useSocial();
   const { openGroupPurchases, joinGroupPurchase, createGroupPurchase } = useGrowth();
+  const { getDynamicPricing } = useMonetization();
   const [locationPermission, setLocationPermission] = useState(false);
   const [showFriendDrawer, setShowFriendDrawer] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -224,6 +226,7 @@ export default function DiscoveryScreen() {
       >
         {nearbyVenues.map(venue => {
           const venueFriends = friendsByVenue[venue.id] || [];
+          const venuePricing = getDynamicPricing(venue.id);
           return (
             <Marker
               key={venue.id}
@@ -236,12 +239,19 @@ export default function DiscoveryScreen() {
                 setSelectedVenueId(venue.id);
               }}
             >
-              <View style={[styles.markerContainer, venue.isOpen && styles.markerLive]}>
-                <Text style={styles.markerText}>🎵</Text>
-                {venue.isOpen && <View style={styles.pulseDot} />}
-                {venueFriends.length > 0 && (
-                  <View style={styles.friendCountBadge}>
-                    <Text style={styles.friendCountText}>{venueFriends.length}</Text>
+              <View style={styles.markerWrapper}>
+                <View style={[styles.markerContainer, venue.isOpen && styles.markerLive]}>
+                  <Text style={styles.markerText}>🎵</Text>
+                  {venue.isOpen && <View style={styles.pulseDot} />}
+                  {venueFriends.length > 0 && (
+                    <View style={styles.friendCountBadge}>
+                      <Text style={styles.friendCountText}>{venueFriends.length}</Text>
+                    </View>
+                  )}
+                </View>
+                {venuePricing && (
+                  <View style={styles.markerPricingBadge}>
+                    <PricingBadge pricing={venuePricing} size="small" />
                   </View>
                 )}
               </View>
@@ -693,19 +703,13 @@ function VenueBottomSheet({ venue, friendsAtVenue, groupPurchases, onClose, onCr
           {/* Dynamic Pricing Badge */}
           {dynamicPricing && (
             <View style={styles.pricingBadgeContainer}>
-              <LinearGradient
-                colors={['rgba(0, 255, 128, 0.2)', 'rgba(0, 255, 128, 0.05)']}
-                style={styles.pricingBadge}
-              >
-                <Text style={styles.pricingBadgeEmoji}>💰</Text>
-                <View style={styles.pricingBadgeContent}>
-                  <Text style={styles.pricingBadgeTitle}>{dynamicPricing.discountPercentage}% OFF</Text>
-                  <Text style={styles.pricingBadgeDescription}>{dynamicPricing.description}</Text>
-                  <Text style={styles.pricingBadgeExpiry}>
-                    Ends {new Date(dynamicPricing.validUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                </View>
-              </LinearGradient>
+              <PricingBadge pricing={dynamicPricing} size="large" />
+              <View style={styles.pricingDetails}>
+                <Text style={styles.pricingDescription}>{dynamicPricing.description}</Text>
+                <Text style={styles.pricingExpiry}>
+                  Ends {new Date(dynamicPricing.validUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -926,6 +930,10 @@ const styles = StyleSheet.create({
     color: '#ff0080',
     fontWeight: '600' as const,
   },
+  markerWrapper: {
+    alignItems: 'center' as const,
+    gap: 4,
+  },
   markerContainer: {
     width: 44,
     height: 44,
@@ -950,6 +958,9 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: '#a855f7',
+  },
+  markerPricingBadge: {
+    marginTop: 2,
   },
   bottomSheet: {
     position: 'absolute' as const,
@@ -1493,33 +1504,18 @@ const styles = StyleSheet.create({
   // Dynamic Pricing Styles
   pricingBadgeContainer: {
     marginBottom: 16,
-  },
-  pricingBadge: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    padding: 16,
-    borderRadius: 12,
     gap: 12,
   },
-  pricingBadgeEmoji: {
-    fontSize: 32,
+  pricingDetails: {
+    paddingLeft: 12,
   },
-  pricingBadgeContent: {
-    flex: 1,
-  },
-  pricingBadgeTitle: {
-    fontSize: 18,
-    fontWeight: '800' as const,
-    color: '#00ff80',
-    marginBottom: 4,
-  },
-  pricingBadgeDescription: {
-    fontSize: 13,
+  pricingDescription: {
+    fontSize: 14,
     color: '#ccc',
     marginBottom: 4,
   },
-  pricingBadgeExpiry: {
-    fontSize: 11,
+  pricingExpiry: {
+    fontSize: 12,
     fontWeight: '600' as const,
     color: '#999',
   },

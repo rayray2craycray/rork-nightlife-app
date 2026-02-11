@@ -903,6 +903,22 @@ export const contentApi = {
   },
 };
 
+// Helper function to generate description from reason
+function getDescriptionForReason(reason: string, discountPercentage: number): string {
+  const descriptions: Record<string, string> = {
+    'SLOW_HOUR': 'Fewer people out right now - perfect time to visit!',
+    'EARLY_BIRD': 'Arrive early and save big!',
+    'APP_EXCLUSIVE': 'Special discount for app users only',
+    'HAPPY_HOUR': 'Happy hour special pricing',
+    'FLASH_SALE': `Flash sale! ${discountPercentage}% off for limited time`,
+    'HIGH_DEMAND': 'High demand pricing',
+    'PEAK_HOUR': 'Peak hour pricing',
+    'SPECIAL_EVENT': 'Special event pricing',
+    'DEFAULT': 'Special pricing available',
+  };
+  return descriptions[reason] || descriptions['DEFAULT'];
+}
+
 // Phase 5: Monetization - Dynamic Pricing
 export const pricingApi = {
   // Dynamic Pricing
@@ -987,9 +1003,38 @@ export const pricingApi = {
 
   // Get all active pricing across all venues
   getAllActivePricing: async (): Promise<ApiResponse<DynamicPricing[]>> => {
-    // This would need a new endpoint, for now return empty array
-    return Promise.resolve({ success: true, data: [] });
+    // For now, fetch pricing for known venue IDs
+    // TODO: Create a backend endpoint to fetch all active pricing
+    const venueIds = ['venue-1', 'venue-2', 'venue-3', 'venue-4', 'venue-5'];
+    const pricingPromises = venueIds.map(async (venueId) => {
+      try {
+        const response = await pricingApi.getCurrentPricing(venueId);
+        if (response.success && response.data) {
+          // Transform backend data to match frontend type
+          const data = response.data as any;
+          return {
+            id: data._id || data.id,
+            venueId: data.venueId,
+            basePrice: data.basePrice,
+            currentPrice: data.currentPrice,
+            discountPercentage: data.discountPercentage,
+            validUntil: data.validUntil,
+            reason: data.reason,
+            description: getDescriptionForReason(data.reason, data.discountPercentage),
+          } as DynamicPricing;
+        }
+        return null;
+      } catch (error) {
+        return null;
+      }
+    });
+
+    const results = await Promise.all(pricingPromises);
+    const pricing = results.filter((p): p is DynamicPricing => p !== null);
+
+    return { success: true, data: pricing };
   },
+};
 };
 
 // Phase 6: Retention - Streaks & Memories

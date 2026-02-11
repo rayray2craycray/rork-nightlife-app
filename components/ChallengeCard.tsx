@@ -11,7 +11,7 @@ interface ChallengeCardProps {
   onPress: () => void;
 }
 
-export function ChallengeCard({ challenge, progress, onPress }: ChallengeCardProps) {
+const ChallengeCardComponent = ({ challenge, progress, onPress }: ChallengeCardProps) => {
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
@@ -131,7 +131,9 @@ export function ChallengeCard({ challenge, progress, onPress }: ChallengeCardPro
       </LinearGradient>
     </TouchableOpacity>
   );
-}
+};
+
+export const ChallengeCard = React.memo(ChallengeCardComponent);
 
 const styles = StyleSheet.create({
   container: {

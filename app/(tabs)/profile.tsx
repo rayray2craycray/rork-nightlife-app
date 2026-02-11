@@ -32,6 +32,9 @@ import * as Location from 'expo-location';
 import UserProfileModal from '@/components/UserProfileModal';
 import { ReferralCard } from '@/components/ReferralCard';
 import { ReferralRewardModal } from '@/components/modals/ReferralRewardModal';
+import { StreakBadge } from '@/components/StreakBadge';
+import { MemoryCard } from '@/components/MemoryCard';
+import { CrewCard } from '@/components/CrewCard';
 
 type SocialTab = 'FOLLOWERS' | 'FOLLOWING';
 
@@ -767,26 +770,15 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Active Streaks 🔥</Text>
             <View style={styles.streaksContainer}>
               {activeStreaks.map((streak) => (
-                <View key={streak.id} style={styles.streakCard}>
-                  <Text style={styles.streakEmoji}>
-                    {streak.type === 'WEEKEND_WARRIOR' ? '🎉' :
-                     streak.type === 'VENUE_LOYALTY' ? '🏆' :
-                     streak.type === 'SOCIAL_BUTTERFLY' ? '🦋' : '🎪'}
-                  </Text>
-                  <View style={styles.streakInfo}>
-                    <Text style={styles.streakTitle}>
-                      {streak.type.replace(/_/g, ' ')}
-                    </Text>
-                    <Text style={styles.streakCount}>
-                      {streak.currentStreak} {streak.currentStreak === 1 ? 'day' : 'days'}
-                    </Text>
-                  </View>
-                  <View style={styles.streakBadge}>
-                    <Text style={styles.streakBadgeText}>
-                      Best: {streak.longestStreak}
-                    </Text>
-                  </View>
-                </View>
+                <StreakBadge
+                  key={streak.id}
+                  streak={streak}
+                  size="large"
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    // Navigate to streak details or claim rewards
+                  }}
+                />
               ))}
             </View>
           </View>
@@ -805,25 +797,15 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             {userCrews.slice(0, 3).map((crew) => (
-              <TouchableOpacity
+              <CrewCard
                 key={crew.id}
-                style={styles.crewItem}
+                crew={crew}
+                isOwner={crew.ownerId === user?.id}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   router.push(`/crews/${crew.id}`);
                 }}
-              >
-                <View style={styles.crewIcon}>
-                  <Users size={20} color="#a855f7" />
-                </View>
-                <View style={styles.crewInfo}>
-                  <Text style={styles.crewName}>{crew.name}</Text>
-                  <Text style={styles.crewMembers}>
-                    {crew.memberIds.length} members • {crew.stats.totalNightsOut} nights out
-                  </Text>
-                </View>
-                <ChevronRight size={20} color="#999" />
-              </TouchableOpacity>
+              />
             ))}
           </View>
         )}
@@ -869,28 +851,17 @@ export default function ProfileScreen() {
             <>
               <View style={styles.memoriesGrid}>
                 {getTimeline(6).map((memory) => (
-                  <TouchableOpacity
-                    key={memory.id}
-                    style={styles.memoryItem}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      // Navigate to memory detail
-                    }}
-                  >
-                    <Image
-                      source={{ uri: memory.content.imageUrl }}
-                      style={styles.memoryImage}
-                      contentFit="cover"
+                  <View key={memory.id} style={styles.memoryCardWrapper}>
+                    <MemoryCard
+                      memory={memory}
+                      size="small"
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        // Navigate to memory detail or full timeline
+                        router.push('/memories/timeline');
+                      }}
                     />
-                    <LinearGradient
-                      colors={['transparent', 'rgba(0,0,0,0.7)']}
-                      style={styles.memoryOverlay}
-                    >
-                      <Text style={styles.memoryVenue} numberOfLines={1}>
-                        {memory.venueName}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  </View>
                 ))}
               </View>
               {memories.length > 6 && (
@@ -898,7 +869,7 @@ export default function ProfileScreen() {
                   style={styles.viewAllMemoriesButton}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    // Navigate to full memories timeline
+                    router.push('/memories/timeline');
                   }}
                 >
                   <Text style={styles.viewAllMemoriesText}>View All Memories</Text>
@@ -2082,43 +2053,6 @@ const styles = StyleSheet.create({
   streaksContainer: {
     gap: 12,
   },
-  streakCard: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#1a1a2e',
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  streakEmoji: {
-    fontSize: 32,
-  },
-  streakInfo: {
-    flex: 1,
-  },
-  streakTitle: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: '#fff',
-    textTransform: 'capitalize' as const,
-    marginBottom: 4,
-  },
-  streakCount: {
-    fontSize: 18,
-    fontWeight: '800' as const,
-    color: '#ffa64d',
-  },
-  streakBadge: {
-    backgroundColor: 'rgba(255, 166, 77, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  streakBadgeText: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#ffa64d',
-  },
   // Crews Styles
   sectionHeader: {
     flexDirection: 'row' as const,
@@ -2295,28 +2229,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
   },
-  memoryItem: {
+  memoryCardWrapper: {
     width: '31.5%',
-    aspectRatio: 1,
-    borderRadius: 12,
-    overflow: 'hidden' as const,
-    backgroundColor: '#1a1a2e',
-  },
-  memoryImage: {
-    width: '100%',
-    height: '100%',
-  },
-  memoryOverlay: {
-    position: 'absolute' as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 8,
-  },
-  memoryVenue: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#fff',
   },
   viewAllMemoriesButton: {
     flexDirection: 'row' as const,

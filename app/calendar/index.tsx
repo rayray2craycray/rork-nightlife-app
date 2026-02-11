@@ -5,245 +5,314 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Calendar as CalendarIcon, Filter, MapPin, Users, DollarSign } from 'lucide-react-native';
-import { useContent } from '@/contexts/ContentContext';
-import { CalendarFilter, Event } from '@/types';
+import { ArrowLeft, Calendar as CalendarIcon, Filter, Music, DollarSign } from 'lucide-react-native';
+import { useEvents } from '@/contexts/EventsContext';
+import { EventCard } from '@/components/EventCard';
 import * as Haptics from 'expo-haptics';
-import { mockVenues } from '@/mocks/venues';
+
+type TimeFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_WEEKEND' | 'THIS_MONTH';
 
 export default function CalendarScreen() {
-  const { getFilteredEvents, performers } = useContent();
+  const { events, upcomingEvents, isLoading } = useEvents();
   const [showFilters, setShowFilters] = useState(false);
-  const [filter, setFilter] = useState<CalendarFilter>({
-    dateRange: {
-      start: new Date().toISOString().split('T')[0],
-      end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days
-    },
-  });
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL');
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [priceFilter, setPriceFilter] = useState<'ALL' | 'FREE' | 'PAID'>('ALL');
+
+  const allGenres = useMemo(() => {
+    const genres = new Set<string>();
+    events.forEach(event => {
+      if (event.genres) {
+        event.genres.forEach(genre => genres.add(genre));
+      }
+    });
+    return Array.from(genres).sort();
+  }, [events]);
 
   const filteredEvents = useMemo(() => {
-    return getFilteredEvents(filter);
-  }, [filter, getFilteredEvents]);
+    let filtered = [...events];
 
-  const handleClose = () => {
+    // Time filter
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(today);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+
+    switch (timeFilter) {
+      case 'TODAY':
+        filtered = filtered.filter(event => {
+          const eventDate = new Date(event.date);
+          return eventDate >= today && eventDate < endOfToday;
+        });
+        break;
+      case 'THIS_WEEK':
+        const endOfWeek = new Date(today);
+        endOfWeek.setDate(endOfWeek.getDate() + 7);
+        filtered = filtered.filter(event => {
+          const eventDate = new Date(event.date);
+          return eventDate >= today && eventDate < endOfWeek;
+        });
+        break;
+      case 'THIS_WEEKEND':
+        const friday = new Date(today);
+        const daysUntilFriday = (5 - friday.getDay() + 7) % 7;
+        friday.setDate(friday.getDate() + daysUntilFriday);
+        const monday = new Date(friday);
+        monday.setDate(monday.getDate() + 3);
+        filtered = filtered.filter(event => {
+          const eventDate = new Date(event.date);
+          return eventDate >= friday && eventDate < monday;
+        });
+        break;
+      case 'THIS_MONTH':
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        filtered = filtered.filter(event => {
+          const eventDate = new Date(event.date);
+          return eventDate >= today && eventDate < endOfMonth;
+        });
+        break;
+    }
+
+    // Genre filter
+    if (selectedGenres.length > 0) {
+      filtered = filtered.filter(event =>
+        event.genres && event.genres.some(genre => selectedGenres.includes(genre))
+      );
+    }
+
+    // Price filter
+    if (priceFilter === 'FREE') {
+      filtered = filtered.filter(event => !event.ticketTiers || event.ticketTiers.length === 0);
+    } else if (priceFilter === 'PAID') {
+      filtered = filtered.filter(event => event.ticketTiers && event.ticketTiers.length > 0);
+    }
+
+    // Sort by date
+    filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return filtered;
+  }, [events, timeFilter, selectedGenres, priceFilter]);
+
+  const toggleGenre = (genre: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.back();
+    setSelectedGenres(prev =>
+      prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
+    );
   };
 
-  const toggleGenreFilter = (genre: string) => {
-    const currentGenres = filter.genres || [];
-    const newGenres = currentGenres.includes(genre)
-      ? currentGenres.filter(g => g !== genre)
-      : [...currentGenres, genre];
-
-    setFilter({
-      ...filter,
-      genres: newGenres.length > 0 ? newGenres : undefined,
-    });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const clearFilters = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setTimeFilter('ALL');
+    setSelectedGenres([]);
+    setPriceFilter('ALL');
   };
 
-  const allGenres = ['House', 'Techno', 'Hip-Hop', 'R&B', 'Latin', 'EDM'];
   const activeFiltersCount = [
-    filter.venueIds?.length || 0,
-    filter.performerIds?.length || 0,
-    filter.genres?.length || 0,
-    filter.priceRange ? 1 : 0,
+    timeFilter !== 'ALL' ? 1 : 0,
+    selectedGenres.length,
+    priceFilter !== 'ALL' ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
+
+  const timeFilters: { type: TimeFilter; label: string }[] = [
+    { type: 'ALL', label: 'All' },
+    { type: 'TODAY', label: 'Today' },
+    { type: 'THIS_WEEK', label: 'This Week' },
+    { type: 'THIS_WEEKEND', label: 'Weekend' },
+    { type: 'THIS_MONTH', label: 'This Month' },
+  ];
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <LinearGradient
-          colors={['rgba(10,10,15,0.95)', 'transparent']}
-          style={styles.headerGradient}
-        />
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.headerTitle}>Event Calendar</Text>
-            <Text style={styles.headerSubtitle}>
-              {filteredEvents.length} upcoming events
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <X size={24} color="#fff" />
+      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.gradient}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
+          >
+            <ArrowLeft size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Events Calendar</Text>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowFilters(!showFilters);
+            }}
+          >
+            <Filter size={20} color="#ff0080" />
+            {activeFiltersCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Filter Button */}
-      <View style={styles.filterButtonContainer}>
-        <TouchableOpacity
-          style={[styles.filterButton, activeFiltersCount > 0 && styles.filterButtonActive]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            setShowFilters(!showFilters);
-          }}
+        {/* Time Filters */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.timeFilterScroll}
+          contentContainerStyle={styles.timeFilterContent}
         >
-          <Filter size={18} color={activeFiltersCount > 0 ? '#000' : '#fff'} />
-          <Text style={[styles.filterButtonText, activeFiltersCount > 0 && styles.filterButtonTextActive]}>
-            Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Filters Panel */}
-      {showFilters && (
-        <View style={styles.filtersPanel}>
-          <Text style={styles.filtersSectionTitle}>Genres</Text>
-          <View style={styles.genreFilters}>
-            {allGenres.map((genre) => (
+          {timeFilters.map(filter => {
+            const isSelected = timeFilter === filter.type;
+            return (
               <TouchableOpacity
-                key={genre}
-                style={[
-                  styles.genreChip,
-                  filter.genres?.includes(genre) && styles.genreChipActive,
-                ]}
-                onPress={() => toggleGenreFilter(genre)}
+                key={filter.type}
+                style={[styles.timeFilterChip, isSelected && styles.timeFilterChipActive]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setTimeFilter(filter.type);
+                }}
               >
-                <Text
-                  style={[
-                    styles.genreChipText,
-                    filter.genres?.includes(genre) && styles.genreChipTextActive,
-                  ]}
-                >
-                  {genre}
+                <Text style={[styles.timeFilterLabel, isSelected && styles.timeFilterLabelActive]}>
+                  {filter.label}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            );
+          })}
+        </ScrollView>
 
-          {activeFiltersCount > 0 && (
-            <TouchableOpacity
-              style={styles.clearFiltersButton}
-              onPress={() => {
-                setFilter({
-                  dateRange: filter.dateRange,
-                });
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              }}
+        {/* Filters Panel */}
+        {showFilters && (
+          <View style={styles.filtersPanel}>
+            <LinearGradient
+              colors={['#1a1a2e', '#16213e']}
+              style={styles.filtersPanelGradient}
             >
-              <Text style={styles.clearFiltersButtonText}>Clear All Filters</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {/* Events List */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {filteredEvents.length === 0 ? (
-          <View style={styles.emptyState}>
-            <CalendarIcon size={48} color="#666" />
-            <Text style={styles.emptyStateText}>No events found</Text>
-            <Text style={styles.emptyStateSubtext}>
-              Try adjusting your filters or check back later
-            </Text>
-          </View>
-        ) : (
-          filteredEvents.map((event) => (
-            <EventCalendarCard key={event.id} event={event} />
-          ))
-        )}
-      </ScrollView>
-    </View>
-  );
-}
-
-interface EventCalendarCardProps {
-  event: Event;
-}
-
-function EventCalendarCard({ event }: EventCalendarCardProps) {
-  const venue = mockVenues.find(v => v.id === event.venueId);
-  const { performers } = useContent();
-
-  const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/events/${event.id}`);
-  };
-
-  const eventDate = new Date(event.date);
-  const dateOptions: Intl.DateTimeFormatOptions = {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  };
-  const formattedDate = eventDate.toLocaleDateString('en-US', dateOptions);
-
-  const minPrice = Math.min(...event.ticketTiers.map(t => t.price));
-  const maxPrice = Math.max(...event.ticketTiers.map(t => t.price));
-
-  const performerNames = event.performerIds
-    .map(pid => performers.find(p => p.id === pid)?.stageName || 'Unknown')
-    .slice(0, 2)
-    .join(', ');
-
-  return (
-    <TouchableOpacity style={styles.eventCard} onPress={handlePress} activeOpacity={0.7}>
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.eventGradient}
-      >
-        {/* Event Image */}
-        <Image source={{ uri: event.imageUrl }} style={styles.eventImage} />
-
-        {/* Date Badge */}
-        <View style={styles.dateBadge}>
-          <Text style={styles.dateBadgeMonth}>{formattedDate.split(' ')[0]}</Text>
-          <Text style={styles.dateBadgeDay}>{formattedDate.split(' ')[2]}</Text>
-        </View>
-
-        {/* Event Info */}
-        <View style={styles.eventInfo}>
-          <Text style={styles.eventTitle} numberOfLines={1}>
-            {event.title}
-          </Text>
-
-          {venue && (
-            <View style={styles.eventMetaRow}>
-              <MapPin size={14} color="#999" />
-              <Text style={styles.eventMetaText} numberOfLines={1}>
-                {venue.name}
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.eventMetaRow}>
-            <Users size={14} color="#999" />
-            <Text style={styles.eventMetaText} numberOfLines={1}>
-              {performerNames}
-            </Text>
-          </View>
-
-          <View style={styles.eventMetaRow}>
-            <DollarSign size={14} color="#999" />
-            <Text style={styles.eventMetaText}>
-              {minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`}
-            </Text>
-          </View>
-
-          {/* Genres */}
-          <View style={styles.eventGenres}>
-            {event.genres.slice(0, 3).map((genre, index) => (
-              <View key={index} style={styles.eventGenreTag}>
-                <Text style={styles.eventGenreText}>{genre}</Text>
+              <View style={styles.filtersPanelHeader}>
+                <Text style={styles.filtersPanelTitle}>Filters</Text>
+                {activeFiltersCount > 0 && (
+                  <TouchableOpacity onPress={clearFilters}>
+                    <Text style={styles.clearFiltersText}>Clear All</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            ))}
+
+              <View style={styles.filterSection}>
+                <View style={styles.filterSectionHeader}>
+                  <DollarSign size={16} color="#ff0080" />
+                  <Text style={styles.filterSectionTitle}>Price</Text>
+                </View>
+                <View style={styles.filterOptions}>
+                  {(['ALL', 'FREE', 'PAID'] as const).map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.filterOption,
+                        priceFilter === option && styles.filterOptionActive,
+                      ]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setPriceFilter(option);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          priceFilter === option && styles.filterOptionTextActive,
+                        ]}
+                      >
+                        {option === 'ALL' ? 'All' : option === 'FREE' ? 'Free' : 'Paid'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {allGenres.length > 0 && (
+                <View style={styles.filterSection}>
+                  <View style={styles.filterSectionHeader}>
+                    <Music size={16} color="#ff0080" />
+                    <Text style={styles.filterSectionTitle}>Genres</Text>
+                  </View>
+                  <View style={styles.genreOptions}>
+                    {allGenres.map(genre => {
+                      const isSelected = selectedGenres.includes(genre);
+                      return (
+                        <TouchableOpacity
+                          key={genre}
+                          style={[
+                            styles.genreChip,
+                            isSelected && styles.genreChipActive,
+                          ]}
+                          onPress={() => toggleGenre(genre)}
+                        >
+                          <Text
+                            style={[
+                              styles.genreChipText,
+                              isSelected && styles.genreChipTextActive,
+                            ]}
+                          >
+                            {genre}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </LinearGradient>
           </View>
-        </View>
+        )}
+
+        {/* Events List */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.resultsHeader}>
+            <Text style={styles.resultsCount}>
+              {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
+            </Text>
+          </View>
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#ff0080" />
+              <Text style={styles.loadingText}>Loading events...</Text>
+            </View>
+          ) : filteredEvents.length === 0 ? (
+            <View style={styles.emptyState}>
+              <CalendarIcon size={64} color="#666" />
+              <Text style={styles.emptyTitle}>No events found</Text>
+              <Text style={styles.emptySubtitle}>
+                {activeFiltersCount > 0
+                  ? 'Try adjusting your filters'
+                  : 'Check back soon for upcoming events'}
+              </Text>
+              {activeFiltersCount > 0 && (
+                <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
+                  <Text style={styles.clearButtonText}>Clear Filters</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            filteredEvents.map(event => (
+              <EventCard
+                key={event.id}
+                event={event}
+                size="large"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  router.push(`/events/${event.id}`);
+                }}
+              />
+            ))
+          )}
+        </ScrollView>
       </LinearGradient>
-    </TouchableOpacity>
+    </View>
   );
 }
 
