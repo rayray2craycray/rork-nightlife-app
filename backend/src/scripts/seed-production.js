@@ -100,7 +100,7 @@ async function seedEvents(venues) {
       ['Salsa', 'Bachata', 'Reggaeton'],
       ['EDM', 'Trance', 'Dubstep'],
     ][index],
-    imageUrl: `https://images.unsplash.com/photo-${1470229722-0121b8b6de50 + index}`,
+    imageUrl: `https://images.unsplash.com/photo-${1534687182866 + index}-unsplash?w=800`,
     ticketTiers: [
       {
         name: 'Early Bird',
