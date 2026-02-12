@@ -47,7 +47,7 @@ async function seedUsers() {
       displayName: 'Venue Owner',
       password: 'VenueOwner123!',
       isEmailVerified: true,
-      role: 'venue_owner',
+      role: 'USER',
     },
   ];
 
