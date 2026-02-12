@@ -210,11 +210,11 @@ async function seedChallenges(venues) {
       title: 'Social Butterfly',
       description: 'Visit 5 different venues this month',
       requirements: {
-        type: 'UNIQUE_VENUES',
+        type: 'CUSTOM',
         target: 5,
       },
       reward: {
-        type: 'FREE_DRINK',
+        type: 'FREE_ITEM',
         value: 1,
         description: 'Free drink at your next visit',
       },
