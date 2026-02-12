@@ -275,6 +275,90 @@ async function seedDynamicPricing(venues) {
   }
 }
 
+// Seed venues
+async function seedVenues() {
+  console.log('\n🏢 Seeding venues...');
+
+  const venuesData = [
+    {
+      name: 'The Electric Lounge',
+      description: 'Premium nightclub with state-of-the-art sound system',
+      address: '123 Main St, Los Angeles, CA 90012',
+      location: {
+        type: 'Point',
+        coordinates: [-118.2437, 34.0522] // LA coordinates
+      },
+      phone: '+1-555-0101',
+      website: 'https://electriclounge.example.com',
+      category: 'Nightclub',
+      images: ['https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800'],
+      capacity: 500,
+      vibes: ['Energetic', 'Modern', 'Upscale'],
+      musicGenres: ['EDM', 'House', 'Techno'],
+      amenities: ['Bar', 'VIP Section', 'Coat Check', 'Outdoor Patio'],
+      priceRange: '$$$',
+      isActive: true,
+      hours: {
+        monday: { open: '21:00', close: '02:00' },
+        friday: { open: '22:00', close: '03:00' },
+        saturday: { open: '22:00', close: '03:00' }
+      }
+    },
+    {
+      name: 'Sunset Rooftop Bar',
+      description: 'Stunning rooftop bar with panoramic city views',
+      address: '456 Sunset Blvd, Los Angeles, CA 90028',
+      location: {
+        type: 'Point',
+        coordinates: [-118.3467, 34.0983]
+      },
+      phone: '+1-555-0102',
+      category: 'Bar',
+      images: ['https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=800'],
+      capacity: 150,
+      vibes: ['Chill', 'Romantic', 'Scenic'],
+      musicGenres: ['Jazz', 'Lounge', 'Acoustic'],
+      amenities: ['Outdoor Seating', 'Cocktails', 'Small Plates'],
+      priceRange: '$$',
+      isActive: true
+    },
+    {
+      name: 'Bass Underground',
+      description: 'Underground club featuring the best bass music',
+      address: '789 Downtown Ave, Los Angeles, CA 90014',
+      location: {
+        type: 'Point',
+        coordinates: [-118.2548, 34.0407]
+      },
+      phone: '+1-555-0103',
+      category: 'Nightclub',
+      images: ['https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=800'],
+      capacity: 300,
+      vibes: ['Underground', 'Energetic', 'Edgy'],
+      musicGenres: ['Dubstep', 'Drum and Bass', 'Trap'],
+      amenities: ['Sound System', 'Laser Lights', 'Bar'],
+      priceRange: '$$',
+      isActive: true
+    }
+  ];
+
+  try {
+    // Check if venues already exist
+    const existingCount = await Venue.countDocuments();
+    if (existingCount > 0) {
+      console.log(`ℹ️  ${existingCount} venues already exist, skipping venue creation`);
+      return await Venue.find().limit(5);
+    }
+
+    const createdVenues = await Venue.insertMany(venuesData);
+    console.log(`✅ Created ${createdVenues.length} venues`);
+    return createdVenues;
+  } catch (error) {
+    console.error('❌ Error seeding venues:', error);
+    throw error;
+  }
+}
+
 // Main seed function
 async function seedAll() {
   console.log('🌱 Starting production database seeding...\n');
@@ -284,16 +368,10 @@ async function seedAll() {
   try {
     await connectDB();
 
-    // Get existing venues (should be created manually or by venue owners)
-    const venues = await Venue.find().limit(5);
+    // Seed venues first (will skip if venues already exist)
+    const venues = await seedVenues();
 
-    if (venues.length === 0) {
-      console.log('⚠️  No venues found in database.');
-      console.log('💡 Please create venues first before seeding growth features.');
-      process.exit(0);
-    }
-
-    console.log(`✅ Found ${venues.length} existing venues`);
+    console.log(`✅ Using ${venues.length} venues for seeding`);
 
     // Seed data
     await seedUsers();
