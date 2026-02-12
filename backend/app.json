@@ -1,0 +1,76 @@
+{
+  "name": "Rork Nightlife API",
+  "description": "Backend API for Rork Nightlife App with complete growth features",
+  "repository": "https://github.com/your-repo/rork-nightlife-app",
+  "logo": "https://res.cloudinary.com/dgmqkptkg/image/upload/v1/rork-app/logo.png",
+  "keywords": ["node", "express", "mongodb", "nightlife", "social"],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "papertrail:chokin",
+      "as": "LOGGING"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production",
+      "required": true
+    },
+    "MONGODB_URI": {
+      "description": "MongoDB connection string (use MongoDB Atlas)",
+      "required": true
+    },
+    "JWT_SECRET": {
+      "description": "Secret key for JWT tokens (min 32 characters)",
+      "generator": "secret",
+      "required": true
+    },
+    "APP_URL": {
+      "description": "Your Heroku app URL",
+      "required": true
+    },
+    "CLOUDINARY_CLOUD_NAME": {
+      "description": "Cloudinary cloud name",
+      "value": "dgmqkptkg",
+      "required": true
+    },
+    "CLOUDINARY_API_KEY": {
+      "description": "Cloudinary API key",
+      "value": "178962785582582",
+      "required": true
+    },
+    "CLOUDINARY_API_SECRET": {
+      "description": "Cloudinary API secret",
+      "required": true
+    },
+    "SENTRY_DSN": {
+      "description": "Sentry error tracking DSN",
+      "value": "https://b198d5a4180a329ad71dc1fa5e213d0f@o4510789682266113.ingest.us.sentry.io/4510789691834368",
+      "required": false
+    },
+    "POS_ENCRYPTION_KEY": {
+      "description": "Encryption key for POS data",
+      "value": "70ae1da1308ffea2f4b6797090a1087a3b289dffa83547a09a6f4aac5176882e",
+      "required": true
+    },
+    "ALLOWED_ORIGINS": {
+      "description": "Comma-separated list of allowed CORS origins",
+      "value": "https://rork.app,https://www.rork.app",
+      "required": true
+    }
+  },
+  "scripts": {
+    "postdeploy": "node src/scripts/seed-production.js"
+  }
+}
