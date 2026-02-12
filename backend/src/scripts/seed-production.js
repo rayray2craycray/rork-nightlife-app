@@ -60,7 +60,10 @@ async function seedUsers() {
       return existingUsers;
     }
 
-    const createdUsers = await User.insertMany(users);
+    // Use create() instead of insertMany() to trigger password hashing middleware
+    const createdUsers = await Promise.all(
+      users.map(userData => User.create(userData))
+    );
     console.log(`✅ Created ${createdUsers.length} demo users`);
     return createdUsers;
   } catch (error) {
