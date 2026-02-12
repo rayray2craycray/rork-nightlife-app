@@ -282,63 +282,88 @@ async function seedVenues() {
   const venuesData = [
     {
       name: 'The Electric Lounge',
-      description: 'Premium nightclub with state-of-the-art sound system',
-      address: '123 Main St, Los Angeles, CA 90012',
+      type: 'CLUB',
       location: {
-        type: 'Point',
-        coordinates: [-118.2437, 34.0522] // LA coordinates
+        latitude: 34.0522,
+        longitude: -118.2437,
+        address: '123 Main St',
+        city: 'Los Angeles',
+        state: 'California',
+        country: 'USA',
+        coordinates: {
+          type: 'Point',
+          coordinates: [-118.2437, 34.0522] // [longitude, latitude]
+        }
       },
-      phone: '+1-555-0101',
-      website: 'https://electriclounge.example.com',
-      category: 'Nightclub',
-      images: ['https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800'],
       capacity: 500,
-      vibes: ['Energetic', 'Modern', 'Upscale'],
-      musicGenres: ['EDM', 'House', 'Techno'],
-      amenities: ['Bar', 'VIP Section', 'Coat Check', 'Outdoor Patio'],
-      priceRange: '$$$',
-      isActive: true,
+      priceLevel: 3,
+      imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800',
+      tags: ['Energetic', 'Modern', 'Upscale'],
+      genres: ['EDM', 'House', 'Techno'],
+      features: ['Bar', 'VIP Section', 'Coat Check', 'Outdoor Patio'],
       hours: {
-        monday: { open: '21:00', close: '02:00' },
-        friday: { open: '22:00', close: '03:00' },
-        saturday: { open: '22:00', close: '03:00' }
-      }
+        monday: '9:00 PM - 2:00 AM',
+        friday: '10:00 PM - 3:00 AM',
+        saturday: '10:00 PM - 3:00 AM',
+        sunday: '9:00 PM - 2:00 AM'
+      },
+      isOpen: false
     },
     {
       name: 'Sunset Rooftop Bar',
-      description: 'Stunning rooftop bar with panoramic city views',
-      address: '456 Sunset Blvd, Los Angeles, CA 90028',
+      type: 'BAR',
       location: {
-        type: 'Point',
-        coordinates: [-118.3467, 34.0983]
+        latitude: 34.0983,
+        longitude: -118.3467,
+        address: '456 Sunset Blvd',
+        city: 'Los Angeles',
+        state: 'California',
+        country: 'USA',
+        coordinates: {
+          type: 'Point',
+          coordinates: [-118.3467, 34.0983]
+        }
       },
-      phone: '+1-555-0102',
-      category: 'Bar',
-      images: ['https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=800'],
       capacity: 150,
-      vibes: ['Chill', 'Romantic', 'Scenic'],
-      musicGenres: ['Jazz', 'Lounge', 'Acoustic'],
-      amenities: ['Outdoor Seating', 'Cocktails', 'Small Plates'],
-      priceRange: '$$',
-      isActive: true
+      priceLevel: 2,
+      imageUrl: 'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=800',
+      tags: ['Chill', 'Romantic', 'Scenic'],
+      genres: ['Jazz', 'Lounge', 'Acoustic'],
+      features: ['Outdoor Seating', 'Cocktails', 'Small Plates'],
+      hours: {
+        wednesday: '5:00 PM - 11:00 PM',
+        thursday: '5:00 PM - 11:00 PM',
+        friday: '5:00 PM - 1:00 AM',
+        saturday: '5:00 PM - 1:00 AM'
+      },
+      isOpen: false
     },
     {
       name: 'Bass Underground',
-      description: 'Underground club featuring the best bass music',
-      address: '789 Downtown Ave, Los Angeles, CA 90014',
+      type: 'CLUB',
       location: {
-        type: 'Point',
-        coordinates: [-118.2548, 34.0407]
+        latitude: 34.0407,
+        longitude: -118.2548,
+        address: '789 Downtown Ave',
+        city: 'Los Angeles',
+        state: 'California',
+        country: 'USA',
+        coordinates: {
+          type: 'Point',
+          coordinates: [-118.2548, 34.0407]
+        }
       },
-      phone: '+1-555-0103',
-      category: 'Nightclub',
-      images: ['https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=800'],
       capacity: 300,
-      vibes: ['Underground', 'Energetic', 'Edgy'],
-      musicGenres: ['Dubstep', 'Drum and Bass', 'Trap'],
-      amenities: ['Sound System', 'Laser Lights', 'Bar'],
-      priceRange: '$$',
-      isActive: true
+      priceLevel: 2,
+      imageUrl: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=800',
+      tags: ['Underground', 'Energetic', 'Edgy'],
+      genres: ['Dubstep', 'Drum and Bass', 'Trap'],
+      features: ['Sound System', 'Laser Lights', 'Bar'],
+      hours: {
+        friday: '10:00 PM - 4:00 AM',
+        saturday: '10:00 PM - 4:00 AM'
+      },
+      isOpen: false
     }
   ];
 
