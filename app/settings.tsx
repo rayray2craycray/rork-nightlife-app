@@ -37,6 +37,7 @@ import {
 } from 'lucide-react-native';
 import { useAppState } from '@/contexts/AppStateContext';
 import { useSocial } from '@/contexts/SocialContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { router, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -53,6 +54,7 @@ interface Transaction {
 export default function SettingsScreen() {
   const { profile, toggleIncognito, setUserRole, linkedCards, addLinkedCard, removeLinkedCard } = useAppState();
   const { locationSettings, updateLocationSettings, toggleGhostMode } = useSocial();
+  const { signOut } = useAuth();
   const [transactions] = useState<Transaction[]>([
     {
       id: '1',
@@ -146,7 +148,7 @@ export default function SettingsScreen() {
           text: 'Log Out',
           style: 'destructive',
           onPress: () => {
-            router.replace('/welcome');
+            signOut();
           },
         },
       ]
