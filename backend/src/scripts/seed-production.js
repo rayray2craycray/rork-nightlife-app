@@ -95,6 +95,7 @@ async function seedEvents(venues) {
     date: index === 0 ? tomorrow : nextWeek,
     startTime: '22:00',
     endTime: '04:00',
+    capacity: venue.capacity || 350, // Use venue capacity or default to 350
     genres: [
       ['House', 'Techno', 'EDM'],
       ['Salsa', 'Bachata', 'Reggaeton'],
