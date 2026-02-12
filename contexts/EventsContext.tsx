@@ -77,7 +77,13 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         const response = await eventsApi.getUpcomingEvents();
-        return response.data || [];
+        // Map MongoDB _id to id for frontend compatibility
+        const events = (response.data || []).map((event: any) => ({
+          ...event,
+          id: event._id || event.id,
+          venueId: event.venueId?._id || event.venueId,
+        }));
+        return events;
       } catch (error) {
         // Silently handle missing endpoint
         if (__DEV__) console.log('[Events] Endpoint not implemented: events', error);
@@ -93,7 +99,14 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       try {
         // Use userId from auth context
         const response = await eventsApi.getUserTickets(userId);
-        return response.data || [];
+        // Map MongoDB _id to id for frontend compatibility
+        const tickets = (response.data || []).map((ticket: any) => ({
+          ...ticket,
+          id: ticket._id || ticket.id,
+          eventId: ticket.eventId?._id || ticket.eventId,
+          userId: ticket.userId?._id || ticket.userId,
+        }));
+        return tickets;
       } catch (error) {
         // Silently handle missing endpoint
         if (__DEV__) console.log('[Events] Endpoint not implemented: tickets', error);

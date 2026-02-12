@@ -49,6 +49,7 @@ const defaultLocationSettings: LocationSettings = {
 export const [SocialProvider, useSocial] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { userId } = useAuth();
+  console.log('[SocialContext] userId from auth:', userId);
   const [follows, setFollows] = useState<Follow[]>([]);
   const [locationSettings, setLocationSettings] = useState<LocationSettings>(defaultLocationSettings);
   const [friendLocations, setFriendLocations] = useState<FriendLocation[]>([]);
@@ -208,18 +209,24 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
 
   // ===== CREW QUERIES =====
   const crewsQuery = useQuery({
-    queryKey: ['crews'],
+    queryKey: ['crews', userId],
     queryFn: async () => {
       try {
         // Use userId from auth context
         const response = await socialApi.getUserCrews(userId);
-        return response.data || [];
+        // Map MongoDB _id to id for frontend compatibility
+        const crews = (response.data || []).map((crew: any) => ({
+          ...crew,
+          id: crew._id || crew.id,
+        }));
+        return crews;
       } catch (error) {
         // Silently handle missing endpoint
         if (__DEV__) console.log('[Social] Endpoint not implemented: crews');
         return [];
       }
     },
+    enabled: !!userId, // Only fetch when userId is available
   });
 
   const crewInvitesQuery = useQuery({
@@ -246,18 +253,44 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
 
   // ===== CHALLENGE QUERIES =====
   const challengeProgressQuery = useQuery({
-    queryKey: ['challenge-progress'],
+    queryKey: ['challenge-progress', userId],
     queryFn: async () => {
       try {
+        console.log('[Social] Fetching challenge progress for userId:', userId);
         // Use userId from auth context
         const response = await socialApi.getUserChallenges(userId);
-        return response.data || [];
+        console.log('[Social] Challenge progress response:', response);
+
+        // Backend returns challenges with participants nested inside
+        // We need to extract the current user's participant data
+        const progress = (response.data || []).flatMap((challenge: any) => {
+          // Find the current user's participant entry in this challenge
+          const userParticipant = challenge.participants?.find(
+            (p: any) => (p.userId === userId || p.userId?._id === userId || p.userId === userId)
+          );
+
+          if (!userParticipant) return [];
+
+          // Return a progress object for this challenge
+          return [{
+            id: userParticipant._id || userParticipant.id,
+            challengeId: challenge._id || challenge.id,
+            userId: userParticipant.userId || userId,
+            currentProgress: userParticipant.currentProgress || 0,
+            status: userParticipant.status || 'IN_PROGRESS',
+            startedAt: userParticipant.startedAt,
+          }];
+        });
+
+        console.log('[Social] Mapped challenge progress:', progress);
+        return progress;
       } catch (error) {
         // Silently handle missing endpoint
-        if (__DEV__) console.log('[Social] Endpoint not implemented: challenge progress');
+        console.error('[Social] Error fetching challenge progress:', error);
         return [];
       }
     },
+    enabled: !!userId, // Only fetch when userId is available
   });
 
   const challengeRewardsQuery = useQuery({
@@ -276,10 +309,17 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     queryFn: async () => {
       try {
         const response = await socialApi.getActiveChallenges();
-        return response.data || [];
+        console.log('[Social] Active challenges response:', response);
+        // Map MongoDB _id to id for frontend compatibility
+        const challenges = (response.data || []).map((challenge: any) => ({
+          ...challenge,
+          id: challenge._id || challenge.id,
+        }));
+        console.log('[Social] Mapped challenges:', challenges);
+        return challenges;
       } catch (error) {
-        // Silently handle missing endpoint
-        if (__DEV__) console.log('[Social] Endpoint not implemented: active challenges');
+        // Log the actual error for debugging
+        console.error('[Social] Error fetching active challenges:', error);
         return [];
       }
     },
@@ -639,7 +679,12 @@ export const [SocialProvider, useSocial] = createContextHook(() => {
     mutationFn: async (challengeId: string) => {
       try {
         // Use userId from auth context
+        console.log('[Social] Joining challenge:', challengeId, 'with userId:', userId);
+        if (!userId) {
+          throw new Error('User ID is not available. Please log in again.');
+        }
         const response = await socialApi.joinChallenge(challengeId, userId);
+        console.log('[Social] Join challenge response:', response);
         return response.data!;
       } catch (error) {
         console.error('Failed to join challenge:', error);

@@ -1,9 +1,9 @@
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useAppState } from '@/contexts/AppStateContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Index() {
-  const { profile, isLoading } = useAppState();
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -13,11 +13,11 @@ export default function Index() {
     );
   }
 
-  if (!profile.isAuthenticated || profile.role === null) {
-    return <Redirect href="/welcome" />;
+  if (!isAuthenticated) {
+    return <Redirect href="/auth/sign-in" />;
   }
 
-  return <Redirect href="/feed" />;
+  return <Redirect href="/(tabs)/discovery" />;
 }
 
 const styles = StyleSheet.create({

@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Alert, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { apiClient } from '@/services/api';
 
 interface User {
   id: string;
@@ -42,19 +43,16 @@ const STORAGE_KEYS = {
   USER_DATA: 'vibelink_user_data',
 };
 
-// Helper to get API URL based on platform
-const getApiUrl = () => {
-  if (__DEV__) {
-    // Development: use localhost or 10.0.2.2 for Android emulator
-    return Platform.OS === 'android'
-      ? 'http://10.0.2.2:3000'
-      : 'http://localhost:3000';
-  }
-  // Production
-  return 'https://api.rork.app';
-};
+// Get API URL from environment variable or fall back to localhost
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL
+  ? process.env.EXPO_PUBLIC_API_URL.replace('/api', '') // Remove /api suffix if present
+  : (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000');
 
-const API_BASE_URL = getApiUrl();
+console.log('========================================');
+console.log('[AuthContext] MODULE LOADED');
+console.log('[AuthContext] API_BASE_URL:', API_BASE_URL);
+console.log('[AuthContext] EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
+console.log('========================================')
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const queryClient = useQueryClient();
@@ -79,8 +77,27 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
           if (now < expiry) {
             // Token still valid
+            const parsedUser = JSON.parse(userData);
+            console.log('[Auth] Loaded user from storage:', parsedUser);
+            // Map MongoDB _id to id for frontend compatibility
+            const mappedUser = {
+              ...parsedUser,
+              id: parsedUser._id || parsedUser.id,
+            };
+            console.log('[Auth] Mapped user:', mappedUser);
+            console.log('[Auth] User ID:', mappedUser.id);
+
+            // Update stored data if it was missing id
+            if (parsedUser._id && !parsedUser.id) {
+              console.log('[Auth] Updating stored user data with mapped ID');
+              await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(mappedUser));
+            }
+
+            // Set auth token in API client
+            await apiClient.setAuthToken(token);
+
             setAccessToken(token);
-            setUser(JSON.parse(userData));
+            setUser(mappedUser);
             setIsAuthenticated(true);
           } else {
             // Token expired, try to refresh
@@ -155,6 +172,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           AsyncStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiresAt.toString()),
         ]);
 
+        // Set auth token in API client
+        await apiClient.setAuthToken(newAccessToken);
+
         setAccessToken(newAccessToken);
         setIsAuthenticated(true);
         return true;
@@ -171,7 +191,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const signUpMutation = useMutation({
     mutationFn: async (data: SignUpData) => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/sign-up`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,16 +211,25 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       const { user: userData, accessToken: token, refreshToken, expiresIn } = data;
       const expiresAt = Date.now() + expiresIn * 1000;
 
+      // Map MongoDB _id to id for frontend compatibility
+      const mappedUser = {
+        ...userData,
+        id: userData._id || userData.id,
+      };
+
       // Save to AsyncStorage
       await Promise.all([
         AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token),
         AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken),
         AsyncStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiresAt.toString()),
-        AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
+        AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(mappedUser)),
       ]);
 
+      // Set auth token in API client
+      await apiClient.setAuthToken(token);
+
       setAccessToken(token);
-      setUser(userData);
+      setUser(mappedUser);
       setIsAuthenticated(true);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -210,13 +239,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       router.replace('/(tabs)/discovery');
     },
     onError: (error: any) => {
-      Alert.alert('Sign Up Failed', error.message || 'Could not create your account. Please try again.');
+      console.error('[Auth] Sign up error:', error);
+      const message = error.message || 'Could not create your account. Please try again.';
+      Alert.alert('Sign Up Failed', message);
     },
   });
 
   const signInMutation = useMutation({
     mutationFn: async (data: SignInData) => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/sign-in`, {
+      console.log('[Auth] Sign in attempt with:', data.email);
+      const response = await fetch(`${API_BASE_URL}/api/auth/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -224,29 +256,47 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         body: JSON.stringify(data),
       });
 
+      console.log('[Auth] Sign in response status:', response.status);
       const result = await response.json();
+      console.log('[Auth] Sign in response data:', result);
 
       if (!response.ok || !result.success) {
         throw new Error(result.message || result.error || 'Sign in failed');
       }
 
+      console.log('[Auth] Sign in successful, user data:', result.data);
       return result.data;
     },
     onSuccess: async (data) => {
+      console.log('[Auth] onSuccess called with data:', data);
       const { user: userData, accessToken: token, refreshToken, expiresIn } = data;
+      console.log('[Auth] Extracted - user:', userData, 'token:', token);
       const expiresAt = Date.now() + expiresIn * 1000;
+
+      // Map MongoDB _id to id for frontend compatibility
+      const mappedUser = {
+        ...userData,
+        id: userData._id || userData.id,
+      };
+      console.log('[Auth] Mapped user:', mappedUser);
 
       // Save to AsyncStorage
       await Promise.all([
         AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token),
         AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken),
         AsyncStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiresAt.toString()),
-        AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
+        AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(mappedUser)),
       ]);
+      console.log('[Auth] Saved to AsyncStorage');
+
+      // Set auth token in API client
+      await apiClient.setAuthToken(token);
+      console.log('[Auth] Set auth token in API client');
 
       setAccessToken(token);
-      setUser(userData);
+      setUser(mappedUser);
       setIsAuthenticated(true);
+      console.log('[Auth] State updated - authenticated:', true);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -254,6 +304,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       router.replace('/(tabs)/discovery');
     },
     onError: (error: any) => {
+      console.error('[Auth] Sign in error:', error);
       Alert.alert('Sign In Failed', error.message || 'Invalid email or password.');
     },
   });
@@ -262,7 +313,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     try {
       // Call backend to invalidate refresh token
       if (accessToken) {
-        await fetch(`${API_BASE_URL}/api/auth/sign-out`, {
+        await fetch(`${API_BASE_URL}/api/auth/signout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -285,6 +336,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
     // Clear React Query cache
     queryClient.clear();
+
+    // Clear auth token from API client
+    await apiClient.clearAuthToken();
 
     // Update state
     setAccessToken(null);
@@ -332,12 +386,19 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     return accessToken ? `Bearer ${accessToken}` : '';
   }, [accessToken]);
 
+  // Debug logging for return values - runs on EVERY render
+  const userId = user?.id || null;
+  console.log('[AuthContext] RENDER - user:', user);
+  console.log('[AuthContext] RENDER - userId:', userId);
+  console.log('[AuthContext] RENDER - isAuthenticated:', isAuthenticated);
+  console.log('[AuthContext] RENDER - accessToken exists:', !!accessToken);
+
   return {
     // State
     isAuthenticated,
     isLoading,
     user,
-    userId: user?.id || null,
+    userId,
     accessToken,
 
     // Methods

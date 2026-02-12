@@ -193,4 +193,36 @@ export const API_ENDPOINTS = {
       search: '/events/guestlist/search',
     },
   },
+
+  social: {
+    friends: {
+      request: '/social/friends/request',
+      accept: (id: string) => `/social/friends/accept/${id}`,
+      reject: (id: string) => `/social/friends/reject/${id}`,
+      remove: (id: string) => `/social/friends/${id}`,
+      list: '/social/friends',
+      pending: '/social/friends/requests/pending',
+    },
+    crews: {
+      list: '/social/crews',
+      byId: (id: string) => `/social/crews/${id}`,
+      userCrews: (userId: string) => `/social/crews/user/${userId}`,
+      search: '/social/crews/search',
+      active: '/social/crews/discover/active',
+      join: (id: string) => `/social/crews/${id}/join`,
+      leave: (id: string) => `/social/crews/${id}/leave`,
+      update: (id: string) => `/social/crews/${id}`,
+      delete: (id: string) => `/social/crews/${id}`,
+      invite: (id: string) => `/social/crews/${id}/invite`,
+    },
+    challenges: {
+      active: '/social/challenges/active',
+      byId: (id: string) => `/social/challenges/${id}`,
+      user: (userId: string) => `/social/challenges/user/${userId}`,
+      join: (id: string) => `/social/challenges/${id}/join`,
+      progress: '/social/challenges/progress',
+      updateProgress: (id: string) => `/social/challenges/${id}/progress`,
+      claim: (id: string) => `/social/challenges/${id}/claim`,
+    },
+  },
 };

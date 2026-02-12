@@ -174,6 +174,7 @@ class ApiClient {
 
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    console.log('[ApiClient] GET request:', url);
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...config?.headers,
@@ -190,6 +191,8 @@ class ApiClient {
       headers,
     });
 
+    console.log('[ApiClient] GET response status:', response.status, 'for', url);
+
     if (!response.ok) {
       throw new ApiError(
         `GET ${endpoint} failed: ${response.statusText}`,
@@ -198,11 +201,14 @@ class ApiClient {
       );
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('[ApiClient] GET response data:', data);
+    return data;
   }
 
   async post<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    console.log('[ApiClient] POST request:', url, 'with data:', data);
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...config?.headers,
@@ -220,11 +226,14 @@ class ApiClient {
       body: data ? JSON.stringify(data) : undefined,
     });
 
+    console.log('[ApiClient] POST response status:', response.status, 'for', url);
+
     if (!response.ok) {
       const errorMessage = await this.extractErrorMessage(
         response.clone(),
         `POST ${endpoint} failed: ${response.statusText}`
       );
+      console.log('[ApiClient] POST error:', errorMessage);
       throw new ApiError(errorMessage, response.status, response);
     }
 
@@ -1034,7 +1043,6 @@ export const pricingApi = {
 
     return { success: true, data: pricing };
   },
-};
 };
 
 // Phase 6: Retention - Streaks & Memories
