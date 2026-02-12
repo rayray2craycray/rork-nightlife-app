@@ -97,11 +97,14 @@ export const API_ENDPOINTS = {
   
   // Chat
   CHAT: {
-    CHANNELS: {
-      MESSAGES: (channelId: string) => `/chat/channels/${channelId}/messages`,
-      SEND: (channelId: string) => `/chat/channels/${channelId}/messages`,
+    CONVERSATIONS: {
+      LIST: '/chat/conversations',
+      BY_ID: (id: string) => `/chat/conversations/${id}`,
+      CREATE: '/chat/conversations',
+      MESSAGES: (id: string) => `/chat/conversations/${id}/messages`,
     },
     MESSAGES: {
+      SEND: '/chat/messages',
       EDIT: (messageId: string) => `/chat/messages/${messageId}`,
       DELETE: (messageId: string) => `/chat/messages/${messageId}`,
       REACT: (messageId: string) => `/chat/messages/${messageId}/reactions`,
@@ -117,9 +120,28 @@ export const API_ENDPOINTS = {
   
   // Upload
   UPLOAD: {
-    IMAGE: '/upload/image',
-    VIDEO: '/upload/video',
-    PROFILE: '/upload/profile',
+    PROFILE_PICTURE: '/upload/profile-picture',
+    HIGHLIGHT: '/upload/highlight',
+    MEMORY: '/upload/memory',
+    VENUE: '/upload/venue',
+    BUSINESS_DOCUMENT: '/upload/business-document',
+  },
+
+  // Moderation
+  MODERATION: {
+    REPORTS: {
+      CREATE: '/moderation/reports',
+      LIST: '/moderation/reports',
+      BY_ID: (id: string) => `/moderation/reports/${id}`,
+      MY_REPORTS: '/moderation/reports/my',
+    },
+    BLOCKING: {
+      BLOCK: '/moderation/blocking/block',
+      UNBLOCK: (userId: string) => `/moderation/blocking/unblock/${userId}`,
+      BLOCKED_USERS: '/moderation/blocking/blocked',
+      IS_BLOCKED: (userId: string) => `/moderation/blocking/is-blocked/${userId}`,
+    },
+    STATS: '/moderation/stats',
   },
 
   // Content - Performers & Highlights

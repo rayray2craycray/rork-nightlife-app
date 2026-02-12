@@ -1097,3 +1097,97 @@ export interface BusinessRegistrationData {
   website?: string;
   businessType: 'BAR' | 'CLUB' | 'LOUNGE' | 'RESTAURANT' | 'OTHER';
 }
+
+// ============================================================================
+// FILE UPLOADS
+// ============================================================================
+
+export interface UploadResult {
+  success: boolean;
+  url?: string;
+  thumbnailUrl?: string;
+  error?: string;
+}
+
+export interface UploadProgress {
+  uploadId: string;
+  progress: number; // 0-100
+  status: 'uploading' | 'processing' | 'completed' | 'error';
+}
+
+export type UploadType = 'profile-picture' | 'highlight' | 'memory' | 'venue' | 'business-document';
+
+// ============================================================================
+// MODERATION
+// ============================================================================
+
+export interface Report {
+  id: string;
+  reporterId: string;
+  contentType: 'video' | 'comment' | 'user' | 'message';
+  contentId: string;
+  reason: 'inappropriate' | 'spam' | 'harassment' | 'violence' | 'other';
+  details?: string;
+  status: 'pending' | 'reviewed' | 'action_taken' | 'dismissed';
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+export interface BlockedUser {
+  id: string;
+  blockerId: string;
+  blockedUserId: string;
+  blockedUserName: string;
+  blockedUserImageUrl?: string;
+  createdAt: string;
+}
+
+export interface ModerationStats {
+  totalReports: number;
+  pendingReports: number;
+  blockedUsers: number;
+}
+
+// ============================================================================
+// CHAT
+// ============================================================================
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderImageUrl?: string;
+  content: string;
+  type: 'text' | 'image' | 'video' | 'system';
+  reactions?: ChatReaction[];
+  isEdited: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ChatReaction {
+  userId: string;
+  emoji: string;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  type: 'direct' | 'group' | 'venue';
+  participantIds: string[];
+  participants: {
+    id: string;
+    displayName: string;
+    profileImageUrl?: string;
+  }[];
+  lastMessage?: {
+    content: string;
+    senderId: string;
+    timestamp: string;
+  };
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}

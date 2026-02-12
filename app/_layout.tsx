@@ -19,6 +19,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { VenueManagementProvider } from "@/contexts/VenueManagementContext";
 import { ModerationProvider } from "@/contexts/ModerationContext";
+import { UploadProvider } from "@/contexts/UploadContext";
 import { ToastProvider } from "@/contexts/ToastNotificationContext";
 import { NetworkProvider } from "@/contexts/NetworkContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -110,7 +111,8 @@ export default function RootLayout() {
                   <AppStateProvider>
                 <GlowProvider>
                   <POSProvider>
-                    <ModerationProvider>
+                    <UploadProvider>
+                      <ModerationProvider>
                       <SocialProvider>
                         <GrowthProvider>
                           <EventsProvider>
@@ -132,7 +134,8 @@ export default function RootLayout() {
                           </EventsProvider>
                         </GrowthProvider>
                       </SocialProvider>
-                    </ModerationProvider>
+                      </ModerationProvider>
+                    </UploadProvider>
                   </POSProvider>
                 </GlowProvider>
                   </AppStateProvider>
