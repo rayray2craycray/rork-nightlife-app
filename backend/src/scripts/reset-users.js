@@ -9,20 +9,20 @@ async function resetUsers() {
 
     // Delete existing demo users
     const result = await User.deleteMany({
-      email: { $in: ['demo@rork.app', 'venue.owner@rork.app'] }
+      email: { $in: ['demo@nox.social', 'venue.owner@nox.social'] }
     });
     console.log(`🗑️  Deleted ${result.deletedCount} existing users`);
 
     // Create new users with properly hashed passwords
     const users = [
       {
-        email: 'demo@rork.app',
+        email: 'demo@nox.social',
         displayName: 'Demo User',
         password: 'Demo123!',
         isEmailVerified: true,
       },
       {
-        email: 'venue.owner@rork.app',
+        email: 'venue.owner@nox.social',
         displayName: 'Venue Owner',
         password: 'VenueOwner123!',
         isEmailVerified: true,
@@ -36,8 +36,8 @@ async function resetUsers() {
 
     console.log(`✅ Created ${createdUsers.length} users with hashed passwords`);
     console.log('📧 Demo accounts:');
-    console.log('   demo@rork.app / Demo123!');
-    console.log('   venue.owner@rork.app / VenueOwner123!');
+    console.log('   demo@nox.social / Demo123!');
+    console.log('   venue.owner@nox.social / VenueOwner123!');
 
     await mongoose.disconnect();
     console.log('✅ Done!');

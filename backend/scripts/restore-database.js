@@ -182,7 +182,7 @@ async function restoreBackup(backupName) {
 
     // Parse MongoDB URI to get database name
     const dbMatch = MONGODB_URI.match(/\/([^/?]+)(\?|$)/);
-    const dbName = dbMatch ? dbMatch[1] : 'rork-nightlife';
+    const dbName = dbMatch ? dbMatch[1] : 'nox-nightlife';
 
     log(`\n📥 Starting restore...`, 'cyan');
     log(`   Target database: ${dbName}`, 'cyan');

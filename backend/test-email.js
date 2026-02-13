@@ -113,7 +113,7 @@ async function testEmailConfiguration() {
     const result = await sendVerificationEmail(
       testEmail,
       'Test Nightclub',
-      `https://rork.app/verify?token=test123&timestamp=${Date.now()}`
+      `https://nox.social/verify?token=test123&timestamp=${Date.now()}`
     );
 
     if (result.mode === 'dev') {

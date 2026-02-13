@@ -36,7 +36,7 @@ const uploadProfilePicture = async (req, res) => {
 
     // Upload to Cloudinary
     const result = await uploadImage(req.file.buffer, {
-      folder: 'rork-app/users/profiles',
+      folder: 'nox-app/users/profiles',
       publicId: `user-${req.user.id}-${Date.now()}`,
       transformation: [
         { width: 500, height: 500, crop: 'fill', gravity: 'face' },
@@ -98,7 +98,7 @@ const uploadHighlight = async (req, res) => {
 
     // Upload to Cloudinary
     const result = await uploadVideo(req.file.buffer, {
-      folder: `rork-app/highlights/${year}/${month}`,
+      folder: `nox-app/highlights/${year}/${month}`,
       publicId: `highlight-${Date.now()}-${req.user.id}`,
     });
 
@@ -155,7 +155,7 @@ const uploadMemoryPhoto = async (req, res) => {
 
     // Upload to Cloudinary
     const result = await uploadImage(req.file.buffer, {
-      folder: 'rork-app/memories/photos',
+      folder: 'nox-app/memories/photos',
       transformation: [
         { width: 1920, height: 1920, crop: 'limit', quality: 'auto' },
       ],
@@ -221,7 +221,7 @@ const uploadVenuePhoto = async (req, res) => {
 
     // Upload to Cloudinary
     const result = await uploadImage(req.file.buffer, {
-      folder: 'rork-app/venues/photos',
+      folder: 'nox-app/venues/photos',
       publicId: `venue-${venueId}-${Date.now()}`,
       transformation: [
         { width: 1920, height: 1080, crop: 'fill' },
@@ -298,7 +298,7 @@ const uploadBusinessDocument = async (req, res) => {
     // Upload to Cloudinary
     const uploadFunction = resourceType === 'image' ? uploadImage : uploadDocument;
     const result = await uploadFunction(req.file.buffer, {
-      folder: 'rork-app/documents/verification',
+      folder: 'nox-app/documents/verification',
       publicId: `doc-${req.user.id}-${documentType}-${Date.now()}`,
     });
 

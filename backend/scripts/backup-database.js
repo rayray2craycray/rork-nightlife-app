@@ -95,7 +95,7 @@ async function createBackup() {
 
     // Parse MongoDB URI to get database name
     const dbMatch = MONGODB_URI.match(/\/([^/?]+)(\?|$)/);
-    const dbName = dbMatch ? dbMatch[1] : 'rork-nightlife';
+    const dbName = dbMatch ? dbMatch[1] : 'nox-nightlife';
 
     // Create mongodump command
     const mongodumpCmd = `mongodump --uri="${MONGODB_URI}" --out="${backupPath}"`;

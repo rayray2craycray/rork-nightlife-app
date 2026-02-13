@@ -240,7 +240,7 @@ export const mockStoryTemplates: StoryTemplate[] = [
         position: { x: 80, y: 15 },
       },
     ],
-    deepLink: 'rork://venue/{{venueId}}',
+    deepLink: 'nox://venue/{{venueId}}',
   },
   {
     id: 'template-2',
@@ -277,7 +277,7 @@ export const mockStoryTemplates: StoryTemplate[] = [
         position: { x: 50, y: 75 },
       },
     ],
-    deepLink: 'rork://group-purchase/{{groupPurchaseId}}',
+    deepLink: 'nox://group-purchase/{{groupPurchaseId}}',
   },
   {
     id: 'template-3',
@@ -314,7 +314,7 @@ export const mockStoryTemplates: StoryTemplate[] = [
         position: { x: 85, y: 55 },
       },
     ],
-    deepLink: 'rork://referral/{{referralCode}}',
+    deepLink: 'nox://referral/{{referralCode}}',
   },
   {
     id: 'template-4',
@@ -347,7 +347,7 @@ export const mockStoryTemplates: StoryTemplate[] = [
         style: { fontSize: 22, color: '#ff0080' },
       },
     ],
-    deepLink: 'rork://event/{{eventId}}',
+    deepLink: 'nox://event/{{eventId}}',
   },
 ];
 
@@ -361,7 +361,7 @@ export const mockShareableContent: ShareableContent[] = [
       venueName: 'The Nox Room',
       venueId: 'venue-1',
     },
-    deepLink: 'rork://venue/venue-1',
+    deepLink: 'nox://venue/venue-1',
     createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
     shareCount: 5,
     clickCount: 2,
@@ -372,9 +372,9 @@ export const mockShareableContent: ShareableContent[] = [
     type: 'REFERRAL',
     templateId: 'template-3',
     customData: {
-      referralCode: 'RORK-ALEX-2025',
+      referralCode: 'NOX-ALEX-2026',
     },
-    deepLink: 'rork://referral/RORK-ALEX-2025',
+    deepLink: 'nox://referral/NOX-ALEX-2026',
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     shareCount: 12,
     clickCount: 3,
@@ -389,7 +389,7 @@ export const mockShareableContent: ShareableContent[] = [
       spotsLeft: 2,
       pricePerPerson: 125,
     },
-    deepLink: 'rork://group-purchase/gp-1',
+    deepLink: 'nox://group-purchase/gp-1',
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     shareCount: 8,
     clickCount: 4,

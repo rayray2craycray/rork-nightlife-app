@@ -32,7 +32,7 @@
       },
       "env": {
         "APP_ENV": "staging",
-        "API_URL": "https://staging-api.rork.app"
+        "API_URL": "https://staging-api.nox.social"
       }
     },
     "staging": {

@@ -37,13 +37,13 @@ async function seedUsers() {
 
   const users = [
     {
-      email: 'demo@rork.app',
+      email: 'demo@nox.social',
       displayName: 'Demo User',
       password: 'Demo123!', // Will be hashed by model
       isEmailVerified: true,
     },
     {
-      email: 'venue.owner@rork.app',
+      email: 'venue.owner@nox.social',
       displayName: 'Venue Owner',
       password: 'VenueOwner123!',
       isEmailVerified: true,
@@ -416,9 +416,9 @@ async function seedAll() {
     console.log('   - Dynamic pricing for promotions');
 
     console.log('\n🔐 Demo User Credentials:');
-    console.log('   Email: demo@rork.app');
+    console.log('   Email: demo@nox.social');
     console.log('   Password: Demo123!');
-    console.log('\n   Email: venue.owner@rork.app');
+    console.log('\n   Email: venue.owner@nox.social');
     console.log('   Password: VenueOwner123!');
 
     console.log('\n⚠️  IMPORTANT:');

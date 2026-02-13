@@ -124,7 +124,7 @@ export const mockConnectedSquareIntegration: POSIntegration = {
     merchantName: 'Echo Nightclub',
     currency: 'USD',
     timezone: 'America/Los_Angeles',
-    webhookUrl: 'https://api.rork.app/pos/webhooks/square',
+    webhookUrl: 'https://api.nox.social/pos/webhooks/square',
   },
   syncConfig: {
     enabled: true,

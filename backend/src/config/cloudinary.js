@@ -22,7 +22,7 @@ const uploadImage = async (fileBuffer, options = {}) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: options.folder || 'rork-app',
+        folder: options.folder || 'nox-app',
         public_id: options.publicId,
         transformation: options.transformation,
         resource_type: 'image',
@@ -51,7 +51,7 @@ const uploadVideo = async (fileBuffer, options = {}) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: options.folder || 'rork-app/highlights',
+        folder: options.folder || 'nox-app/highlights',
         public_id: options.publicId,
         transformation: options.transformation,
         resource_type: 'video',
@@ -103,7 +103,7 @@ const uploadDocument = async (fileBuffer, options = {}) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: options.folder || 'rork-app/documents',
+        folder: options.folder || 'nox-app/documents',
         public_id: options.publicId,
         resource_type: 'raw', // For PDFs and other non-image files
         format: options.format,

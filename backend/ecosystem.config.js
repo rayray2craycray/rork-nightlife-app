@@ -6,14 +6,14 @@
  * pm2 start ecosystem.config.js --env production
  * pm2 logs
  * pm2 monit
- * pm2 reload rork-backend
- * pm2 stop rork-backend
+ * pm2 reload nox-backend
+ * pm2 stop nox-backend
  */
 
 module.exports = {
   apps: [{
     // Application name
-    name: 'rork-backend',
+    name: 'nox-backend',
 
     // Entry point
     script: './src/server.js',
@@ -91,8 +91,8 @@ module.exports = {
       user: 'deploy',
       host: ['your-production-server.com'],
       ref: 'origin/main',
-      repo: 'git@github.com:your-repo/rork-nightlife-app.git',
-      path: '/var/www/rork-backend',
+      repo: 'git@github.com:your-repo/nox-social-app.git',
+      path: '/var/www/nox-backend',
       'post-deploy': 'npm install && pm2 reload ecosystem.config.js --env production',
       'pre-deploy-local': '',
       'post-setup': 'npm install',
@@ -101,8 +101,8 @@ module.exports = {
       user: 'deploy',
       host: ['your-staging-server.com'],
       ref: 'origin/develop',
-      repo: 'git@github.com:your-repo/rork-nightlife-app.git',
-      path: '/var/www/rork-backend-staging',
+      repo: 'git@github.com:your-repo/nox-social-app.git',
+      path: '/var/www/nox-backend-staging',
       'post-deploy': 'npm install && pm2 reload ecosystem.config.js --env staging',
     },
   },

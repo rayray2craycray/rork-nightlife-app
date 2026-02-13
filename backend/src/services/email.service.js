@@ -167,7 +167,7 @@ exports.sendVerificationEmail = async (email, venueName, verificationUrl) => {
   </div>
   <div class="footer">
     <p>&copy; ${new Date().getFullYear()} Rork Nightlife. All rights reserved.</p>
-    <p>Questions? Contact us at <a href="mailto:support@rork.app">support@rork.app</a></p>
+    <p>Questions? Contact us at <a href="mailto:support@nox.social">support@nox.social</a></p>
   </div>
 </body>
 </html>
@@ -195,7 +195,7 @@ If you didn't request this verification, please ignore this email.
 Best regards,
 The Rork Nightlife Team
 
-Questions? Contact us at support@rork.app
+Questions? Contact us at support@nox.social
     `;
 
     // Send email
