@@ -69,8 +69,11 @@
       },
       "env": {
         "APP_ENV": "production",
-        "APP_NAME": "Rork Nightlife",
-        "API_URL": "https://api.rork.app",
+        "APP_NAME": "Rork",
+        "EXPO_PUBLIC_API_URL": "https://rork-api-prod-3a4b8043e7dd.herokuapp.com/api",
+        "EXPO_PUBLIC_USE_MOCK_DATA": "false",
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "production",
+        "EXPO_PUBLIC_DEBUG_MODE": "false",
         "IOS_BUNDLE_ID": "app.rork.nightlife",
         "ANDROID_PACKAGE": "app.rork.nightlife"
       },
