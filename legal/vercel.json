@@ -1,20 +1,12 @@
 {
-  "version": 2,
-  "name": "nox-legal",
-  "builds": [
+  "redirects": [
     {
-      "src": "**/*.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/privacy",
-      "dest": "/privacy.html"
+      "source": "/privacy",
+      "destination": "/privacy.html"
     },
     {
-      "src": "/terms",
-      "dest": "/terms.html"
+      "source": "/terms",
+      "destination": "/terms.html"
     }
   ],
   "headers": [
