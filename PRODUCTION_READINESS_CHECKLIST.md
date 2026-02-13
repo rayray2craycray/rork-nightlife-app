@@ -44,7 +44,7 @@
   - **Estimate:** 2-3 days
 
 - [ ] **App Store Listing Copy**
-  - [ ] App Name: "Rork" or "Nox Social" (max 30 chars)
+  - [ ] App Name: "Nox" or "Nox Social" (max 30 chars)
   - [ ] Subtitle/Short Description (max 30 chars): "Nightlife. Reimagined."
   - [ ] Full Description (max 4000 chars): Write compelling copy highlighting:
     - Real-time venue discovery
@@ -64,7 +64,7 @@
     - GDPR compliance (EU users)
     - CCPA compliance (California users)
     - Children's privacy (COPPA - state app is 21+)
-  - [ ] Host at: `https://rork.app/privacy` or `https://nox.social/privacy`
+  - [ ] Host at: `https://nox.social/privacy` or `https://nox.social/privacy`
   - [ ] Add link to app settings screen
   - **Template:** Use termly.io or iubenda.com ($0-50/month)
   - **Estimate:** 0.5-1 day
@@ -75,7 +75,7 @@
   - [ ] Account termination policy
   - [ ] Limitation of liability
   - [ ] Dispute resolution
-  - [ ] Host at: `https://rork.app/terms`
+  - [ ] Host at: `https://nox.social/terms`
   - **Estimate:** 0.5-1 day
 
 - [ ] **Age Rating & Content Declarations**
@@ -103,7 +103,7 @@
 - [ ] **DMCA Compliance** (Copyright Claims)
   - [ ] Designate DMCA agent
   - [ ] Add copyright infringement reporting form
-  - [ ] Host at: `https://rork.app/dmca`
+  - [ ] Host at: `https://nox.social/dmca`
   - **Estimate:** 0.5 day
 
 #### Critical Bug Fixes & Testing
@@ -149,7 +149,7 @@
 
 - [ ] **Certificates & Provisioning Profiles**
   - [ ] Generate Distribution Certificate (for App Store)
-  - [ ] Create App ID (com.rork.app or com.nox.social)
+  - [ ] Create App ID (com.nox.social or com.nox.social)
   - [ ] Create Provisioning Profile (App Store distribution)
   - [ ] Configure Push Notifications certificate
   - [ ] Configure Associated Domains (for deep links)
@@ -343,7 +343,7 @@
 #### Pre-Launch Marketing
 
 - [ ] **Landing Page** (Optional but Recommended)
-  - [ ] Create simple landing page at rork.app or nox.social
+  - [ ] Create simple landing page at nox.social or nox.social
   - [ ] Email signup for launch notification
   - [ ] App Store badges + links
   - [ ] Highlight key features with screenshots
@@ -370,7 +370,7 @@
 #### Launch Day Preparation
 
 - [ ] **Customer Support Setup**
-  - [ ] Create support email: support@rork.app
+  - [ ] Create support email: support@nox.social
   - [ ] Add to App Store listing
   - [ ] Create FAQ document
   - [ ] Prepare canned responses for common issues

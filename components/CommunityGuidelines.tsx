@@ -74,7 +74,7 @@ export default function CommunityGuidelines() {
           </View>
           <Text style={styles.title}>Community Guidelines</Text>
           <Text style={styles.subtitle}>
-            Rork is a community built on respect, safety, and celebrating nightlife responsibly.
+            Nox is a community built on respect, safety, and celebrating nightlife responsibly.
             These guidelines help ensure everyone has a great experience.
           </Text>
         </View>
@@ -145,7 +145,7 @@ export default function CommunityGuidelines() {
           title="Safety & Responsibility"
         >
           <Text style={styles.description}>
-            Rork promotes responsible nightlife experiences.
+            Nox promotes responsible nightlife experiences.
           </Text>
           <RuleItem allowed text="Promoting safe and responsible behavior" />
           <RuleItem allowed text="Looking out for friends and fellow patrons" />
@@ -161,7 +161,7 @@ export default function CommunityGuidelines() {
           <View style={styles.ageWarningContent}>
             <Text style={styles.ageWarningTitle}>Age Requirement</Text>
             <Text style={styles.ageWarningText}>
-              You must be 18 years or older to use Rork. This app contains content related to nightlife venues,
+              You must be 18 years or older to use Nox. This app contains content related to nightlife venues,
               events, and establishments that serve alcohol.
             </Text>
           </View>

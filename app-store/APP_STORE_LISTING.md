@@ -1,4 +1,4 @@
-# App Store Listing Copy for Rork
+# App Store Listing Copy for Nox
 
 **For:** Apple App Store & Google Play Store
 **Date:** February 13, 2026
@@ -8,10 +8,10 @@
 
 ## App Name
 
-**Primary:** `Rork` (4 characters - Simple, memorable)
+**Primary:** `Nox` (4 characters - Simple, memorable)
 
-**Alternatives** (if "Rork" is taken):
-- `Rork Nightlife` (14 characters)
+**Alternatives** (if "Nox" is taken):
+- `Nox Nightlife` (14 characters)
 - `Nox Social` (10 characters)
 - `Vibe Social` (11 characters)
 
@@ -41,7 +41,7 @@
 ### Version 1: Feature-Focused (Recommended)
 
 ```
-Rork is the ultimate nightlife companion that helps you discover the best venues, connect with friends, and earn rewards while experiencing the city after dark.
+Nox is the ultimate nightlife companion that helps you discover the best venues, connect with friends, and earn rewards while experiencing the city after dark.
 
 DISCOVER IN REAL-TIME
 • See live venue vibes, crowd density, and wait times
@@ -93,18 +93,18 @@ PERFECT FOR:
 • Earning rewards at your favorite spots
 • Documenting memorable nights
 
-Download Rork and transform the way you experience nightlife. Your next adventure is waiting.
+Download Nox and transform the way you experience nightlife. Your next adventure is waiting.
 
 21+ ONLY - Must be 21 years or older to use.
 
 ---
 
 ABOUT RORK
-Rork is built by nightlife enthusiasts who believe going out should be exciting, rewarding, and effortless. We're creating a community where every night has the potential to become unforgettable.
+Nox is built by nightlife enthusiasts who believe going out should be exciting, rewarding, and effortless. We're creating a community where every night has the potential to become unforgettable.
 
-Questions? Contact us at support@rork.app
-Privacy: https://rork.app/privacy
-Terms: https://rork.app/terms
+Questions? Contact us at support@nox.social
+Privacy: https://nox.social/privacy
+Terms: https://nox.social/terms
 ```
 
 ### Version 2: Story-Driven (Alternative)
@@ -114,7 +114,7 @@ Remember the last time you spent 30 minutes scrolling through Google, trying to 
 
 That ends now.
 
-Rork shows you exactly what's happening at every venue, in real-time. See live videos. Check crowd levels. Find your friends. Make the decision in seconds, not minutes.
+Nox shows you exactly what's happening at every venue, in real-time. See live videos. Check crowd levels. Find your friends. Make the decision in seconds, not minutes.
 
 STOP GUESSING. START KNOWING.
 See real-time video highlights from every venue. Is the DJ killing it? Is the line ridiculous? Is your crew already there? You'll know before you leave your house.
@@ -133,15 +133,15 @@ This isn't Yelp with outdated reviews. It's not Instagram with curated highlight
 
 Join thousands of nightlife enthusiasts who've already discovered the smarter way to go out.
 
-Download Rork. Elevate your nights.
+Download Nox. Elevate your nights.
 
 21+ ONLY
 
 ---
 
-Contact: support@rork.app
-Web: https://rork.app
-Instagram: @rork.app
+Contact: support@nox.social
+Web: https://nox.social
+Instagram: @nox.social
 ```
 
 ---
@@ -171,7 +171,7 @@ nightlife,club finder,bar finder,events,party app,vibe check,DJ,friends nearby,r
 
 **For Launch:**
 ```
-🎉 Welcome to Rork! Discover real-time nightlife, earn rewards at your favorite venues, and connect with friends. Download now and get your first challenge reward free!
+🎉 Welcome to Nox! Discover real-time nightlife, earn rewards at your favorite venues, and connect with friends. Download now and get your first challenge reward free!
 ```
 
 **For Updates:**
@@ -219,11 +219,11 @@ NEW: Group ticket purchases! Split costs with friends and save. Plus, enhanced c
 
 ## Support & Contact Information
 
-**Support Email:** support@rork.app
-**Privacy Policy URL:** https://rork.app/privacy
-**Terms of Service URL:** https://rork.app/terms
-**Website:** https://rork.app
-**Marketing Website URL (optional):** https://rork.app
+**Support Email:** support@nox.social
+**Privacy Policy URL:** https://nox.social/privacy
+**Terms of Service URL:** https://nox.social/terms
+**Website:** https://nox.social
+**Marketing Website URL (optional):** https://nox.social
 
 ---
 
@@ -244,7 +244,7 @@ NEW: Group ticket purchases! Split costs with friends and save. Plus, enhanced c
 
 **Required for Apple/Google reviewers to test the app**
 
-**Email:** reviewer@rork.app
+**Email:** reviewer@nox.social
 **Password:** ReviewAccess2026!
 
 **Pre-configured with:**
@@ -262,7 +262,7 @@ NEW: Group ticket purchases! Split costs with friends and save. Plus, enhanced c
 
 ### Version 1.0.0 (Initial Release)
 ```
-Welcome to Rork! 🎉
+Welcome to Nox! 🎉
 
 Discover nightlife like never before:
 ✓ Real-time venue discovery with live videos
@@ -284,15 +284,15 @@ Bug fixes and performance improvements:
 • Enhanced video upload stability
 • General bug fixes
 
-Thanks for your feedback! Keep it coming at support@rork.app
+Thanks for your feedback! Keep it coming at support@nox.social
 ```
 
 ---
 
 ## Copyright & Trademark
 
-**Copyright:** © 2026 Rork. All rights reserved.
-**Trademark:** Rork™
+**Copyright:** © 2026 Nox. All rights reserved.
+**Trademark:** Nox™
 
 ---
 
@@ -385,4 +385,4 @@ Before submission, prepare:
 
 **Good luck with your submission! 🚀**
 
-Questions? Email support@rork.app
+Questions? Email support@nox.social

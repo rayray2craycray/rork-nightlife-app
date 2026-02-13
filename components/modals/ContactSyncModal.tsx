@@ -67,10 +67,10 @@ export default function ContactSyncModal({
               <Users size={48} color="#ff0080" />
             </View>
 
-            <Text style={styles.title}>Find Friends on Rork</Text>
+            <Text style={styles.title}>Find Friends on Nox</Text>
 
             <Text style={styles.description}>
-              Connect with friends who are already on Rork by syncing your contacts. This is completely optional!
+              Connect with friends who are already on Nox by syncing your contacts. This is completely optional!
             </Text>
 
             <View style={styles.benefitsList}>
@@ -79,7 +79,7 @@ export default function ContactSyncModal({
                   <Users size={18} color="#4ade80" />
                 </View>
                 <Text style={styles.benefitText}>
-                  Instantly find friends who use Rork
+                  Instantly find friends who use Nox
                 </Text>
               </View>
 

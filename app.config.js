@@ -12,19 +12,19 @@ const IS_STAGING = process.env.APP_ENV === 'staging';
 
 // API URLs
 const API_URL = process.env.API_URL ||
-  (IS_PRODUCTION ? 'https://api.rork.app' :
-   IS_STAGING ? 'https://staging-api.rork.app' :
+  (IS_PRODUCTION ? 'https://api.nox.social' :
+   IS_STAGING ? 'https://staging-api.nox.social' :
    'http://localhost:5000');
 
 // App identifiers
-const APP_NAME = process.env.APP_NAME || 'Rork Nightlife';
-const APP_SLUG = process.env.APP_SLUG || 'rork-nightlife';
+const APP_NAME = process.env.APP_NAME || 'Nox Nightlife';
+const APP_SLUG = process.env.APP_SLUG || 'nox';
 const APP_VERSION = process.env.APP_VERSION || '1.0.0';
 const BUILD_NUMBER = process.env.BUILD_NUMBER || '1';
 
 // Bundle identifiers
-const IOS_BUNDLE_ID = process.env.IOS_BUNDLE_ID || 'app.rork.nightlife';
-const ANDROID_PACKAGE = process.env.ANDROID_PACKAGE || 'app.rork.nightlife';
+const IOS_BUNDLE_ID = process.env.IOS_BUNDLE_ID || 'social.nox.nightlife';
+const ANDROID_PACKAGE = process.env.ANDROID_PACKAGE || 'social.nox.nightlife';
 
 // EAS Build configuration
 const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || '';
@@ -36,7 +36,7 @@ module.exports = {
     version: APP_VERSION,
     orientation: 'portrait',
     icon: './assets/images/icon.png',
-    scheme: 'rork-app',
+    scheme: 'nox',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
 
@@ -51,12 +51,12 @@ module.exports = {
       bundleIdentifier: IOS_BUNDLE_ID,
       buildNumber: BUILD_NUMBER,
       infoPlist: {
-        NSCameraUsageDescription: 'Rork needs camera access to capture venue moments and create video highlights.',
-        NSMicrophoneUsageDescription: 'Rork needs microphone access to record video highlights.',
-        NSPhotoLibraryUsageDescription: 'Rork needs photo library access to upload your memories.',
-        NSLocationWhenInUseUsageDescription: 'Rork needs your location to verify you\'re at a venue when capturing memories.',
-        NSLocationAlwaysAndWhenInUseUsageDescription: 'Rork needs your location to verify you\'re at a venue.',
-        NSLocationAlwaysUsageDescription: 'Rork needs your location to discover nearby venues.',
+        NSCameraUsageDescription: 'Nox needs camera access to capture venue moments and create video highlights.',
+        NSMicrophoneUsageDescription: 'Nox needs microphone access to record video highlights.',
+        NSPhotoLibraryUsageDescription: 'Nox needs photo library access to upload your memories.',
+        NSLocationWhenInUseUsageDescription: 'Nox needs your location to verify you\'re at a venue when capturing memories.',
+        NSLocationAlwaysAndWhenInUseUsageDescription: 'Nox needs your location to verify you\'re at a venue.',
+        NSLocationAlwaysUsageDescription: 'Nox needs your location to discover nearby venues.',
         UIBackgroundModes: ['audio', 'location'],
       },
       config: {
@@ -101,7 +101,7 @@ module.exports = {
       [
         'expo-router',
         {
-          origin: IS_PRODUCTION ? 'https://rork.app/' : 'https://rork.com/',
+          origin: IS_PRODUCTION ? 'https://nox.social/' : 'https://nox.social/',
         },
       ],
       'expo-font',
@@ -109,21 +109,21 @@ module.exports = {
       [
         'expo-camera',
         {
-          cameraPermission: 'Rork needs camera access to capture venue moments.',
-          microphonePermission: 'Rork needs microphone access to record videos.',
+          cameraPermission: 'Nox needs camera access to capture venue moments.',
+          microphonePermission: 'Nox needs microphone access to record videos.',
           recordAudioAndroid: true,
         },
       ],
       [
         'expo-image-picker',
         {
-          photosPermission: 'Rork needs access to your photos to upload memories.',
+          photosPermission: 'Nox needs access to your photos to upload memories.',
         },
       ],
       [
         'expo-av',
         {
-          microphonePermission: 'Rork needs microphone access to record video highlights.',
+          microphonePermission: 'Nox needs microphone access to record video highlights.',
         },
       ],
       [
@@ -132,7 +132,7 @@ module.exports = {
           isAndroidForegroundServiceEnabled: true,
           isAndroidBackgroundLocationEnabled: false, // Set to true if background location needed
           isIosBackgroundLocationEnabled: false,
-          locationAlwaysAndWhenInUsePermission: 'Rork needs your location to verify venue check-ins.',
+          locationAlwaysAndWhenInUsePermission: 'Nox needs your location to verify venue check-ins.',
         },
       ],
     ],

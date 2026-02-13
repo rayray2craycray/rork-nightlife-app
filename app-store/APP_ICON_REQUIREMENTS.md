@@ -1,4 +1,4 @@
-# App Icon Requirements for Rork
+# App Icon Requirements for Nox
 
 **Date:** February 13, 2026
 **Budget:** $20-200 (depending on designer vs. DIY)
@@ -24,7 +24,7 @@
 - This document
 - Brand colors (see below)
 - Reference icons you like (screenshots)
-- App name: "Rork"
+- App name: "Nox"
 - Concept: Nightlife, social, rewards, discovery
 
 ### Option 2: DIY with Figma/Sketch - Free, 2-4 hours
@@ -195,14 +195,14 @@
 - **High contrast** - Should work on any background
 - **Unique shape** - Stand out among other apps
 - **Scalable** - Must look good at all sizes
-- **On-brand** - Use Rork's pink/purple colors
+- **On-brand** - Use Nox's pink/purple colors
 - **Test at small size** - View at 60x60px before finalizing
 - **Avoid text** - Unless extremely legible
 
 ### Don'ts ❌
 - **Don't use photos** - Use vector graphics/illustrations
 - **Don't use gradients as background** - Hard to read at small sizes
-- **Don't include wordmark** - "Rork" text is too small
+- **Don't include wordmark** - "Nox" text is too small
 - **Don't use too many colors** - Stick to 2-3 max
 - **Don't copy competitors** - Be original
 - **Don't use generic templates** - Customize heavily
@@ -352,10 +352,10 @@ rork-icon-vector.svg           (Vector export)
 **Copy-paste this to send to a designer:**
 
 ```
-PROJECT: Mobile App Icon for "Rork" - Nightlife Discovery App
+PROJECT: Mobile App Icon for "Nox" - Nightlife Discovery App
 
 ABOUT THE APP:
-Rork is a social nightlife discovery app (like Instagram + Yelp for nightclubs/bars).
+Nox is a social nightlife discovery app (like Instagram + Yelp for nightclubs/bars).
 Users discover venues, connect with friends, earn rewards, and share experiences.
 
 TARGET AUDIENCE:
@@ -464,6 +464,6 @@ Before finalizing:
 
 ---
 
-**Questions? Email support@rork.app**
+**Questions? Email support@nox.social**
 
 **Good luck! Your icon will be the face of your app - make it count! 🎨**

@@ -73,7 +73,7 @@ export default function VerificationPendingScreen() {
           <StepItem
             icon={<Mail size={20} color={COLORS.accent} />}
             title="Check your inbox"
-            description="Look for an email from Rork Nightlife"
+            description="Look for an email from Nox"
           />
           <StepItem
             icon={<CheckCircle2 size={20} color={COLORS.accent} />}

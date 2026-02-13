@@ -287,7 +287,7 @@ export const mockStoryTemplates: StoryTemplate[] = [
     overlayElements: [
       {
         type: 'TEXT',
-        content: 'Get $10 off Rork!',
+        content: 'Get $10 off Nox!',
         position: { x: 50, y: 30 },
         style: { fontSize: 30, fontWeight: 'bold', color: '#ffffff' },
       },

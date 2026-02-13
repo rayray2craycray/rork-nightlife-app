@@ -23,8 +23,8 @@ export function ReferralCard({ referralStats, onViewRewards }: ReferralCardProps
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await Share.share({
-        message: `Get $10 off Rork with my referral code: ${referralStats.referralCode}\n\nDownload the app: https://rork.com/download`,
-        title: 'Join me on Rork!',
+        message: `Get $10 off Nox with my referral code: ${referralStats.referralCode}\n\nDownload the app: https://nox.social/download`,
+        title: 'Join me on Nox!',
       });
     } catch (error) {
       console.error('Error sharing:', error);

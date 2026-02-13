@@ -1,4 +1,4 @@
-# App Store Screenshots Guide for Rork
+# App Store Screenshots Guide for Nox
 
 **Date:** February 13, 2026
 **Priority:** 🔴 CRITICAL - Required for App Store submission
@@ -215,7 +215,7 @@ npx expo start
 **Step 1: Create Figma File**
 ```
 1. Sign up at figma.com (free)
-2. Create new file: "Rork App Screenshots"
+2. Create new file: "Nox App Screenshots"
 3. Create frames for each device size:
    - iPhone 6.7": 1290 x 2796
    - iPhone 6.5": 1284 x 2778
@@ -554,6 +554,6 @@ If you don't have design skills:
 
 ---
 
-**Questions? Email support@rork.app**
+**Questions? Email support@nox.social**
 
 **Your screenshots are your first impression - make them count! 📸**

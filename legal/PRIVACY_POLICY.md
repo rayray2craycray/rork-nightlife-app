@@ -1,4 +1,4 @@
-# Privacy Policy for Rork (Nox Social)
+# Privacy Policy for Nox Social
 
 **Effective Date:** February 13, 2026
 **Last Updated:** February 13, 2026
@@ -7,9 +7,9 @@
 
 ## 1. Introduction
 
-Welcome to Rork ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application (the "App").
+Welcome to Nox Social ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application (the "App").
 
-**By using Rork, you agree to the collection and use of information in accordance with this policy.**
+**By using Nox Social, you agree to the collection and use of information in accordance with this policy.**
 
 ---
 
@@ -66,7 +66,7 @@ Welcome to Rork ("we," "our," or "us"). We respect your privacy and are committe
 - If you connect your Instagram account, we may receive your public profile information, followers list, and content you authorize us to access.
 
 **Friends and Contacts:**
-- If you grant permission, we may access your contacts to help you find friends who use Rork. We do not store your entire contact list without your consent.
+- If you grant permission, we may access your contacts to help you find friends who use Nox Social. We do not store your entire contact list without your consent.
 
 ---
 
@@ -162,7 +162,7 @@ We may disclose your information if required by law or in response to:
 - Prevention of fraud or illegal activity
 
 ### 4.4 Business Transfers
-If Rork is acquired by or merged with another company, your information may be transferred to the new owner.
+If Nox Social is acquired by or merged with another company, your information may be transferred to the new owner.
 
 ### 4.5 Aggregated and Anonymized Data
 We may share aggregated or anonymized data that cannot identify you personally, such as:
@@ -190,7 +190,7 @@ We may share aggregated or anonymized data that cannot identify you personally, 
 
 ### 5.4 Data Portability
 - You have the right to receive a copy of your data in a machine-readable format
-- Contact us at privacy@rork.app to request your data
+- Contact us at privacy@nox.social to request your data
 
 ### 5.5 GDPR Rights (European Users)
 If you are in the European Economic Area (EEA), you have additional rights:
@@ -202,7 +202,7 @@ If you are in the European Economic Area (EEA), you have additional rights:
 - **Right to Object:** Object to processing of your data
 - **Right to Withdraw Consent:** Withdraw consent at any time
 
-To exercise these rights, contact us at privacy@rork.app.
+To exercise these rights, contact us at privacy@nox.social.
 
 ### 5.6 CCPA Rights (California Users)
 If you are a California resident, you have the right to:
@@ -212,7 +212,7 @@ If you are a California resident, you have the right to:
 - Request deletion of your personal data
 - Not be discriminated against for exercising your privacy rights
 
-To exercise these rights, contact us at privacy@rork.app.
+To exercise these rights, contact us at privacy@nox.social.
 
 ---
 
@@ -253,21 +253,21 @@ We implement industry-standard security measures to protect your data:
 
 ## 8. Children's Privacy (COPPA Compliance)
 
-**Rork is not intended for users under 21 years of age.**
+**Nox Social is not intended for users under 21 years of age.**
 
 We require all users to verify they are at least 21 years old during registration. We do not knowingly collect personal information from anyone under 21.
 
 If we discover a user is under 21, we will delete their account and data immediately.
 
-If you believe a child under 21 has created an account, please contact us at privacy@rork.app.
+If you believe a child under 21 has created an account, please contact us at privacy@nox.social.
 
 ---
 
 ## 9. International Data Transfers
 
-Rork is based in the United States. If you access our app from outside the U.S., your data may be transferred to, stored in, and processed in the United States.
+Nox Social is based in the United States. If you access our app from outside the U.S., your data may be transferred to, stored in, and processed in the United States.
 
-**By using Rork, you consent to the transfer of your data to the United States.**
+**By using Nox Social, you consent to the transfer of your data to the United States.**
 
 We take steps to ensure your data is protected in accordance with this privacy policy, regardless of where it is processed.
 
@@ -287,7 +287,7 @@ We may update this privacy policy from time to time. When we make changes:
 
 - We will update the "Last Updated" date at the top
 - For significant changes, we will notify you via email or in-app notification
-- Your continued use of Rork after changes constitutes acceptance of the updated policy
+- Your continued use of Nox Social after changes constitutes acceptance of the updated policy
 
 We encourage you to review this policy periodically.
 
@@ -297,9 +297,9 @@ We encourage you to review this policy periodically.
 
 If you have questions, concerns, or requests regarding this privacy policy or your data:
 
-**Email:** privacy@rork.app
-**Support:** support@rork.app
-**Mail:** Rork, [Your Business Address]
+**Email:** privacy@nox.social
+**Support:** support@nox.social
+**Mail:** Nox Social, [Your Business Address]
 
 **Response Time:** We aim to respond to all privacy inquiries within 7 business days.
 
@@ -309,7 +309,7 @@ If you have questions, concerns, or requests regarding this privacy policy or yo
 
 For users in the European Union, you may contact our Data Protection Officer at:
 
-**Email:** dpo@rork.app
+**Email:** dpo@nox.social
 
 ---
 
@@ -327,7 +327,7 @@ Some browsers have a "Do Not Track" feature. Our app does not currently respond 
 
 ## 16. Your Consent
 
-By using Rork, you consent to this privacy policy and our collection, use, and sharing of your information as described herein.
+By using Nox Social, you consent to this privacy policy and our collection, use, and sharing of your information as described herein.
 
 If you do not agree with this policy, please do not use our app.
 
@@ -361,7 +361,7 @@ If you do not agree with this policy, please do not use our app.
 - Turn off location tracking
 - Opt out of notifications
 
-**Questions?** Email us at privacy@rork.app
+**Questions?** Email us at privacy@nox.social
 
 ---
 

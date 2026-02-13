@@ -1,7 +1,7 @@
 {
-  "name": "rork-nightlife-backend",
+  "name": "nox-backend",
   "version": "2.0.0",
-  "description": "Rork Nightlife API - Business profiles, events, social features, and venue management",
+  "description": "Nox API - Business profiles, events, social features, and venue management",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -15,11 +15,11 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "setup": "npm install && cp .env.example .env && echo '\n✅ Setup complete! Edit .env with your credentials.'",
-    "deploy:pm2": "pm2 start src/server.js --name rork-api --env production",
-    "deploy:pm2:cluster": "pm2 start src/server.js --name rork-api --env production --instances 2 --exec-mode cluster",
-    "deploy:restart": "pm2 restart rork-api",
-    "deploy:stop": "pm2 stop rork-api",
-    "deploy:logs": "pm2 logs rork-api",
+    "deploy:pm2": "pm2 start src/server.js --name nox-api --env production",
+    "deploy:pm2:cluster": "pm2 start src/server.js --name nox-api --env production --instances 2 --exec-mode cluster",
+    "deploy:restart": "pm2 restart nox-api",
+    "deploy:stop": "pm2 stop nox-api",
+    "deploy:logs": "pm2 logs nox-api",
     "deploy:status": "pm2 status",
     "backup": "node scripts/backup-database.js",
     "backup:restore": "node scripts/restore-database.js",
@@ -32,7 +32,7 @@
     "social",
     "api"
   ],
-  "author": "Rork Nightlife",
+  "author": "Nox Social",
   "license": "MIT",
   "dependencies": {
     "@sentry/node": "^10.37.0",

@@ -107,7 +107,7 @@ export default function AgeVerificationGate({
             <Text style={styles.title}>Age Verification Required</Text>
 
             <Text style={styles.description}>
-              You must be 18 years or older to use Rork Nightlife. This app contains content related to nightlife venues, events, and alcohol service.
+              You must be 18 years or older to use Nox Nightlife. This app contains content related to nightlife venues, events, and alcohol service.
             </Text>
 
             <View style={styles.dateSection}>

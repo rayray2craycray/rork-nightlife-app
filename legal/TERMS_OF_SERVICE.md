@@ -1,4 +1,4 @@
-# Terms of Service for Rork (Nox Social)
+# Terms of Service for Nox Social
 
 **Effective Date:** February 13, 2026
 **Last Updated:** February 13, 2026
@@ -7,7 +7,7 @@
 
 ## 1. Acceptance of Terms
 
-Welcome to Rork ("we," "our," or "us"). By accessing or using the Rork mobile application (the "App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the App.
+Welcome to Nox Social ("we," "our," or "us"). By accessing or using the Nox Social mobile application (the "App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the App.
 
 **THESE TERMS CONTAIN A MANDATORY ARBITRATION PROVISION AND CLASS ACTION WAIVER (SECTION 15). PLEASE READ CAREFULLY.**
 
@@ -17,7 +17,7 @@ Welcome to Rork ("we," "our," or "us"). By accessing or using the Rork mobile ap
 
 ### 2.1 Age Requirement
 
-**You must be at least 21 years old to use Rork.**
+**You must be at least 21 years old to use Nox Social.**
 
 By creating an account, you represent and warrant that:
 - You are at least 21 years of age
@@ -47,7 +47,7 @@ You must create an account to use certain features. You agree to:
 
 ### 3.1 Permitted Uses
 
-You may use Rork to:
+You may use Nox Social to:
 - Discover nightlife venues and events
 - Connect with friends and other users
 - Share photos and videos from nightlife experiences
@@ -116,9 +116,9 @@ You retain ownership of content you post ("User Content"), including:
 - Reviews and ratings
 - Profile information
 
-### 4.2 License to Rork
+### 4.2 License to Nox Social
 
-By posting User Content, you grant Rork a:
+By posting User Content, you grant Nox Social a:
 - **Worldwide, non-exclusive, royalty-free, sublicensable, transferable license**
 - To use, reproduce, distribute, display, and modify your User Content
 - For the purposes of operating, promoting, and improving the App
@@ -147,9 +147,9 @@ We reserve the right to:
 
 ### 4.5 Copyright and DMCA
 
-We respect intellectual property rights. If you believe content on Rork infringes your copyright:
+We respect intellectual property rights. If you believe content on Nox Social infringes your copyright:
 
-**Email:** dmca@rork.app
+**Email:** dmca@nox.social
 **Include:**
 - Your contact information
 - Description of the copyrighted work
@@ -168,22 +168,22 @@ We will respond to valid DMCA notices in accordance with the Digital Millennium 
 
 ### 5.1 Ticket Sales
 
-When purchasing tickets through Rork:
-- Tickets are sold by the venue or event organizer, not by Rork
+When purchasing tickets through Nox Social:
+- Tickets are sold by the venue or event organizer, not by Nox Social
 - We act as a platform to facilitate ticket sales
 - Prices, availability, and terms are set by the venue
 - All sales are final unless otherwise stated by the venue
 
 ### 5.2 Ticket Transfers
 
-You may transfer tickets to other Rork users through the App. Once transferred:
+You may transfer tickets to other Nox Social users through the App. Once transferred:
 - You lose all rights to the ticket
 - The transfer cannot be undone
 - The new holder can use the ticket for entry
 
 ### 5.3 Refunds
 
-Refund policies are set by the venue or event organizer. Contact the venue directly for refund requests. Rork does not issue refunds for tickets purchased through the App, except:
+Refund policies are set by the venue or event organizer. Contact the venue directly for refund requests. Nox Social does not issue refunds for tickets purchased through the App, except:
 - If an event is cancelled by the organizer
 - If required by law
 
@@ -211,7 +211,7 @@ Payments are processed by third-party payment processors (Stripe). By making a p
 
 ### 6.3 Billing Disputes
 
-For billing disputes, contact support@rork.app within 30 days of the charge.
+For billing disputes, contact support@nox.social within 30 days of the charge.
 
 ---
 
@@ -227,7 +227,7 @@ For billing disputes, contact support@rork.app within 30 days of the charge.
 ### 7.2 Rewards
 
 - Rewards may include discounts, free items, or special access
-- Rewards are provided by venues, not by Rork
+- Rewards are provided by venues, not by Nox Social
 - Rewards may have expiration dates and restrictions
 - We are not responsible for fulfilling venue-provided rewards
 
@@ -270,22 +270,22 @@ Upon termination:
 
 ## 9. Privacy
 
-Your use of the App is governed by our Privacy Policy, available at [https://rork.app/privacy](https://rork.app/privacy).
+Your use of the App is governed by our Privacy Policy, available at [https://nox.social/privacy](https://nox.social/privacy).
 
-By using Rork, you consent to our collection, use, and sharing of your information as described in the Privacy Policy.
+By using Nox Social, you consent to our collection, use, and sharing of your information as described in the Privacy Policy.
 
 ---
 
 ## 10. Intellectual Property
 
-### 10.1 Rork's Rights
+### 10.1 Nox Social's Rights
 
-The App and all content (excluding User Content) are owned by Rork and protected by:
+The App and all content (excluding User Content) are owned by Nox Social and protected by:
 - Copyright, trademark, and patent laws
 - International treaties and conventions
 
 This includes:
-- The Rork name and logo
+- The Nox Social name and logo
 - App design, layout, and user interface
 - Software code and algorithms
 - Text, graphics, and other content
@@ -302,7 +302,7 @@ We grant you a limited, non-exclusive, non-transferable, revocable license to us
 
 ### 10.3 Trademarks
 
-"Rork" and our logo are trademarks of Rork. You may not use our trademarks without our written permission.
+"Nox Social" and our logo are trademarks of Nox Social. You may not use our trademarks without our written permission.
 
 ---
 
@@ -343,7 +343,7 @@ We disclaim all warranties, including:
 
 ### 12.4 Limitation of Liability
 
-**TO THE MAXIMUM EXTENT PERMITTED BY LAW, RORK AND ITS AFFILIATES, OFFICERS, EMPLOYEES, AND AGENTS WILL NOT BE LIABLE FOR:**
+**TO THE MAXIMUM EXTENT PERMITTED BY LAW, NOX SOCIAL AND ITS AFFILIATES, OFFICERS, EMPLOYEES, AND AGENTS WILL NOT BE LIABLE FOR:**
 
 - Indirect, incidental, special, consequential, or punitive damages
 - Loss of profits, data, or goodwill
@@ -352,7 +352,7 @@ We disclaim all warranties, including:
 
 **OUR TOTAL LIABILITY TO YOU FOR ALL CLAIMS WILL NOT EXCEED THE GREATER OF:**
 - $100, or
-- The amount you paid to Rork in the 12 months before the claim
+- The amount you paid to Nox Social in the 12 months before the claim
 
 **Some jurisdictions do not allow limitation of liability. In such cases, our liability is limited to the maximum extent permitted by law.**
 
@@ -360,7 +360,7 @@ We disclaim all warranties, including:
 
 ## 13. Indemnification
 
-You agree to indemnify, defend, and hold harmless Rork and its affiliates, officers, employees, and agents from any claims, damages, losses, liabilities, and expenses (including attorney's fees) arising from:
+You agree to indemnify, defend, and hold harmless Nox Social and its affiliates, officers, employees, and agents from any claims, damages, losses, liabilities, and expenses (including attorney's fees) arising from:
 
 - Your violation of these Terms
 - Your violation of any law or third-party rights
@@ -374,11 +374,11 @@ You agree to indemnify, defend, and hold harmless Rork and its affiliates, offic
 
 ### 14.1 Informal Resolution
 
-Before filing a claim, you agree to contact us at legal@rork.app and attempt to resolve the dispute informally for at least 30 days.
+Before filing a claim, you agree to contact us at legal@nox.social and attempt to resolve the dispute informally for at least 30 days.
 
 ### 14.2 Arbitration Agreement
 
-**YOU AND RORK AGREE TO RESOLVE DISPUTES THROUGH BINDING ARBITRATION, NOT IN COURT.**
+**YOU AND NOX SOCIAL AGREE TO RESOLVE DISPUTES THROUGH BINDING ARBITRATION, NOT IN COURT.**
 
 **Arbitration is less formal than court and does not allow for appeals or jury trials.**
 
@@ -398,7 +398,7 @@ By agreeing to these Terms, you waive your right to:
 
 ### 14.3 Class Action Waiver
 
-**YOU AND RORK AGREE THAT DISPUTES MUST BE BROUGHT INDIVIDUALLY, NOT AS A CLASS ACTION.**
+**YOU AND NOX SOCIAL AGREE THAT DISPUTES MUST BE BROUGHT INDIVIDUALLY, NOT AS A CLASS ACTION.**
 
 You may not:
 - Participate in a class, consolidated, or representative action
@@ -417,7 +417,7 @@ These Terms are governed by the laws of the State of [Your State], without regar
 
 ### 15.1 Entire Agreement
 
-These Terms, together with the Privacy Policy and any other policies referenced, constitute the entire agreement between you and Rork.
+These Terms, together with the Privacy Policy and any other policies referenced, constitute the entire agreement between you and Nox Social.
 
 ### 15.2 Modifications
 
@@ -447,7 +447,7 @@ We are not liable for delays or failures due to events beyond our reasonable con
 ### 15.7 Notices
 
 **To You:** We may send notices via email or in-app notifications.
-**To Us:** Send notices to legal@rork.app or [Your Business Address].
+**To Us:** Send notices to legal@nox.social or [Your Business Address].
 
 ### 15.8 Export Controls
 
@@ -459,9 +459,9 @@ You may not use the App if you are prohibited from receiving U.S. exports under 
 
 If you have questions about these Terms:
 
-**Email:** legal@rork.app
-**Support:** support@rork.app
-**Mail:** Rork, [Your Business Address]
+**Email:** legal@nox.social
+**Support:** support@nox.social
+**Mail:** Nox Social, [Your Business Address]
 
 ---
 
@@ -485,11 +485,11 @@ If you have questions about these Terms:
 - You agree to arbitration instead of court
 - No class action lawsuits
 
-**Questions?** Email us at legal@rork.app
+**Questions?** Email us at legal@nox.social
 
 ---
 
-**By using Rork, you agree to these Terms of Service.**
+**By using Nox Social, you agree to these Terms of Service.**
 
 **Last Updated: February 13, 2026**
 

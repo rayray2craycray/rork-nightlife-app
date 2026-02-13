@@ -17,12 +17,12 @@ import { useAuth } from './AuthContext';
 
 // Storage Keys
 const STORAGE_KEYS = {
-  EVENTS: '@rork/events',
-  TICKETS: '@rork/tickets',
-  TICKET_TIERS: '@rork/ticketTiers',
-  TICKET_TRANSFERS: '@rork/ticketTransfers',
-  GUEST_LIST: '@rork/guestList',
-  CHECK_IN_RECORDS: '@rork/checkInRecords',
+  EVENTS: '@nox/events',
+  TICKETS: '@nox/tickets',
+  TICKET_TIERS: '@nox/ticketTiers',
+  TICKET_TRANSFERS: '@nox/ticketTransfers',
+  GUEST_LIST: '@nox/guestList',
+  CHECK_IN_RECORDS: '@nox/checkInRecords',
 };
 
 interface EventsContextValue {
